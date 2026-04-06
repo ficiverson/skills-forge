@@ -7,8 +7,8 @@ A clean-architecture toolkit for crafting, validating, and installing Claude Cod
 ```
 src/skill_forge/
 ├── domain/           # Core models, validators, ports (zero dependencies)
-├── application/      # Use cases: create, lint, install
-├── infrastructure/   # Adapters: filesystem, markdown parser/renderer, symlinks
+├── application/      # Use cases: create, lint, install, pack/unpack, publish, install-from-url
+├── infrastructure/   # Adapters: filesystem, markdown, symlinks, zip packer, git registry, http fetcher
 └── cli/              # Typer CLI + composition root (factory.py)
 
 output_skills/        # Authored skills organized by category
@@ -20,19 +20,23 @@ docs/                 # Guides: getting-started, clean-principles
 ## Commands
 
 ```bash
-skill-forge create -n <name> -c <category> -d "<description>" -e <emoji>
-skill-forge lint <path>          # Validate a skill or directory
-skill-forge install <path>       # Symlink into ~/.claude/skills/ (global)
-skill-forge install <path> -s project  # Symlink into .claude/skills/ (project)
-skill-forge list [directory]     # List skills with token estimates
-skill-forge init                 # Initialize a new workspace
+skill-forge create -n <name> -c <category> -d "<description>" -e <emoji> [-v 0.1.0]
+skill-forge lint <path>                       # Validate a skill or directory
+skill-forge install <path>                    # Symlink into ~/.claude/skills/ (global)
+skill-forge install <path> -s project         # Symlink into .claude/skills/ (project)
+skill-forge install <https-url> [--sha256 …]  # Fetch a remote .skillpack and install it
+skill-forge list [directory]                  # List skills with token estimates
+skill-forge pack <skill-dir...> [-o out]      # Bundle skill(s) into a .skillpack archive
+skill-forge unpack <pack> [-o dest]           # Extract a .skillpack into a directory
+skill-forge publish <pack> -r <registry-clone> -u <base-url> [--push]
+skill-forge init                              # Initialize a new workspace
 ```
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
-pytest                           # 84 tests
+pytest                           # 168 tests
 ruff check src/ tests/           # Linting
 mypy src/                        # Type checking
 ```

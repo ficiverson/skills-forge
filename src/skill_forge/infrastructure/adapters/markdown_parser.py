@@ -6,6 +6,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from skill_forge.domain.model import (
+    DEFAULT_SKILL_VERSION,
     Asset,
     Dependency,
     Description,
@@ -30,6 +31,7 @@ class MarkdownSkillParser(SkillParser):
         name = frontmatter.get("name", "unknown")
         description_text = frontmatter.get("description", "")
         category = self._infer_category(base_path)
+        version = (frontmatter.get("version") or DEFAULT_SKILL_VERSION).strip()
 
         identity = SkillIdentity(name=name, category=category)
         description = Description(text=description_text.strip())
@@ -60,6 +62,7 @@ class MarkdownSkillParser(SkillParser):
                 for p, d in assets
             ],
             depends_on=depends_on,
+            version=version,
         )
 
     def _parse_frontmatter(self, content: str) -> dict[str, str]:

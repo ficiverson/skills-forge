@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import PurePosixPath
+from typing import ClassVar
 
 
 class Severity(Enum):
@@ -145,6 +146,9 @@ class SkillContent:
         return total_words * 2
 
 
+DEFAULT_SKILL_VERSION = "0.1.0"
+
+
 @dataclass
 class Skill:
     """Aggregate root: a complete Claude Code skill."""
@@ -158,6 +162,7 @@ class Skill:
     assets: list[Asset] = field(default_factory=list)
     examples: list[Example] = field(default_factory=list)
     depends_on: list[Dependency] = field(default_factory=list)
+    version: str = DEFAULT_SKILL_VERSION
 
     @property
     def total_estimated_tokens(self) -> int:
@@ -182,6 +187,198 @@ class Skill:
     @property
     def has_dependencies(self) -> bool:
         return len(self.depends_on) > 0
+
+
+@dataclass(frozen=True)
+class SkillRef:
+    """A reference to a skill inside a pack — category + name + version."""
+
+    category: str
+    name: str
+    version: str = "0.1.0"
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ValueError("SkillRef name cannot be empty")
+        if not self.category or not self.category.strip():
+            raise ValueError("SkillRef category cannot be empty")
+        if not self.version or not self.version.strip():
+            raise ValueError("SkillRef version cannot be empty")
+
+    def __str__(self) -> str:
+        return f"{self.category}/{self.name}@{self.version}"
+
+
+@dataclass(frozen=True)
+class SkillPackManifest:
+    """Metadata describing the contents of a .skillpack archive.
+
+    A .skillpack is a zip file containing one or more skill directories
+    plus a `manifest.json` at the root with this metadata.
+    """
+
+    FORMAT_VERSION: ClassVar[str] = "1"
+
+    name: str
+    version: str
+    author: str
+    created_at: str  # ISO 8601 timestamp
+    skills: tuple[SkillRef, ...]
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ValueError("SkillPackManifest name cannot be empty")
+        if not self.version or not self.version.strip():
+            raise ValueError("SkillPackManifest version cannot be empty")
+        if not self.skills:
+            raise ValueError("SkillPackManifest must reference at least one skill")
+
+    @property
+    def skill_count(self) -> int:
+        return len(self.skills)
+
+
+@dataclass(frozen=True)
+class IndexedVersion:
+    """One published version of a skill in a registry index."""
+
+    version: str
+    path: str  # repo-relative POSIX path, e.g. "packs/dev/python-tdd-0.2.0.skillpack"
+    sha256: str  # hex digest of the .skillpack contents
+
+    def __post_init__(self) -> None:
+        if not self.version or not self.version.strip():
+            raise ValueError("IndexedVersion version cannot be empty")
+        if not self.path or not self.path.strip():
+            raise ValueError("IndexedVersion path cannot be empty")
+        if not self.sha256 or len(self.sha256) != 64:
+            raise ValueError("IndexedVersion sha256 must be a 64-char hex digest")
+
+
+@dataclass(frozen=True)
+class IndexedSkill:
+    """A skill listed in a registry index, with all its published versions."""
+
+    category: str
+    name: str
+    latest: str
+    versions: tuple[IndexedVersion, ...]
+
+    def __post_init__(self) -> None:
+        if not self.category or not self.category.strip():
+            raise ValueError("IndexedSkill category cannot be empty")
+        if not self.name or not self.name.strip():
+            raise ValueError("IndexedSkill name cannot be empty")
+        if not self.versions:
+            raise ValueError("IndexedSkill must have at least one version")
+        known = {v.version for v in self.versions}
+        if self.latest not in known:
+            raise ValueError(
+                f"IndexedSkill latest '{self.latest}' must be one of {sorted(known)}"
+            )
+
+    def find(self, version: str) -> IndexedVersion | None:
+        for v in self.versions:
+            if v.version == version:
+                return v
+        return None
+
+
+@dataclass(frozen=True)
+class RegistryIndex:
+    """The catalog file at the root of a skill registry repo (``index.json``).
+
+    A registry is just a git repo (typically hosted on GitHub) that
+    teammates fetch via the raw CDN. The index lets ``install`` resolve
+    a ``category/name@version`` to a downloadable URL with a sha256 to
+    verify integrity.
+    """
+
+    FORMAT_VERSION: ClassVar[str] = "1"
+
+    registry_name: str
+    base_url: str
+    updated_at: str
+    skills: tuple[IndexedSkill, ...]
+
+    def __post_init__(self) -> None:
+        if not self.registry_name or not self.registry_name.strip():
+            raise ValueError("RegistryIndex registry_name cannot be empty")
+        if not self.base_url or not self.base_url.strip():
+            raise ValueError("RegistryIndex base_url cannot be empty")
+
+    def find(self, category: str, name: str) -> IndexedSkill | None:
+        for s in self.skills:
+            if s.category == category and s.name == name:
+                return s
+        return None
+
+    def upsert(
+        self, category: str, name: str, version: IndexedVersion
+    ) -> RegistryIndex:
+        """Return a new index with ``version`` added to the matching skill.
+
+        If the skill is new, it's added. If the version already exists, the
+        new entry replaces it (lets you re-publish after fixing a typo).
+        """
+        new_skills: list[IndexedSkill] = []
+        found = False
+        for s in self.skills:
+            if s.category == category and s.name == name:
+                found = True
+                kept = tuple(v for v in s.versions if v.version != version.version)
+                merged = (*kept, version)
+                ordered = tuple(sorted(merged, key=lambda v: _version_key(v.version)))
+                latest = ordered[-1].version
+                new_skills.append(
+                    IndexedSkill(
+                        category=category,
+                        name=name,
+                        latest=latest,
+                        versions=ordered,
+                    )
+                )
+            else:
+                new_skills.append(s)
+        if not found:
+            new_skills.append(
+                IndexedSkill(
+                    category=category,
+                    name=name,
+                    latest=version.version,
+                    versions=(version,),
+                )
+            )
+        new_skills.sort(key=lambda s: (s.category, s.name))
+        return RegistryIndex(
+            registry_name=self.registry_name,
+            base_url=self.base_url,
+            updated_at=self.updated_at,
+            skills=tuple(new_skills),
+        )
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    """Best-effort semver sort key. Falls back to lexical for weird strings."""
+    parts: list[int] = []
+    for chunk in version.split("."):
+        digits = "".join(c for c in chunk if c.isdigit())
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
+@dataclass(frozen=True)
+class PublishResult:
+    """Outcome of publishing a pack to a registry."""
+
+    pack_name: str
+    version: str
+    raw_url: str
+    repo_relative_path: str
+    sha256: str
+    committed: bool
+    pushed: bool
 
 
 @dataclass(frozen=True)

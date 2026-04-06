@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    DEFAULT_SKILL_VERSION,
     Asset,
     Dependency,
     Description,
@@ -28,6 +29,7 @@ class CreateSkillRequest:
     category: str
     description: str
     starter_emoji: str | None = None
+    version: str = DEFAULT_SKILL_VERSION
     principles: list[str] | None = None
     instructions: str = ""
     constraints: list[str] | None = None
@@ -122,4 +124,5 @@ class CreateSkill:
             assets=assets,
             examples=examples,
             depends_on=depends_on,
+            version=request.version,
         )

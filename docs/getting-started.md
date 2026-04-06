@@ -223,6 +223,89 @@ edit SKILL.md  →  skill-forge lint  →  test with Claude  →  repeat
 
 Because of the symlink, you never need to reinstall after editing. Just lint to validate your changes, then test in a Claude session.
 
+## 9. Bundle the skill into a .skillpack
+
+Once a skill is good, bundle it into a single portable file you can share. A `.skillpack` is a zip containing one or more skill directories plus a JSON manifest.
+
+```bash
+# Bundle a single skill — version is auto-derived from frontmatter
+skill-forge pack output_skills/development/python-tdd
+# → ./python-tdd-0.2.0.skillpack
+
+# Bundle multiple skills into a named bundle
+skill-forge pack \
+  output_skills/development/python-tdd \
+  output_skills/security/owasp-review \
+  --name backend-team-bundle \
+  --version 1.2.0 \
+  --output backend-team-bundle.skillpack
+```
+
+The pack command reads `version:` from each skill's frontmatter. Bump that field whenever you ship a change so each release lands as its own versioned `.skillpack`.
+
+A teammate who receives the file extracts it with:
+
+```bash
+skill-forge unpack backend-team-bundle.skillpack --output output_skills/
+```
+
+Then lints and installs the unpacked skills with the usual commands.
+
+## 10. Publish to a git-backed registry
+
+`skill-forge publish` turns any git repo into a free, CDN-backed skill registry — no GitHub Actions, no releases server, no Slack uploads. It copies the pack into `packs/<category>/<name>-<version>.skillpack` inside a local clone, regenerates `index.json`, and commits. Once pushed to GitHub, every pack is reachable via `raw.githubusercontent.com`.
+
+**One-time setup** — clone the registry repo locally:
+
+```bash
+git clone git@github.com:acme/acme-skills.git
+```
+
+**Publish a pack:**
+
+```bash
+skill-forge publish ./python-tdd-0.2.0.skillpack \
+  --registry ~/code/acme-skills \
+  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --message "python-tdd 0.2.0" \
+  --push
+```
+
+Output:
+
+```
+✔ Published python-tdd v0.2.0
+  path:    packs/development/python-tdd-0.2.0.skillpack
+  sha256:  9c4f2a1b…
+  git:     committed
+  git:     pushed
+
+  Install URL:
+  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+```
+
+Drop `--push` if you'd rather review the diff first; the commit is already on your local branch waiting for `git push`.
+
+## 11. Install from a remote URL
+
+`skill-forge install` accepts an `https://` URL alongside the existing local-path form, so teammates install published skills with a single command:
+
+```bash
+# Direct URL
+skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+
+# With sha256 verification (recommended — copy the digest from publish output)
+skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+  --sha256 9c4f2a1b...
+
+# Local install still works the same as before
+skill-forge install output_skills/development/python-tdd
+```
+
+Behind the scenes the URL form fetches the pack to a temp file, verifies the sha256 if you supplied one, unpacks it via the regular `unpack` flow, and installs each contained skill into `~/.claude/skills/` (or `.claude/skills/` with `--scope project`).
+
+For private GitHub repos, set `GITHUB_TOKEN` in your environment and the fetcher will pass it as a `token` Authorization header on `raw.githubusercontent.com` requests.
+
 ## Full CLI reference
 
 | Command | Description |
@@ -231,7 +314,11 @@ Because of the symlink, you never need to reinstall after editing. Just lint to 
 | `skill-forge create` | Scaffold a new skill from options |
 | `skill-forge lint <path>` | Validate a skill or directory of skills |
 | `skill-forge list [directory]` | List all skills with token estimates |
-| `skill-forge install <path>` | Install a skill via symlink (default: global) |
+| `skill-forge install <path-or-url>` | Install a skill from a local directory or remote `.skillpack` URL |
+| `skill-forge uninstall <name>` | Remove an installed symlink |
+| `skill-forge pack <skill-dir...>` | Bundle one or more skill directories into a `.skillpack` archive |
+| `skill-forge unpack <pack>` | Extract a `.skillpack` into a destination directory |
+| `skill-forge publish <pack>` | Publish a `.skillpack` to a git-backed registry |
 
 ### create options
 
@@ -241,6 +328,7 @@ Because of the symlink, you never need to reinstall after editing. Just lint to 
 | `--category, -c` | yes | Category bucket (e.g., development, testing) |
 | `--description, -d` | yes | Trigger description (30-150 tokens) |
 | `--emoji, -e` | no | STARTER_CHARACTER emoji |
+| `--version, -v` | no | Initial semver written to frontmatter (default: `0.1.0`) |
 | `--output, -o` | no | Base directory (default: `output_skills`) |
 
 ### install options
@@ -248,3 +336,25 @@ Because of the symlink, you never need to reinstall after editing. Just lint to 
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--scope, -s` | no | `global` (default) or `project` |
+| `--output, -o` | no | Where to unpack remote packs (default: `output_skills`). Only used for URL installs. |
+| `--sha256` | no | Expected sha256 of a remote `.skillpack`. Verified before unpack. |
+
+### pack options
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--output, -o` | no | Output file or directory (default: current dir; auto-named `<name>-<version>.skillpack` if a directory) |
+| `--version, -v` | no | Pack version (defaults to the skill's own version from frontmatter for single-skill packs) |
+| `--name, -n` | no | Pack name (defaults to the first skill's name) |
+| `--author, -a` | no | Pack author |
+| `--description, -d` | no | Short description for the manifest |
+
+### publish options
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--registry, -r` | yes | Local clone of the registry git repo |
+| `--base-url, -u` | yes | Public base URL, e.g. `https://raw.githubusercontent.com/<owner>/<repo>/main` |
+| `--registry-name, -N` | no | Display name (defaults to the repo dir name) |
+| `--message, -m` | no | Git commit message |
+| `--push/--no-push` | no | Push the commit to the remote after writing the index (default: no-push) |

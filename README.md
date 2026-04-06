@@ -2,6 +2,8 @@
 
 A clean-architecture toolkit for crafting high-quality Claude Code skills.
 
+![Forge](skills-forge.png)
+
 ## Why
 
 Writing a Claude Code skill is easy. Writing a **good** one is not. Skills that trigger unreliably, consume too much context, or try to do everything at once make Claude less effective, not more.
@@ -36,6 +38,16 @@ skill-forge lint output_skills/development/python-tdd
 skill-forge install output_skills/development/python-tdd
 
 # 5. Iterate: edit → re-lint → Claude picks up changes instantly
+
+# 6. Bundle and share with your team
+skill-forge pack output_skills/development/python-tdd
+skill-forge publish ./python-tdd-0.1.0.skillpack \
+  --registry ~/code/team-skills \
+  --base-url https://raw.githubusercontent.com/acme/team-skills/main \
+  --push
+
+# A teammate installs it directly from the printed raw URL
+skill-forge install https://raw.githubusercontent.com/acme/team-skills/main/packs/development/python-tdd-0.1.0.skillpack
 ```
 
 The `install` command creates a symlink from your skill directory into `~/.claude/skills/` (global) or `.claude/skills/` (project-scoped), so Claude Code discovers it automatically. Because it's a symlink, you edit the source in `output_skills/`, re-lint, and the installed version updates without reinstalling.
@@ -145,8 +157,8 @@ The project follows clean architecture with four layers:
 ```
 src/skill_forge/
 ├── domain/           # Core: models, validators, ports (zero dependencies)
-├── application/      # Use cases: create, lint, install
-├── infrastructure/   # Adapters: filesystem, markdown parser/renderer, symlinks
+├── application/      # Use cases: create, lint, install, pack/unpack, publish, install-from-url
+├── infrastructure/   # Adapters: filesystem, markdown, symlinks, zip packer, git registry, http fetcher
 └── cli/              # Entry point: typer CLI + composition root
 ```
 
@@ -270,6 +282,150 @@ The linter runs two types of validators:
 | `broken-asset-link` | error | Asset file doesn't exist on disk |
 | `broken-script-link` | error | Script file doesn't exist on disk |
 
+## Sharing skills across teams
+
+Once a skill is good, you'll want to share it with your team. skill-forge ships with a `.skillpack` format — a single zip file containing one or more skills plus a JSON manifest — so you can distribute skills via Slack, Notion, email, GitHub releases, or any other channel that can move a file.
+
+### Per-skill versioning
+
+Each skill carries its own semantic version in frontmatter:
+
+```yaml
+---
+name: python-tdd
+version: 0.2.0
+description: |
+  ...
+---
+```
+
+The pack command auto-derives its version from the skill itself, so you don't need to pass `--version` for single-skill packs. Bump the skill's frontmatter version when you ship a change, and the next `pack` will use the new value. Use `skill-forge create --version 0.1.0` to set an initial version when scaffolding.
+
+```bash
+# Bundle a single skill — version auto-derived from frontmatter
+skill-forge pack output_skills/development/python-tdd \
+  --author fer@example.com \
+  --output ./packs/
+# → ./packs/python-tdd-0.2.0.skillpack
+
+# Bundle multiple skills together (explicit pack version recommended)
+skill-forge pack \
+  output_skills/development/python-tdd \
+  output_skills/security/owasp-review \
+  --name backend-team-bundle \
+  --version 1.2.0 \
+  --output backend-team-bundle.skillpack
+
+# A teammate receives the file and unpacks it
+skill-forge unpack backend-team-bundle.skillpack --output output_skills/
+
+# Then lints and installs as usual
+skill-forge lint output_skills/development/python-tdd
+skill-forge install output_skills/development/python-tdd
+```
+
+Pack version precedence: an explicit `--version` always wins; otherwise a single-skill pack takes the skill's own version; multi-skill bundles without `--version` fall back to the default.
+
+A `.skillpack` is just a zip you can inspect with any zip tool. The manifest at the root looks like:
+
+```json
+{
+  "format_version": "1",
+  "name": "backend-team-bundle",
+  "version": "1.2.0",
+  "author": "fer@example.com",
+  "created_at": "2026-04-06T12:00:00+00:00",
+  "skills": [
+    {"category": "development", "name": "python-tdd", "version": "0.2.0"},
+    {"category": "security", "name": "owasp-review", "version": "1.0.1"}
+  ]
+}
+```
+
+Each skill records its own version in the manifest, so a multi-skill bundle can mix and match. Older packs without per-skill versions still unpack — they fall back to the bundle version.
+
+The packer excludes `__pycache__/`, `.DS_Store`, `.git/`, and `*.pyc` files by default. Unpack rejects archives with `../` paths to defend against zip-slip attacks.
+
+For broader distribution, drop the `.skillpack` into a shared Git repo with CI running `skill-forge lint` on every PR. That gives you version control, code review, and rollback for free without standing up any extra infrastructure.
+
+### Publishing to a git-backed registry
+
+`skill-forge publish` turns any git repo into a free, CDN-backed skill registry. No GitHub Actions, no releases, no API server — just a normal repo where each pack lives at a stable raw URL. Teammates `install` directly from that URL.
+
+The registry repo layout is fixed:
+
+```
+acme-skills/                    ← any git repo (GitHub, GitLab, self-hosted)
+├── index.json                  ← machine catalog (auto-maintained)
+└── packs/
+    └── <category>/
+        └── <name>-<version>.skillpack
+```
+
+**One-time setup** — create the registry repo and clone it locally:
+
+```bash
+git clone git@github.com:acme/acme-skills.git
+```
+
+**Publish a pack** — point at the local clone and the public base URL:
+
+```bash
+skill-forge pack output_skills/development/python-tdd
+# → ./python-tdd-0.2.0.skillpack
+
+skill-forge publish ./python-tdd-0.2.0.skillpack \
+  --registry ~/code/acme-skills \
+  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --message "python-tdd 0.2.0" \
+  --push
+```
+
+Output:
+
+```
+✔ Published python-tdd v0.2.0
+  path:    packs/development/python-tdd-0.2.0.skillpack
+  sha256:  9c4f2a1b…
+  git:     committed
+  git:     pushed
+
+  Install URL:
+  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+
+  Teammates can install with:
+    skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack --sha256 9c4f2a1b...
+```
+
+The publisher copies the pack into `packs/<category>/<name>-<version>.skillpack`, regenerates `index.json`, commits, and (with `--push`) pushes. Drop `--push` if you'd rather review the diff first; the commit is already on your local branch.
+
+**Install from a URL** — `skill-forge install` accepts a URL alongside the existing local-path form:
+
+```bash
+# Direct URL — works for any https:// pointing at a .skillpack
+skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+
+# With sha256 verification (recommended)
+skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+  --sha256 9c4f2a1b...
+
+# Local install still works exactly as before
+skill-forge install output_skills/development/python-tdd
+```
+
+Behind the scenes the URL form fetches the pack to a temp file, verifies the sha256 if you supplied one, unpacks it via the existing `unpack` flow, and then installs each contained skill into `~/.claude/skills/` (or `.claude/skills/` with `--scope project`).
+
+**Private repos** — set `GITHUB_TOKEN` in your environment and the fetcher will pass it as a `token` Authorization header on `raw.githubusercontent.com` requests, so private registries work without any extra configuration.
+
+**Integrity** — every published pack records its sha256 in `index.json`, and `install --sha256 ...` verifies the download against that digest before unpacking. The fetcher also caps downloads at 50 MB by default to refuse runaway responses.
+
+**Why this beats the alternatives**
+
+- vs `gh release`: no per-version release noise, plain file URLs are simpler to share, and the registry is one browsable folder.
+- vs S3 / R2: no AWS account, no IAM, no boto3 dependency. Free for public registries.
+- vs Slack uploads: discoverable. New teammates find every published skill in one place instead of digging through channel history.
+- vs synced folders: works across orgs and works for open-source distribution, not just intra-team.
+
 ## Templates
 
 Four templates in `templates/`:
@@ -285,7 +441,7 @@ Four templates in `templates/`:
 # Install dev dependencies
 pip install -e ".[dev]"
 
-# Run tests (99 tests)
+# Run tests (168 tests)
 pytest
 
 # Lint code

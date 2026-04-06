@@ -7,10 +7,14 @@ from pathlib import Path
 import typer
 
 from skill_forge.cli.factory import (
+    build_install_from_url_use_case,
     build_installer,
     build_lint_use_case,
+    build_pack_use_case,
+    build_publish_use_case,
     build_renderer,
     build_repository,
+    build_unpack_use_case,
 )
 
 app = typer.Typer(
@@ -26,6 +30,12 @@ def create(
     category: str = typer.Option(..., "--category", "-c", help="Skill category"),
     description: str = typer.Option(..., "--description", "-d", help="Trigger description"),
     emoji: str | None = typer.Option(None, "--emoji", "-e", help="Starter character emoji"),
+    skill_version: str = typer.Option(
+        "0.1.0",
+        "--version",
+        "-v",
+        help="Initial skill version (semver, written into frontmatter)",
+    ),
     output: Path = typer.Option(
         Path("output_skills"),
         "--output", "-o",
@@ -47,6 +57,7 @@ def create(
         category=category,
         description=description,
         starter_emoji=emoji,
+        version=skill_version,
     )
     response = use_case.execute(request)
 
@@ -117,25 +128,74 @@ def list_skills(
 
 @app.command()
 def install(
-    skill_path: Path = typer.Argument(..., help="Path to the skill directory", exists=True),
+    source: str = typer.Argument(
+        ...,
+        help=(
+            "Local skill directory path, or an https:// URL pointing to a "
+            ".skillpack (e.g. raw.githubusercontent.com)"
+        ),
+    ),
     scope: str = typer.Option(
         "global", "--scope", "-s", help="Installation scope: global or project"
     ),
+    output: Path = typer.Option(
+        Path("output_skills"),
+        "--output",
+        "-o",
+        help="Where to unpack remote packs (only used for URL installs)",
+    ),
+    sha256: str = typer.Option(
+        "",
+        "--sha256",
+        help="Expected sha256 of a remote .skillpack (verified before install)",
+    ),
 ) -> None:
-    """Install a skill for Claude Code to discover."""
+    """Install a skill from a local path or a remote .skillpack URL."""
+    from skill_forge.domain.model import SkillScope
+
+    skill_scope = SkillScope.GLOBAL if scope == "global" else SkillScope.PROJECT
+
+    if source.startswith(("http://", "https://")):
+        from skill_forge.application.use_cases.publish_skill import (
+            InstallFromUrlRequest,
+        )
+
+        use_case = build_install_from_url_use_case()
+        request = InstallFromUrlRequest(
+            url=source,
+            dest_dir=output,
+            scope=skill_scope,
+            expected_sha256=sha256,
+        )
+        response = use_case.execute(request)
+        typer.echo(
+            f"✔ Fetched '{response.manifest.name}' v{response.manifest.version} "
+            f"({response.sha256[:12]}…)"
+        )
+        for _ref, extracted, installed in zip(
+            response.manifest.skills,
+            response.extracted_paths,
+            response.installed_paths,
+            strict=True,
+        ):
+            typer.echo(f"  → {extracted}")
+            typer.echo(f"    installed at {installed} ({skill_scope.value})")
+        return
+
+    skill_path = Path(source)
+    if not skill_path.exists():
+        typer.echo(f"⚠ Path does not exist: {skill_path}")
+        raise typer.Exit(code=1)
+
     from skill_forge.application.use_cases.install_skill import (
         InstallSkill,
         InstallSkillRequest,
     )
-    from skill_forge.domain.model import SkillScope
 
-    skill_scope = SkillScope.GLOBAL if scope == "global" else SkillScope.PROJECT
     installer = build_installer()
     use_case = InstallSkill(installer=installer)
-
     request = InstallSkillRequest(skill_path=skill_path, scope=skill_scope)
     response = use_case.execute(request)
-
     typer.echo(f"✔ Installed at {response.installed_path} ({response.scope.value})")
 
 
@@ -165,6 +225,177 @@ def uninstall(
     else:
         typer.echo(f"⚠ Skill '{skill_name}' was not installed ({response.scope.value})")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def pack(
+    skill_paths: list[Path] = typer.Argument(
+        ...,
+        help="One or more skill directories to bundle into a .skillpack",
+        exists=True,
+    ),
+    output: Path = typer.Option(
+        Path("."),
+        "--output",
+        "-o",
+        help="Output file or directory. If a directory, the filename is "
+        "auto-derived as <pack-name>-<version>.skillpack",
+    ),
+    version: str = typer.Option(
+        "",
+        "--version",
+        "-v",
+        help="Pack version (defaults to the skill's own version from frontmatter)",
+    ),
+    author: str = typer.Option("", "--author", "-a", help="Pack author"),
+    name: str = typer.Option(
+        "",
+        "--name",
+        "-n",
+        help="Pack name (defaults to the first skill's name)",
+    ),
+    description: str = typer.Option(
+        "", "--description", "-d", help="Short description of the pack"
+    ),
+) -> None:
+    """Bundle one or more skills into a portable .skillpack archive."""
+    from skill_forge.application.use_cases.pack_skill import PackSkillRequest
+
+    use_case = build_pack_use_case()
+
+    for skill_path in skill_paths:
+        if not (skill_path / "SKILL.md").exists():
+            typer.echo(f"⚠ Not a skill directory (no SKILL.md): {skill_path}")
+            raise typer.Exit(code=1)
+
+    request = PackSkillRequest(
+        skill_dirs=list(skill_paths),
+        output_path=output,
+        version=version,
+        author=author,
+        pack_name=name,
+        description=description,
+    )
+    response = use_case.execute(request)
+
+    typer.echo(
+        f"✔ Packed {response.manifest.skill_count} skill(s) into {response.pack_path}"
+    )
+    typer.echo(f"  name:    {response.manifest.name}")
+    typer.echo(f"  version: {response.manifest.version}")
+    if response.manifest.author:
+        typer.echo(f"  author:  {response.manifest.author}")
+    for ref in response.manifest.skills:
+        typer.echo(f"  - {ref.category}/{ref.name} @ {ref.version}")
+
+
+@app.command()
+def unpack(
+    pack_path: Path = typer.Argument(
+        ..., help="Path to a .skillpack file", exists=True
+    ),
+    output: Path = typer.Option(
+        Path("output_skills"),
+        "--output",
+        "-o",
+        help="Destination directory (defaults to output_skills/)",
+    ),
+) -> None:
+    """Extract a .skillpack into a destination directory."""
+    from skill_forge.application.use_cases.pack_skill import UnpackSkillRequest
+
+    use_case = build_unpack_use_case()
+    request = UnpackSkillRequest(pack_path=pack_path, dest_dir=output)
+    response = use_case.execute(request)
+
+    typer.echo(
+        f"✔ Unpacked {response.manifest.skill_count} skill(s) "
+        f"from '{response.manifest.name}' v{response.manifest.version}"
+    )
+    for ref, path in zip(
+        response.manifest.skills, response.extracted_paths, strict=True
+    ):
+        typer.echo(f"  → {path}  (v{ref.version})")
+    typer.echo(
+        "\nNext: lint the unpacked skills with `skill-forge lint`, then install "
+        "with `skill-forge install`."
+    )
+
+
+@app.command()
+def publish(
+    pack_path: Path = typer.Argument(
+        ...,
+        help="Path to a .skillpack file produced by `skill-forge pack`",
+        exists=True,
+    ),
+    registry: Path = typer.Option(
+        ...,
+        "--registry",
+        "-r",
+        help="Local clone of the registry git repo",
+    ),
+    base_url: str = typer.Option(
+        ...,
+        "--base-url",
+        "-u",
+        help=(
+            "Public base URL for the registry, e.g. "
+            "https://raw.githubusercontent.com/<owner>/<repo>/main"
+        ),
+    ),
+    registry_name: str = typer.Option(
+        "",
+        "--registry-name",
+        "-N",
+        help="Display name for the registry (defaults to the repo dir name)",
+    ),
+    message: str = typer.Option(
+        "", "--message", "-m", help="Git commit message"
+    ),
+    push: bool = typer.Option(
+        False,
+        "--push/--no-push",
+        help="Push the commit to the remote after writing the index",
+    ),
+) -> None:
+    """Publish a .skillpack to a git-backed registry repo.
+
+    The pack is copied into ``packs/<category>/<name>-<version>.skillpack``,
+    ``index.json`` is updated, and the change is committed. Pass --push to
+    also push the commit. Once pushed to GitHub, the pack is downloadable
+    via the raw CDN — share the printed URL with your team.
+    """
+    from skill_forge.application.use_cases.publish_skill import PublishPackRequest
+
+    use_case = build_publish_use_case(
+        registry_root=registry,
+        registry_name=registry_name or registry.name,
+        base_url=base_url,
+    )
+    request = PublishPackRequest(
+        pack_path=pack_path,
+        message=message,
+        push=push,
+    )
+    response = use_case.execute(request)
+    result = response.result
+
+    typer.echo(f"✔ Published {result.pack_name} v{result.version}")
+    typer.echo(f"  path:    {result.repo_relative_path}")
+    typer.echo(f"  sha256:  {result.sha256[:12]}…")
+    if result.committed:
+        typer.echo("  git:     committed")
+    if result.pushed:
+        typer.echo("  git:     pushed")
+    elif result.committed:
+        typer.echo("  git:     run `git push` (or rerun with --push)")
+    typer.echo("")
+    typer.echo("  Install URL:")
+    typer.echo(f"  {result.raw_url}")
+    typer.echo("")
+    typer.echo("  Teammates can install with:")
+    typer.echo(f"    skill-forge install {result.raw_url} --sha256 {result.sha256}")
 
 
 @app.command()

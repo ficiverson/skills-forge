@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from skill_forge.application.use_cases.lint_skill import LintSkill, LintSkillRequest
+from skill_forge.domain.model import Skill
 from skill_forge.infrastructure.adapters.markdown_parser import MarkdownSkillParser
 from skill_forge.infrastructure.adapters.markdown_renderer import MarkdownSkillRenderer
-from skill_forge.domain.model import Skill
 
 
 class TestLintWithFilesystem:

@@ -22,6 +22,7 @@ class MarkdownSkillRenderer(SkillRenderer):
         lines = [
             "---",
             f"name: {skill.identity.name}",
+            f"version: {skill.version}",
             "description: |",
         ]
         for line in skill.description.text.strip().splitlines():

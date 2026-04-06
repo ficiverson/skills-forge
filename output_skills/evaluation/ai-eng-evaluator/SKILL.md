@@ -1,5 +1,6 @@
 ---
 name: ai-eng-evaluator
+version: 0.2.0
 description: |
   Evaluates AI engineering code challenge submissions (GitHub repos, zip files, or local folders)
   against a structured competency matrix and produces a professional PDF report.

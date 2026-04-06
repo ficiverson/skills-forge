@@ -1,5 +1,6 @@
 ---
 name: {{ name }}
+version: 0.1.0
 description: |
   {{ description }}
   Triggers on: {{ trigger_1 }}, {{ trigger_2 }}, {{ trigger_3 }}.

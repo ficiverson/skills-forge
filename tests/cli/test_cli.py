@@ -188,6 +188,229 @@ class TestInstallUninstallCommand:
         assert "was not installed" in result.stdout
 
 
+class TestPackUnpackCommands:
+    def _make_skill(self, base: Path, category: str, name: str) -> Path:
+        skill_dir = base / category / name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"---\nname: {name}\n---\n",
+            encoding="utf-8",
+        )
+        return skill_dir
+
+    def test_pack_creates_skillpack(self, tmp_path: Path):
+        skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
+        out_dir = tmp_path / "packs"
+        out_dir.mkdir()
+
+        result = runner.invoke(app, [
+            "pack",
+            str(skill_dir),
+            "--output", str(out_dir),
+            "--version", "0.2.0",
+            "--author", "fer",
+        ])
+        assert result.exit_code == 0, result.stdout
+        assert "Packed 1 skill" in result.stdout
+        pack_file = out_dir / "python-tdd-0.2.0.skillpack"
+        assert pack_file.exists()
+
+    def test_pack_explicit_filename(self, tmp_path: Path):
+        skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
+        target = tmp_path / "my-pack.skillpack"
+
+        result = runner.invoke(app, [
+            "pack",
+            str(skill_dir),
+            "--output", str(target),
+            "--name", "my-pack",
+        ])
+        assert result.exit_code == 0
+        assert target.exists()
+
+    def test_pack_rejects_non_skill_dir(self, tmp_path: Path):
+        broken = tmp_path / "broken"
+        broken.mkdir()
+        result = runner.invoke(app, [
+            "pack",
+            str(broken),
+            "--output", str(tmp_path / "out"),
+        ])
+        assert result.exit_code == 1
+        assert "Not a skill directory" in result.stdout
+
+    def test_unpack_extracts_skill(self, tmp_path: Path):
+        skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
+        out_dir = tmp_path / "packs"
+        out_dir.mkdir()
+
+        # First pack
+        runner.invoke(app, [
+            "pack", str(skill_dir),
+            "--output", str(out_dir),
+        ])
+        pack_file = next(out_dir.glob("*.skillpack"))
+
+        # Then unpack
+        dest = tmp_path / "extracted"
+        result = runner.invoke(app, [
+            "unpack",
+            str(pack_file),
+            "--output", str(dest),
+        ])
+        assert result.exit_code == 0, result.stdout
+        assert "Unpacked 1 skill" in result.stdout
+        assert (dest / "dev" / "python-tdd" / "SKILL.md").exists()
+
+    def test_pack_unpack_multi_skill_roundtrip(self, tmp_path: Path):
+        a = self._make_skill(tmp_path / "src", "dev", "skill-a")
+        b = self._make_skill(tmp_path / "src", "ops", "skill-b")
+        target = tmp_path / "bundle.skillpack"
+
+        result = runner.invoke(app, [
+            "pack",
+            str(a), str(b),
+            "--output", str(target),
+            "--name", "bundle",
+        ])
+        assert result.exit_code == 0, result.stdout
+        assert "Packed 2 skill" in result.stdout
+
+        dest = tmp_path / "extracted"
+        result = runner.invoke(app, [
+            "unpack", str(target), "--output", str(dest),
+        ])
+        assert result.exit_code == 0
+        assert (dest / "dev" / "skill-a" / "SKILL.md").exists()
+        assert (dest / "ops" / "skill-b" / "SKILL.md").exists()
+
+
+class TestPublishCommand:
+    def _make_skill(self, base: Path, category: str, name: str) -> Path:
+        skill_dir = base / category / name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"---\nname: {name}\nversion: 0.3.0\n---\n",
+            encoding="utf-8",
+        )
+        return skill_dir
+
+    def _init_registry(self, registry: Path) -> None:
+        import shutil
+        import subprocess
+
+        if shutil.which("git") is None:
+            import pytest
+
+            pytest.skip("git not available")
+        registry.mkdir()
+        for args in (
+            ["init", "-q", "-b", "main"],
+            ["config", "user.email", "test@example.com"],
+            ["config", "user.name", "test"],
+        ):
+            subprocess.run(
+                ["git", "-C", str(registry), *args],
+                check=True,
+                capture_output=True,
+            )
+
+    def test_publish_writes_pack_into_registry(self, tmp_path: Path):
+        skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
+        out_dir = tmp_path / "packs"
+        out_dir.mkdir()
+        runner.invoke(app, ["pack", str(skill_dir), "--output", str(out_dir)])
+        pack_file = next(out_dir.glob("*.skillpack"))
+
+        registry = tmp_path / "registry"
+        self._init_registry(registry)
+
+        result = runner.invoke(
+            app,
+            [
+                "publish",
+                str(pack_file),
+                "--registry",
+                str(registry),
+                "--base-url",
+                "https://raw.githubusercontent.com/acme/skills/main",
+                "--message",
+                "ship 0.3.0",
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "Published python-tdd v0.3.0" in result.stdout
+        assert "raw.githubusercontent.com" in result.stdout
+        assert (
+            registry / "packs" / "dev" / "python-tdd-0.3.0.skillpack"
+        ).exists()
+        assert (registry / "index.json").exists()
+
+
+class TestInstallFromUrlCommand:
+    def test_install_url_fetches_unpacks_and_installs(
+        self, tmp_path: Path, monkeypatch
+    ):
+        # Build a real .skillpack we can serve via a fake fetcher.
+        skill_dir = tmp_path / "src" / "dev" / "python-tdd"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: python-tdd\nversion: 0.4.0\n---\n",
+            encoding="utf-8",
+        )
+        out_dir = tmp_path / "packs"
+        out_dir.mkdir()
+        runner.invoke(app, ["pack", str(skill_dir), "--output", str(out_dir)])
+        pack_file = next(out_dir.glob("*.skillpack"))
+        pack_bytes = pack_file.read_bytes()
+
+        # Stub the fetcher: copy the local pack into the requested dest path.
+        from skill_forge.cli import factory
+        from skill_forge.domain.ports import PackFetcher
+
+        class _LocalFetcher(PackFetcher):
+            def fetch(self, url, dest):  # type: ignore[no-untyped-def]
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(pack_bytes)
+                return dest
+
+            def fetch_index(self, url):  # type: ignore[no-untyped-def]
+                raise NotImplementedError
+
+        # Stub the installer to avoid touching ~/.claude.
+        from skill_forge.domain.ports import SkillInstaller
+
+        class _NoopInstaller(SkillInstaller):
+            def install(self, skill_path, scope):  # type: ignore[no-untyped-def]
+                return Path(f"/fake/{skill_path.name}")
+
+            def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
+                return False
+
+            def is_installed(self, skill_name, scope):  # type: ignore[no-untyped-def]
+                return False
+
+            def list_installed(self, scope):  # type: ignore[no-untyped-def]
+                return []
+
+        monkeypatch.setattr(factory, "build_fetcher", lambda: _LocalFetcher())
+        monkeypatch.setattr(factory, "build_installer", lambda: _NoopInstaller())
+
+        dest = tmp_path / "extracted"
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                "https://example.com/python-tdd-0.4.0.skillpack",
+                "--output",
+                str(dest),
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "Fetched 'python-tdd'" in result.stdout
+        assert (dest / "dev" / "python-tdd" / "SKILL.md").exists()
+
+
 class TestInitCommand:
     def test_init_creates_workspace(self, tmp_path: Path):
         result = runner.invoke(app, ["init", str(tmp_path / "workspace")])
