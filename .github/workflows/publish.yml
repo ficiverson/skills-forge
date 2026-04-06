@@ -63,11 +63,14 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install build
-        run: pip install build
+      - name: Install build and twine
+        run: pip install build twine
 
       - name: Build sdist and wheel
         run: python -m build
+
+      - name: Check metadata (twine)
+        run: python -m twine check dist/*
 
       - name: Upload artefacts
         uses: actions/upload-artifact@v4
