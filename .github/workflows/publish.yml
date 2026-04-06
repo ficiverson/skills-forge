@@ -101,5 +101,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
-          attestations: false   # attestations require the project to already exist;
-                                # re-enable after the first successful upload
