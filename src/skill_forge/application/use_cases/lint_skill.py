@@ -42,14 +42,12 @@ class LintSkill:
         skill_dir = self._resolve_skill_dir(request)
         report = LintReport(skill_name=str(skill.identity))
 
-        for validator in ALL_VALIDATORS:
-            issues = validator(skill)
-            for issue in issues:
+        for pure_v in ALL_VALIDATORS:
+            for issue in pure_v(skill):
                 report.add(issue)
 
-        for validator in PATH_AWARE_VALIDATORS:
-            issues = validator(skill, skill_dir)
-            for issue in issues:
+        for path_v in PATH_AWARE_VALIDATORS:
+            for issue in path_v(skill, skill_dir):
                 report.add(issue)
 
         return LintSkillResponse(report=report)

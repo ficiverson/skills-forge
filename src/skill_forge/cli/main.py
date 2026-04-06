@@ -193,10 +193,10 @@ def install(
     )
 
     installer = build_installer()
-    use_case = InstallSkill(installer=installer)
-    request = InstallSkillRequest(skill_path=skill_path, scope=skill_scope)
-    response = use_case.execute(request)
-    typer.echo(f"✔ Installed at {response.installed_path} ({response.scope.value})")
+    local_use_case = InstallSkill(installer=installer)
+    local_request = InstallSkillRequest(skill_path=skill_path, scope=skill_scope)
+    local_response = local_use_case.execute(local_request)
+    typer.echo(f"✔ Installed at {local_response.installed_path} ({local_response.scope.value})")
 
 
 @app.command()

@@ -66,7 +66,7 @@ class FilesystemSkillRepository(SkillRepository):
         return (self._skill_dir(skill) / self.SKILL_FILENAME).exists()
 
     def list_all(self) -> list[Skill]:
-        skills = []
+        skills: list[Skill] = []
         if not self._base_path.exists():
             return skills
 
