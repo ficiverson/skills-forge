@@ -22,6 +22,8 @@ from skill_forge.application.use_cases.pack_skill import (
     UnpackSkillRequest,
 )
 from skill_forge.domain.model import (
+    Owner,
+    PublishMetadata,
     PublishResult,
     SkillPackManifest,
     SkillScope,
@@ -31,6 +33,7 @@ from skill_forge.domain.ports import (
     PackPublisher,
     SkillInstaller,
     SkillPacker,
+    SkillParser,
 )
 
 
@@ -39,6 +42,12 @@ class PublishPackRequest:
     pack_path: Path
     message: str = ""
     push: bool = False
+    tags: tuple[str, ...] = ()
+    owner_name: str = ""
+    owner_email: str = ""
+    deprecated: bool = False
+    release_notes: str = ""
+    yanked: bool = False
 
 
 @dataclass
@@ -48,27 +57,78 @@ class PublishPackResponse:
 
 
 class PublishPack:
-    """Publish an existing ``.skillpack`` to a registry."""
+    """Publish an existing ``.skillpack`` to a registry.
+
+    Reads the skill's description out of the pack (so the registry index
+    can mirror it without the user typing it twice) and combines it with
+    publish-time metadata supplied via the request.
+    """
 
     def __init__(
         self,
         publisher: PackPublisher,
         packer: SkillPacker,
+        parser: SkillParser | None = None,
     ) -> None:
         self._publisher = publisher
         self._packer = packer
+        self._parser = parser
 
     def execute(self, request: PublishPackRequest) -> PublishPackResponse:
         if not request.pack_path.exists():
             raise FileNotFoundError(f"Pack does not exist: {request.pack_path}")
         manifest = self._packer.read_manifest(request.pack_path)
+
+        description = self._read_description(request.pack_path, manifest)
+        owner = (
+            Owner(name=request.owner_name, email=request.owner_email)
+            if request.owner_name
+            else None
+        )
+        metadata = PublishMetadata(
+            description=description,
+            tags=tuple(request.tags),
+            owner=owner,
+            deprecated=request.deprecated,
+            release_notes=request.release_notes,
+            yanked=request.yanked,
+        )
+
         result = self._publisher.publish(
             pack_path=request.pack_path,
             manifest=manifest,
             message=request.message,
             push=request.push,
+            metadata=metadata,
         )
         return PublishPackResponse(result=result, manifest=manifest)
+
+    def _read_description(
+        self, pack_path: Path, manifest: SkillPackManifest
+    ) -> str:
+        """Pull the SKILL.md description out of the pack via a temp unpack.
+
+        Returns ``""`` if anything goes wrong — the upsert preserves the
+        existing index value when no description is supplied, so a parse
+        miss is a soft fall-through rather than a hard failure.
+        """
+        if self._parser is None:
+            return ""
+        ref = manifest.skills[0]
+        try:
+            with tempfile.TemporaryDirectory(prefix="skill-forge-pub-") as tmp:
+                tmp_dir = Path(tmp)
+                self._packer.unpack(pack_path, tmp_dir)
+                skill_md = tmp_dir / ref.category / ref.name / "SKILL.md"
+                if not skill_md.exists():
+                    return ""
+                skill = self._parser.parse(
+                    skill_md.read_text(encoding="utf-8"),
+                    base_path=skill_md.parent,
+                )
+                return skill.description.text
+        except Exception:
+            return ""
 
 
 @dataclass

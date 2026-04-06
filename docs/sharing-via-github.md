@@ -2,6 +2,12 @@
 
 This guide walks through a complete end-to-end example of distributing skill-forge skills using a plain GitHub repo as a free, CDN-backed registry. No GitHub Actions, no Releases, no S3, no extra services. Once your registry is set up, publishing a new skill version is one command, and teammates install it with one command.
 
+> **Live example:** Every URL in this guide points at a real, working registry built with skill-forge: [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry). You can `curl` the index, install one of the published packs, and use it as a reference layout for your own.
+>
+> ```bash
+> curl https://raw.githubusercontent.com/ficiverson/skill-registry/main/index.json | jq
+> ```
+
 ## Why this works
 
 Every file in a public GitHub repo is reachable via the raw CDN at:
@@ -18,9 +24,9 @@ The whole story is two commands plus a normal `git push`.
 
 By the end of this guide you'll have:
 
-- A GitHub repo `acme/acme-skills` with this layout:
+- A GitHub repo `ficiverson/skill-registry` with this layout:
   ```
-  acme-skills/
+  skill-registry/
   ├── README.md
   ├── index.json                                       ← machine catalog
   └── packs/
@@ -30,7 +36,7 @@ By the end of this guide you'll have:
   ```
 - A teammate able to install any version with:
   ```bash
-  skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+  skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
     --sha256 9c4f2a1b...
   ```
 
@@ -38,20 +44,20 @@ Let's build it.
 
 ## Step 1 — Create the registry repo on GitHub
 
-Create a new empty repo on GitHub. For this example I'll use `acme/acme-skills`. It can be public or private — the only difference is whether you'll need a `GITHUB_TOKEN` later.
+Create a new empty repo on GitHub. For this example I'll use `ficiverson/skill-registry`. It can be public or private — the only difference is whether you'll need a `GITHUB_TOKEN` later.
 
 ```bash
-# On github.com: create a new empty repo named "acme-skills"
+# On github.com: create a new empty repo named "skill-registry"
 # Then clone it locally:
 
-git clone git@github.com:acme/acme-skills.git
-cd acme-skills
+git clone git@github.com:ficiverson/skill-registry.git
+cd skill-registry
 
 # Optional: write a tiny human-facing README so the repo isn't empty
 cat > README.md <<'EOF'
-# Acme Skills Registry
+# Skill Registry
 
-A skill-forge registry for the Acme team. Install any skill below with:
+A skill-forge registry. Install any skill below with:
 
 ```bash
 skill-forge install <url> --sha256 <digest>
@@ -114,13 +120,19 @@ Point `publish` at your local clone of the registry repo and the public base URL
 
 ```bash
 skill-forge publish ./python-tdd-0.1.0.skillpack \
-  --registry ~/code/acme-skills \
-  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.1.0" \
+  --tag tdd --tag python \
+  --owner-name "Fer Souto" \
+  --owner-email ficiverson@example.com \
+  --release-notes "First public release" \
   --push
 ```
 
-The `--base-url` is the URL prefix that, combined with a repo-relative path, gives you a downloadable file. For a GitHub repo at `https://github.com/acme/acme-skills` with default branch `main`, the formula is always:
+The `--tag`, `--owner-*`, and `--release-notes` flags are optional metadata that lands in `index.json` so teammates can browse the registry without downloading anything. Pass `--deprecated` later to flag a skill as superseded, or `--yanked` on a future publish to withdraw a bad version while keeping the audit trail.
+
+The `--base-url` is the URL prefix that, combined with a repo-relative path, gives you a downloadable file. For a GitHub repo at `https://github.com/ficiverson/skill-registry` with default branch `main`, the formula is always:
 
 ```
 https://raw.githubusercontent.com/<owner>/<repo>/<branch>
@@ -136,23 +148,23 @@ Output:
   git:     pushed
 
   Install URL:
-  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.1.0.skillpack
+  https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack
 
   Teammates can install with:
-    skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.1.0.skillpack --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
+    skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
 ```
 
 Behind the scenes, `publish`:
 
-1. Copies `python-tdd-0.1.0.skillpack` into `~/code/acme-skills/packs/development/`
+1. Copies `python-tdd-0.1.0.skillpack` into `~/code/skill-registry/packs/development/`
 2. Computes its sha256
-3. Reads or creates `~/code/acme-skills/index.json`
+3. Reads or creates `~/code/skill-registry/index.json`
 4. Adds an entry for `development/python-tdd@0.1.0` with the sha256
 5. Runs `git add packs/development/python-tdd-0.1.0.skillpack index.json`
 6. Runs `git commit -m "python-tdd 0.1.0"`
 7. Runs `git push` (because we passed `--push`)
 
-If you'd rather review the diff before pushing, drop `--push`. The commit is already on your local branch — just `cd ~/code/acme-skills && git diff HEAD~1 && git push`.
+If you'd rather review the diff before pushing, drop `--push`. The commit is already on your local branch — just `cd ~/code/skill-registry && git diff HEAD~1 && git push`.
 
 After this command finishes, the install URL printed in the output is **live**. Anyone with access to the repo can download it.
 
@@ -161,7 +173,7 @@ After this command finishes, the install URL printed in the output is **live**. 
 Take a look at the registry repo to see exactly what was added:
 
 ```bash
-cd ~/code/acme-skills
+cd ~/code/skill-registry
 git log --oneline -3
 # d07d603 python-tdd 0.1.0
 # a1b2c3d init registry
@@ -177,19 +189,25 @@ cat index.json
 ```json
 {
   "format_version": "1",
-  "registry_name": "acme-skills",
-  "base_url": "https://raw.githubusercontent.com/acme/acme-skills/main",
+  "registry_name": "skill-registry",
+  "base_url": "https://raw.githubusercontent.com/ficiverson/skill-registry/main",
   "updated_at": "2026-04-06T10:45:47+00:00",
   "skills": [
     {
       "category": "development",
       "name": "python-tdd",
       "latest": "0.1.0",
+      "description": "Use this skill when writing Python with a TDD workflow.",
+      "tags": ["tdd", "python"],
+      "owner": {"name": "Fer Souto", "email": "ficiverson@example.com"},
       "versions": [
         {
           "version": "0.1.0",
           "path": "packs/development/python-tdd-0.1.0.skillpack",
-          "sha256": "9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2"
+          "sha256": "9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2",
+          "published_at": "2026-04-06T10:45:47+00:00",
+          "size_bytes": 4218,
+          "release_notes": "First public release"
         }
       ]
     }
@@ -197,7 +215,22 @@ cat index.json
 }
 ```
 
-This file is the catalog. It records every published version, the path inside the repo, and a sha256 fingerprint. Tools and humans alike can read it with `curl https://raw.githubusercontent.com/acme/acme-skills/main/index.json | jq`.
+This file is the catalog. It records every published version, the path inside the repo, and a sha256 fingerprint, plus optional discoverability metadata so teammates can browse without unzipping anything. Tools and humans alike can read it with `curl https://raw.githubusercontent.com/ficiverson/skill-registry/main/index.json | jq`.
+
+### Index schema reference
+
+| Field | Level | Purpose |
+|-------|-------|---------|
+| `description` | skill | Mirrored from the skill's frontmatter so the index doubles as a searchable catalog |
+| `tags` | skill | Free-form keywords passed via repeated `--tag` flags at publish time |
+| `owner.name` / `owner.email` | skill | Maintainer contact, set with `--owner-name` / `--owner-email` |
+| `deprecated` | skill | Set with `--deprecated` to flag a skill that should no longer be used |
+| `published_at` | version | ISO 8601 timestamp written automatically by the publisher |
+| `size_bytes` | version | Pack size on disk, written automatically |
+| `release_notes` | version | Set with `--release-notes` to record what changed in this version |
+| `yanked` | version | Set with `--yanked` to withdraw a version while keeping it in the audit trail (yanked versions are excluded when computing `latest`) |
+
+All metadata fields are optional. Older `index.json` files that predate them keep installing fine — the codec fills in safe defaults on read.
 
 ## Step 5 — Install on a teammate's machine
 
@@ -205,7 +238,7 @@ A teammate (or your own laptop in a fresh shell) installs the skill in one comma
 
 ```bash
 skill-forge install \
-  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.1.0.skillpack \
+  https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack \
   --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
 ```
 
@@ -249,8 +282,8 @@ skill-forge pack output_skills/development/python-tdd
 # → ./python-tdd-0.2.0.skillpack
 
 skill-forge publish ./python-tdd-0.2.0.skillpack \
-  --registry ~/code/acme-skills \
-  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" \
   --push
 ```
@@ -258,7 +291,7 @@ skill-forge publish ./python-tdd-0.2.0.skillpack \
 Now the registry has both versions side by side:
 
 ```
-acme-skills/
+skill-registry/
 ├── index.json
 └── packs/
     └── development/
@@ -291,7 +324,7 @@ acme-skills/
 Teammates who don't have an exact URL can browse the registry by fetching `index.json`:
 
 ```bash
-curl -s https://raw.githubusercontent.com/acme/acme-skills/main/index.json | jq '.skills[] | "\(.category)/\(.name) latest=\(.latest)"'
+curl -s https://raw.githubusercontent.com/ficiverson/skill-registry/main/index.json | jq '.skills[] | "\(.category)/\(.name) latest=\(.latest)"'
 ```
 
 Output:
@@ -307,7 +340,7 @@ from skill_forge.cli.factory import build_fetcher
 
 fetcher = build_fetcher()
 index = fetcher.fetch_index(
-    "https://raw.githubusercontent.com/acme/acme-skills/main/index.json"
+    "https://raw.githubusercontent.com/ficiverson/skill-registry/main/index.json"
 )
 
 for skill in index.skills:
@@ -327,7 +360,7 @@ Set `GITHUB_TOKEN` in the environment before running `install`:
 
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-skill-forge install https://raw.githubusercontent.com/acme/private-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 ```
 
@@ -359,7 +392,7 @@ For most teams, option 1 with sha256 verification is the right starting point. A
 A human-readable index helps teammates discover what's available without writing jq queries. Generate a list from `index.json`:
 
 ```bash
-cd ~/code/acme-skills
+cd ~/code/skill-registry
 python - <<'PY' >> README.md
 import json
 data = json.load(open("index.json"))
@@ -383,18 +416,18 @@ The whole workflow in one screen:
 ```bash
 # --- Maintainer ---
 # 1. One-time: clone the registry repo
-git clone git@github.com:acme/acme-skills.git ~/code/acme-skills
+git clone git@github.com:ficiverson/skill-registry.git ~/code/skill-registry
 
 # 2. Each release: bump version: in frontmatter, then:
 skill-forge pack output_skills/development/python-tdd
 skill-forge publish ./python-tdd-0.2.0.skillpack \
-  --registry ~/code/acme-skills \
-  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" --push
 
 # --- Teammate ---
 skill-forge install \
-  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+  https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 ```
 

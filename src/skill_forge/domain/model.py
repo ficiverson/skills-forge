@@ -240,12 +240,34 @@ class SkillPackManifest:
 
 
 @dataclass(frozen=True)
+class Owner:
+    """Value object: contact info for the maintainer of a published skill."""
+
+    name: str
+    email: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ValueError("Owner name cannot be empty")
+
+
+@dataclass(frozen=True)
 class IndexedVersion:
-    """One published version of a skill in a registry index."""
+    """One published version of a skill in a registry index.
+
+    The required fields (version, path, sha256) form the minimum needed
+    to download and verify a pack. The optional fields are publish-time
+    metadata that helps teammates pick a version: when it shipped, how
+    big it is, what changed, and whether it's been pulled.
+    """
 
     version: str
     path: str  # repo-relative POSIX path, e.g. "packs/dev/python-tdd-0.2.0.skillpack"
     sha256: str  # hex digest of the .skillpack contents
+    published_at: str = ""  # ISO 8601 timestamp; empty for older entries
+    size_bytes: int = 0  # 0 means "unknown" (older entries)
+    release_notes: str = ""
+    yanked: bool = False  # set true when a version is withdrawn but kept for audit
 
     def __post_init__(self) -> None:
         if not self.version or not self.version.strip():
@@ -254,16 +276,28 @@ class IndexedVersion:
             raise ValueError("IndexedVersion path cannot be empty")
         if not self.sha256 or len(self.sha256) != 64:
             raise ValueError("IndexedVersion sha256 must be a 64-char hex digest")
+        if self.size_bytes < 0:
+            raise ValueError("IndexedVersion size_bytes cannot be negative")
 
 
 @dataclass(frozen=True)
 class IndexedSkill:
-    """A skill listed in a registry index, with all its published versions."""
+    """A skill listed in a registry index, with all its published versions.
+
+    The optional metadata (description, tags, owner, deprecated) reflects
+    the *current* state of the skill from the latest publish. Pinned older
+    versions are still installable via ``versions``, but the skill-level
+    metadata always describes the head.
+    """
 
     category: str
     name: str
     latest: str
     versions: tuple[IndexedVersion, ...]
+    description: str = ""
+    tags: tuple[str, ...] = ()
+    owner: Owner | None = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.category or not self.category.strip():
@@ -315,12 +349,25 @@ class RegistryIndex:
         return None
 
     def upsert(
-        self, category: str, name: str, version: IndexedVersion
+        self,
+        category: str,
+        name: str,
+        version: IndexedVersion,
+        *,
+        description: str | None = None,
+        tags: tuple[str, ...] | None = None,
+        owner: Owner | None = None,
+        deprecated: bool | None = None,
     ) -> RegistryIndex:
         """Return a new index with ``version`` added to the matching skill.
 
         If the skill is new, it's added. If the version already exists, the
         new entry replaces it (lets you re-publish after fixing a typo).
+
+        Skill-level metadata (description, tags, owner, deprecated) is
+        overwritten when supplied; passing ``None`` keeps the existing value
+        for skills that already exist, or falls back to defaults for newly
+        added skills.
         """
         new_skills: list[IndexedSkill] = []
         found = False
@@ -330,13 +377,23 @@ class RegistryIndex:
                 kept = tuple(v for v in s.versions if v.version != version.version)
                 merged = (*kept, version)
                 ordered = tuple(sorted(merged, key=lambda v: _version_key(v.version)))
-                latest = ordered[-1].version
+                # latest skips yanked versions if there's any non-yanked option
+                non_yanked = [v for v in ordered if not v.yanked]
+                latest = (non_yanked[-1] if non_yanked else ordered[-1]).version
                 new_skills.append(
                     IndexedSkill(
                         category=category,
                         name=name,
                         latest=latest,
                         versions=ordered,
+                        description=(
+                            description if description is not None else s.description
+                        ),
+                        tags=tags if tags is not None else s.tags,
+                        owner=owner if owner is not None else s.owner,
+                        deprecated=(
+                            deprecated if deprecated is not None else s.deprecated
+                        ),
                     )
                 )
             else:
@@ -348,6 +405,10 @@ class RegistryIndex:
                     name=name,
                     latest=version.version,
                     versions=(version,),
+                    description=description or "",
+                    tags=tags or (),
+                    owner=owner,
+                    deprecated=bool(deprecated) if deprecated is not None else False,
                 )
             )
         new_skills.sort(key=lambda s: (s.category, s.name))
@@ -366,6 +427,24 @@ def _version_key(version: str) -> tuple[int, ...]:
         digits = "".join(c for c in chunk if c.isdigit())
         parts.append(int(digits) if digits else 0)
     return tuple(parts)
+
+
+@dataclass(frozen=True)
+class PublishMetadata:
+    """Optional publish-time metadata that enriches the registry index.
+
+    Caller assembles this in the application layer (typically reading
+    ``description`` from the skill's frontmatter and accepting the rest
+    via CLI flags) and passes it to the publisher. All fields default to
+    "no opinion" so older callers keep working unchanged.
+    """
+
+    description: str = ""
+    tags: tuple[str, ...] = ()
+    owner: Owner | None = None
+    deprecated: bool = False
+    release_notes: str = ""
+    yanked: bool = False
 
 
 @dataclass(frozen=True)

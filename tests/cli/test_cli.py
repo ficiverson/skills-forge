@@ -346,6 +346,50 @@ class TestPublishCommand:
         ).exists()
         assert (registry / "index.json").exists()
 
+    def test_publish_records_rich_metadata(self, tmp_path: Path):
+        import json
+
+        skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
+        out_dir = tmp_path / "packs"
+        out_dir.mkdir()
+        runner.invoke(app, ["pack", str(skill_dir), "--output", str(out_dir)])
+        pack_file = next(out_dir.glob("*.skillpack"))
+
+        registry = tmp_path / "registry"
+        self._init_registry(registry)
+
+        result = runner.invoke(
+            app,
+            [
+                "publish",
+                str(pack_file),
+                "--registry",
+                str(registry),
+                "--base-url",
+                "https://raw.githubusercontent.com/acme/skills/main",
+                "--tag",
+                "tdd",
+                "--tag",
+                "python",
+                "--owner-name",
+                "Acme",
+                "--owner-email",
+                "team@acme.test",
+                "--release-notes",
+                "first cut",
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+
+        index = json.loads((registry / "index.json").read_text())
+        skill = index["skills"][0]
+        assert skill["tags"] == ["tdd", "python"]
+        assert skill["owner"] == {"name": "Acme", "email": "team@acme.test"}
+        version = skill["versions"][0]
+        assert version["release_notes"] == "first cut"
+        assert version["size_bytes"] > 0
+        assert version["published_at"]
+
 
 class TestInstallFromUrlCommand:
     def test_install_url_fetches_unpacks_and_installs(

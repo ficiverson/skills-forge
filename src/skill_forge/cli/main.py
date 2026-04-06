@@ -358,6 +358,37 @@ def publish(
         "--push/--no-push",
         help="Push the commit to the remote after writing the index",
     ),
+    tags: list[str] = typer.Option(
+        [],
+        "--tag",
+        "-t",
+        help="Tag for the skill (repeatable). Surfaces in the registry index for discovery.",
+    ),
+    owner_name: str = typer.Option(
+        "",
+        "--owner-name",
+        help="Name of the skill maintainer (recorded in index.json)",
+    ),
+    owner_email: str = typer.Option(
+        "",
+        "--owner-email",
+        help="Email of the skill maintainer (recorded in index.json)",
+    ),
+    deprecated: bool = typer.Option(
+        False,
+        "--deprecated",
+        help="Mark the skill as deprecated in the index",
+    ),
+    release_notes: str = typer.Option(
+        "",
+        "--release-notes",
+        help="Release notes for this version (recorded with the version entry)",
+    ),
+    yanked: bool = typer.Option(
+        False,
+        "--yanked",
+        help="Mark this version as yanked (kept for audit but excluded from 'latest')",
+    ),
 ) -> None:
     """Publish a .skillpack to a git-backed registry repo.
 
@@ -377,6 +408,12 @@ def publish(
         pack_path=pack_path,
         message=message,
         push=push,
+        tags=tuple(tags),
+        owner_name=owner_name,
+        owner_email=owner_email,
+        deprecated=deprecated,
+        release_notes=release_notes,
+        yanked=yanked,
     )
     response = use_case.execute(request)
     result = response.result

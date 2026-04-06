@@ -42,12 +42,12 @@ skill-forge install output_skills/development/python-tdd
 # 6. Bundle and share with your team
 skill-forge pack output_skills/development/python-tdd
 skill-forge publish ./python-tdd-0.1.0.skillpack \
-  --registry ~/code/team-skills \
-  --base-url https://raw.githubusercontent.com/acme/team-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --push
 
 # A teammate installs it directly from the printed raw URL
-skill-forge install https://raw.githubusercontent.com/acme/team-skills/main/packs/development/python-tdd-0.1.0.skillpack
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack
 ```
 
 The `install` command creates a symlink from your skill directory into `~/.claude/skills/` (global) or `.claude/skills/` (project-scoped), so Claude Code discovers it automatically. Because it's a symlink, you edit the source in `output_skills/`, re-lint, and the installed version updates without reinstalling.
@@ -352,10 +352,12 @@ For broader distribution, drop the `.skillpack` into a shared Git repo with CI r
 
 `skill-forge publish` turns any git repo into a free, CDN-backed skill registry. No GitHub Actions, no releases, no API server — just a normal repo where each pack lives at a stable raw URL. Teammates `install` directly from that URL.
 
+A live example registry built with skill-forge lives at [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry) — every URL in this section points at it, so you can `curl` the index, install a real pack, and see exactly what your own registry will look like.
+
 The registry repo layout is fixed:
 
 ```
-acme-skills/                    ← any git repo (GitHub, GitLab, self-hosted)
+skill-registry/                 ← any git repo (GitHub, GitLab, self-hosted)
 ├── index.json                  ← machine catalog (auto-maintained)
 └── packs/
     └── <category>/
@@ -365,7 +367,7 @@ acme-skills/                    ← any git repo (GitHub, GitLab, self-hosted)
 **One-time setup** — create the registry repo and clone it locally:
 
 ```bash
-git clone git@github.com:acme/acme-skills.git
+git clone git@github.com:ficiverson/skill-registry.git
 ```
 
 **Publish a pack** — point at the local clone and the public base URL:
@@ -375,8 +377,8 @@ skill-forge pack output_skills/development/python-tdd
 # → ./python-tdd-0.2.0.skillpack
 
 skill-forge publish ./python-tdd-0.2.0.skillpack \
-  --registry ~/code/acme-skills \
-  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" \
   --push
 ```
@@ -391,10 +393,10 @@ Output:
   git:     pushed
 
   Install URL:
-  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+  https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
 
   Teammates can install with:
-    skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack --sha256 9c4f2a1b...
+    skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack --sha256 9c4f2a1b...
 ```
 
 The publisher copies the pack into `packs/<category>/<name>-<version>.skillpack`, regenerates `index.json`, commits, and (with `--push`) pushes. Drop `--push` if you'd rather review the diff first; the commit is already on your local branch.
@@ -403,10 +405,10 @@ The publisher copies the pack into `packs/<category>/<name>-<version>.skillpack`
 
 ```bash
 # Direct URL — works for any https:// pointing at a .skillpack
-skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
 
 # With sha256 verification (recommended)
-skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 
 # Local install still works exactly as before

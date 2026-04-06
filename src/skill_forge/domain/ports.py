@@ -11,12 +11,16 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    PublishMetadata,
     PublishResult,
     RegistryIndex,
     Skill,
     SkillPackManifest,
     SkillScope,
 )
+
+# Module-level singleton: avoids B008 (function call in argument default).
+_DEFAULT_PUBLISH_METADATA = PublishMetadata()
 
 
 class SkillRepository(ABC):
@@ -128,8 +132,14 @@ class PackPublisher(ABC):
         manifest: SkillPackManifest,
         message: str,
         push: bool,
+        metadata: PublishMetadata = _DEFAULT_PUBLISH_METADATA,
     ) -> PublishResult:
-        """Publish ``pack_path`` and return where it can be downloaded from."""
+        """Publish ``pack_path`` and return where it can be downloaded from.
+
+        ``metadata`` enriches the registry index with description, tags,
+        owner, release notes, and lifecycle flags. Defaults preserve the
+        old behaviour for callers that haven't been updated.
+        """
 
     @abstractmethod
     def read_index(self) -> RegistryIndex:

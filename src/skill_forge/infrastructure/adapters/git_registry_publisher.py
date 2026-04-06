@@ -28,6 +28,7 @@ from pathlib import Path
 
 from skill_forge.domain.model import (
     IndexedVersion,
+    PublishMetadata,
     PublishResult,
     RegistryIndex,
     SkillPackManifest,
@@ -36,6 +37,8 @@ from skill_forge.domain.ports import PackPublisher
 from skill_forge.infrastructure.adapters.registry_index_codec import (
     RegistryIndexCodec,
 )
+
+_DEFAULT_PUBLISH_METADATA = PublishMetadata()
 
 
 class GitRegistryPublisher(PackPublisher):
@@ -68,6 +71,7 @@ class GitRegistryPublisher(PackPublisher):
         manifest: SkillPackManifest,
         message: str,
         push: bool,
+        metadata: PublishMetadata = _DEFAULT_PUBLISH_METADATA,
     ) -> PublishResult:
         if not pack_path.exists():
             raise FileNotFoundError(f"Pack does not exist: {pack_path}")
@@ -90,14 +94,35 @@ class GitRegistryPublisher(PackPublisher):
         shutil.copyfile(pack_path, dest)
 
         sha = _sha256(dest)
+        size = dest.stat().st_size
+        published_at = _now_iso()
+        version_entry = IndexedVersion(
+            version=ref.version,
+            path=rel_path.as_posix(),
+            sha256=sha,
+            published_at=published_at,
+            size_bytes=size,
+            release_notes=metadata.release_notes,
+            yanked=metadata.yanked,
+        )
+        # Only forward skill-level fields when the caller actually
+        # supplied a value, so re-publishes that omit them keep whatever
+        # the index already has.
+        upsert_kwargs: dict[str, object] = {}
+        if metadata.description:
+            upsert_kwargs["description"] = metadata.description
+        if metadata.tags:
+            upsert_kwargs["tags"] = metadata.tags
+        if metadata.owner is not None:
+            upsert_kwargs["owner"] = metadata.owner
+        if metadata.deprecated:
+            upsert_kwargs["deprecated"] = True
+
         index = self._read_or_seed_index().upsert(
             ref.category,
             ref.name,
-            IndexedVersion(
-                version=ref.version,
-                path=rel_path.as_posix(),
-                sha256=sha,
-            ),
+            version_entry,
+            **upsert_kwargs,  # type: ignore[arg-type]
         )
         index = self._stamped_now(index)
         index_path = self._root / "index.json"

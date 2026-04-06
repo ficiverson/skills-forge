@@ -89,7 +89,11 @@ def build_publish_use_case(
         registry_name=registry_name,
         base_url=base_url,
     )
-    return PublishPack(publisher=publisher, packer=build_packer())
+    return PublishPack(
+        publisher=publisher,
+        packer=build_packer(),
+        parser=build_parser(),
+    )
 
 
 def build_install_from_url_use_case() -> InstallFromUrl:

@@ -258,15 +258,15 @@ Then lints and installs the unpacked skills with the usual commands.
 **One-time setup** — clone the registry repo locally:
 
 ```bash
-git clone git@github.com:acme/acme-skills.git
+git clone git@github.com:ficiverson/skill-registry.git
 ```
 
 **Publish a pack:**
 
 ```bash
 skill-forge publish ./python-tdd-0.2.0.skillpack \
-  --registry ~/code/acme-skills \
-  --base-url https://raw.githubusercontent.com/acme/acme-skills/main \
+  --registry ~/code/skill-registry \
+  --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" \
   --push
 ```
@@ -281,7 +281,7 @@ Output:
   git:     pushed
 
   Install URL:
-  https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+  https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
 ```
 
 Drop `--push` if you'd rather review the diff first; the commit is already on your local branch waiting for `git push`.
@@ -292,10 +292,10 @@ Drop `--push` if you'd rather review the diff first; the commit is already on yo
 
 ```bash
 # Direct URL
-skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
 
 # With sha256 verification (recommended — copy the digest from publish output)
-skill-forge install https://raw.githubusercontent.com/acme/acme-skills/main/packs/development/python-tdd-0.2.0.skillpack \
+skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 
 # Local install still works the same as before
@@ -358,3 +358,11 @@ For private GitHub repos, set `GITHUB_TOKEN` in your environment and the fetcher
 | `--registry-name, -N` | no | Display name (defaults to the repo dir name) |
 | `--message, -m` | no | Git commit message |
 | `--push/--no-push` | no | Push the commit to the remote after writing the index (default: no-push) |
+| `--tag, -t` | no | Tag for the skill (repeatable). Surfaces in the registry index for discovery. |
+| `--owner-name` | no | Maintainer name recorded in `index.json` |
+| `--owner-email` | no | Maintainer email recorded in `index.json` |
+| `--deprecated` | no | Mark the skill as deprecated in the index |
+| `--release-notes` | no | Release notes recorded with this version's index entry |
+| `--yanked` | no | Mark this version as yanked (kept for audit, excluded from `latest`) |
+
+The publisher also writes `published_at` and `size_bytes` for each version automatically, and mirrors the skill's frontmatter `description` into the index so teammates can browse without unzipping anything.

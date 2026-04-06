@@ -16,6 +16,7 @@ from skill_forge.application.use_cases.publish_skill import (
     PublishPackRequest,
 )
 from skill_forge.domain.model import (
+    PublishMetadata,
     PublishResult,
     RegistryIndex,
     SkillPackManifest,
@@ -28,6 +29,8 @@ from skill_forge.domain.ports import (
     SkillInstaller,
     SkillPacker,
 )
+
+_EMPTY_META = PublishMetadata()
 
 
 def _manifest() -> SkillPackManifest:
@@ -61,10 +64,10 @@ class _StubPacker(SkillPacker):
 
 class _StubPublisher(PackPublisher):
     def __init__(self) -> None:
-        self.calls: list[tuple[Path, str, bool]] = []
+        self.calls: list[tuple[Path, str, bool, PublishMetadata]] = []
 
-    def publish(self, pack_path, manifest, message, push):  # type: ignore[no-untyped-def]
-        self.calls.append((pack_path, message, push))
+    def publish(self, pack_path, manifest, message, push, metadata=_EMPTY_META):  # type: ignore[no-untyped-def]
+        self.calls.append((pack_path, message, push, metadata))
         return PublishResult(
             pack_name=manifest.name,
             version=manifest.skills[0].version,
@@ -132,7 +135,37 @@ class TestPublishPack:
         assert response.result.pack_name == "python-tdd"
         assert response.result.version == "0.2.0"
         assert response.result.committed is True
-        assert publisher.calls == [(pack, "ship", False)]
+        assert len(publisher.calls) == 1
+        recorded_pack, recorded_msg, recorded_push, recorded_meta = publisher.calls[0]
+        assert recorded_pack == pack
+        assert recorded_msg == "ship"
+        assert recorded_push is False
+        assert isinstance(recorded_meta, PublishMetadata)
+
+    def test_threads_metadata_into_publisher(self, tmp_path: Path) -> None:
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+        publisher = _StubPublisher()
+        use_case = PublishPack(publisher=publisher, packer=_StubPacker())
+
+        use_case.execute(
+            PublishPackRequest(
+                pack_path=pack,
+                tags=("tdd", "python"),
+                owner_name="Acme",
+                owner_email="team@acme.test",
+                deprecated=False,
+                release_notes="initial cut",
+            )
+        )
+
+        meta = publisher.calls[0][3]
+        assert meta.tags == ("tdd", "python")
+        assert meta.owner is not None
+        assert meta.owner.name == "Acme"
+        assert meta.owner.email == "team@acme.test"
+        assert meta.release_notes == "initial cut"
+        assert meta.deprecated is False
 
     def test_missing_pack_errors(self, tmp_path: Path) -> None:
         use_case = PublishPack(publisher=_StubPublisher(), packer=_StubPacker())
