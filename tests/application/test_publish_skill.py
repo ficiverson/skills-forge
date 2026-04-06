@@ -119,6 +119,30 @@ class _StubInstaller(SkillInstaller):
         return []
 
 
+def _rich_manifest(**overrides: object) -> SkillPackManifest:
+    """A manifest that satisfies all required-metadata validation rules."""
+    base = _manifest()
+    kwargs: dict[str, object] = dict(
+        name=base.name,
+        version=base.version,
+        author=base.author,
+        created_at=base.created_at,
+        skills=base.skills,
+        description="A TDD skill for Python projects",
+        tags=("tdd", "python"),
+        owner=Owner(name="Test Author", email="author@test.example"),
+    )
+    kwargs.update(overrides)
+    return SkillPackManifest(**kwargs)  # type: ignore[arg-type]
+
+
+class _RichStubPacker(_StubPacker):
+    """Packer whose manifest already satisfies all required-metadata rules."""
+
+    def read_manifest(self, pack_path: Path) -> SkillPackManifest:  # type: ignore[override]
+        return _rich_manifest()
+
+
 # --------------------------------------------------------------------- tests
 
 
@@ -127,7 +151,7 @@ class TestPublishPack:
         pack = tmp_path / "x.skillpack"
         pack.write_bytes(b"zip-content")
         publisher = _StubPublisher()
-        use_case = PublishPack(publisher=publisher, packer=_StubPacker())
+        use_case = PublishPack(publisher=publisher, packer=_RichStubPacker())
 
         response = use_case.execute(
             PublishPackRequest(pack_path=pack, message="ship", push=False)
@@ -187,6 +211,7 @@ class TestPublishPack:
                     author=base.author,
                     created_at=base.created_at,
                     skills=base.skills,
+                    description="from-manifest",
                     tags=("manifest-tag",),
                     owner=Owner(name="ManifestOwner"),
                 )
@@ -211,7 +236,7 @@ class TestPublishPack:
         pack = tmp_path / "x.skillpack"
         pack.write_bytes(b"zip-content")
         publisher = _StubPublisher()
-        use_case = PublishPack(publisher=publisher, packer=_StubPacker())
+        use_case = PublishPack(publisher=publisher, packer=_RichStubPacker())
 
         use_case.execute(
             PublishPackRequest(
@@ -238,6 +263,97 @@ class TestPublishPack:
             use_case.execute(
                 PublishPackRequest(pack_path=tmp_path / "missing.skillpack")
             )
+
+    # ------------------------------------------------------------------ validation
+
+    def test_missing_description_raises(self, tmp_path: Path) -> None:
+        """Publish without a description must fail with a clear error."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+
+        class _NoDesc(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                return _rich_manifest(description="")
+
+        use_case = PublishPack(publisher=_StubPublisher(), packer=_NoDesc())
+        with pytest.raises(ValueError, match="description is required"):
+            use_case.execute(PublishPackRequest(pack_path=pack))
+
+    def test_missing_tags_raises(self, tmp_path: Path) -> None:
+        """Publish with an empty tags tuple must fail with a clear error."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+
+        class _NoTags(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                return _rich_manifest(tags=())
+
+        use_case = PublishPack(publisher=_StubPublisher(), packer=_NoTags())
+        with pytest.raises(ValueError, match="at least one tag is required"):
+            use_case.execute(PublishPackRequest(pack_path=pack))
+
+    def test_missing_owner_raises(self, tmp_path: Path) -> None:
+        """Publish without any owner must fail with a clear error."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+
+        class _NoOwner(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                return _rich_manifest(owner=None)
+
+        use_case = PublishPack(publisher=_StubPublisher(), packer=_NoOwner())
+        with pytest.raises(ValueError, match="owner name and email are required"):
+            use_case.execute(PublishPackRequest(pack_path=pack))
+
+    def test_missing_owner_email_raises(self, tmp_path: Path) -> None:
+        """Owner without an email address must fail validation."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+
+        class _NoEmail(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                return _rich_manifest(owner=Owner(name="Nameless", email=""))
+
+        use_case = PublishPack(publisher=_StubPublisher(), packer=_NoEmail())
+        with pytest.raises(ValueError, match="owner name and email are required"):
+            use_case.execute(PublishPackRequest(pack_path=pack))
+
+    def test_multiple_missing_fields_reported_together(self, tmp_path: Path) -> None:
+        """All missing fields are listed in a single ValueError."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+        # _StubPacker returns a bare manifest with no description / tags / owner
+        use_case = PublishPack(publisher=_StubPublisher(), packer=_StubPacker())
+        with pytest.raises(ValueError) as exc_info:
+            use_case.execute(PublishPackRequest(pack_path=pack))
+        message = str(exc_info.value)
+        assert "description is required" in message
+        assert "at least one tag is required" in message
+        assert "owner name and email are required" in message
+
+    def test_cli_override_satisfies_validation(self, tmp_path: Path) -> None:
+        """Passing --owner-name/--owner-email at publish time satisfies validation
+        even when the manifest has no owner — description and tags must still be
+        present in the manifest."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+
+        class _NoOwnerPacker(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                return _rich_manifest(owner=None)
+
+        publisher = _StubPublisher()
+        use_case = PublishPack(publisher=publisher, packer=_NoOwnerPacker())
+        use_case.execute(
+            PublishPackRequest(
+                pack_path=pack,
+                owner_name="CLI Author",
+                owner_email="cli@test.example",
+            )
+        )
+        meta = publisher.calls[0][3]
+        assert meta.owner is not None
+        assert meta.owner.name == "CLI Author"
 
 
 class TestInstallFromUrl:

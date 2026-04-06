@@ -95,6 +95,31 @@ class PublishPack:
             owner = manifest.owner
         deprecated = request.deprecated or manifest.deprecated
 
+        # Enforce required registry metadata — fail fast with actionable messages
+        # so the registry never receives incomplete entries.
+        _errors: list[str] = []
+        if not description:
+            _errors.append(
+                "description is required — bake it in with "
+                '`skill-forge pack --description "..."`'
+            )
+        if not tags:
+            _errors.append(
+                "at least one tag is required — bake it in with "
+                "`skill-forge pack --tag <tag>`"
+            )
+        if owner is None or not owner.name or not owner.email:
+            _errors.append(
+                "owner name and email are required — bake them in with "
+                '`skill-forge pack --owner-name "..." --owner-email "..."`'
+                " (or override at publish time with --owner-name / --owner-email)"
+            )
+        if _errors:
+            raise ValueError(
+                "Cannot publish: missing required registry metadata:\n"
+                + "\n".join(f"  • {e}" for e in _errors)
+            )
+
         metadata = PublishMetadata(
             description=description,
             tags=tags,

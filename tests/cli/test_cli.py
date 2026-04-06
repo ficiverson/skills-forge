@@ -319,7 +319,13 @@ class TestPublishCommand:
         skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
         out_dir = tmp_path / "packs"
         out_dir.mkdir()
-        runner.invoke(app, ["pack", str(skill_dir), "--output", str(out_dir)])
+        runner.invoke(app, [
+            "pack", str(skill_dir), "--output", str(out_dir),
+            "--description", "A TDD skill for Python",
+            "--tag", "tdd",
+            "--owner-name", "Test Author",
+            "--owner-email", "author@test.example",
+        ])
         pack_file = next(out_dir.glob("*.skillpack"))
 
         registry = tmp_path / "registry"
@@ -352,7 +358,10 @@ class TestPublishCommand:
         skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
         out_dir = tmp_path / "packs"
         out_dir.mkdir()
-        runner.invoke(app, ["pack", str(skill_dir), "--output", str(out_dir)])
+        runner.invoke(app, [
+            "pack", str(skill_dir), "--output", str(out_dir),
+            "--description", "A TDD skill for Python",
+        ])
         pack_file = next(out_dir.glob("*.skillpack"))
 
         registry = tmp_path / "registry"
