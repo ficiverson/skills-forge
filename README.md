@@ -454,3 +454,7 @@ mypy src/
 ## License
 
 MIT
+
+---
+
+_I decided to create this repo after reading [this eferro post on encoding experience into AI skills](https://www.eferro.net/2026/03/encoding-experience-into-ai-skills.html)._
