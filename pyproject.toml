@@ -1,20 +1,47 @@
 [build-system]
-requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
+requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "skill-forge"
 version = "0.1.0"
-description = "A clean-architecture toolkit for crafting Claude Code skills"
+description = "A clean-architecture toolkit for crafting, linting, packing, and sharing Claude Code skills"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "eferro" },
+    { name = "Fernando Souto", email = "me@fernandosouto.dev" },
+]
+keywords = [
+    "claude",
+    "claude-code",
+    "skills",
+    "ai-skills",
+    "llm",
+    "anthropic",
+    "skill-forge",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Typing :: Typed",
 ]
 dependencies = [
     "typer>=0.12",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ficiverson/skills-forge"
+Repository = "https://github.com/ficiverson/skills-forge"
+"Bug Tracker" = "https://github.com/ficiverson/skills-forge/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -22,6 +49,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.5",
     "mypy>=1.10",
+    "build>=1.0",
 ]
 
 [project.scripts]

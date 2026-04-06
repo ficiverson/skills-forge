@@ -1,0 +1,99 @@
+name: Publish to PyPI
+
+# Triggered automatically when you push a version tag (v1.2.3),
+# or manually from the Actions tab for a dry-run check.
+#
+# SETUP (one-time, before the first publish):
+# 1. Go to https://pypi.org/manage/account/publishing/
+# 2. Add a new "pending publisher":
+#    - PyPI project name : skill-forge
+#    - GitHub owner      : ficiverson
+#    - Repository name   : skills-forge
+#    - Workflow filename : publish.yml
+#    - Environment name  : pypi
+# 3. Create a GitHub Environment called "pypi" in your repo settings
+#    (Settings → Environments → New environment → name it "pypi").
+#    Optional: add required reviewers for extra safety.
+#
+# No API tokens or secrets needed — GitHub OIDC handles auth.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"   # matches v1.2.3, v0.1.0, etc.
+  workflow_dispatch:               # manual trigger for dry runs
+
+jobs:
+  # ── 1. Run the full test suite first ─────────────────────────────────────
+  test:
+    name: Test before publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src/ tests/
+
+      - name: Type check
+        run: mypy src/
+
+      - name: Run tests
+        run: pytest -q --tb=short
+
+  # ── 2. Build the distribution artefacts ──────────────────────────────────
+  build:
+    name: Build distribution
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build
+        run: pip install build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # ── 3. Publish to PyPI via OIDC trusted publishing ───────────────────────
+  publish:
+    name: Publish to PyPI
+    needs: build
+    # Skip on workflow_dispatch so you can do a dry-run build without publishing
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: pypi          # matches the GitHub Environment name from step 3 above
+    permissions:
+      id-token: write          # required for OIDC trusted publishing
+
+    steps:
+      - name: Download artefacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No username/password/token needed — OIDC handles everything.
