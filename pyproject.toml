@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0,<71.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "skill-forge"
+name = "skills-forge"
 version = "0.1.0"
 description = "A clean-architecture toolkit for crafting, linting, packing, and sharing Claude Code skills"
 readme = "README.md"
