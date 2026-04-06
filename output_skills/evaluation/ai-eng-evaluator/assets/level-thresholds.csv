@@ -1,0 +1,10 @@
+level,min_score,max_score,label
+Junior-1,0.0,3.7,Junior-1
+Junior-2,3.8,4.7,Junior-2
+Junior-3,4.8,5.6,Junior-3
+Medior-1,5.7,6.4,Medior-1
+Medior-2,6.5,7.2,Medior-2
+Medior-3,7.3,7.9,Medior-3
+Senior-1,8.0,8.6,Senior-1
+Senior-2,8.7,9.2,Senior-2
+Senior-3,9.3,10.0,Senior-3

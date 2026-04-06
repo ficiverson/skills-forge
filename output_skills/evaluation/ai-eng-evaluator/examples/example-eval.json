@@ -1,0 +1,368 @@
+{
+  "candidate_name": "Jane Doe",
+  "project_name": "ai-customer-support-challenge",
+  "date": "March 2026",
+  "repo_url": "https://github.com/janedoe/ai-support-challenge",
+  "tech_stack": "Python, FastAPI, LangGraph, OpenAI SDK, Docker",
+  "repo_summary": "AI-powered customer support system using a multi-agent LangGraph workflow with tool calling, session persistence, and a CI/CD pipeline. Approximately 3,200 lines across 30 files.",
+  "creation_mastery": {
+    "code_quality": {
+      "level9": 5,
+      "evidence": "Consistent type hints across all public functions. Ruff configured with strict rules. Clean separation: agents/, graph/, tools/, api/. Tests use pytest with fixtures. Minor gap: two functions exceed 40 lines in graph/router.py.",
+      "strengths": [
+        "Full type annotations on all public interfaces",
+        "Ruff + mypy configured and passing in CI",
+        "Clean module boundaries with dependency injection"
+      ],
+      "gaps": [
+        "Two functions in graph/router.py exceed 40 lines",
+        "No property-based testing"
+      ]
+    },
+    "documentation": {
+      "level9": 4,
+      "evidence": "Candidate-authored README with architecture overview and Mermaid diagram. Module-level docstrings on all packages. Missing: individual function docstrings in tools/ module.",
+      "strengths": [
+        "Architecture diagram in README using Mermaid",
+        "Module-level docstrings explain each package's responsibility"
+      ],
+      "gaps": [
+        "No function-level docstrings in tools/ module",
+        "No ADR documents"
+      ]
+    },
+    "conv_tooling": {
+      "level9": 5,
+      "evidence": "Docker multi-stage build with non-root user. GitHub Actions CI with lint, type-check, test, and build steps. Pre-commit hooks configured. Coverage threshold at 80%.",
+      "strengths": [
+        "Multi-stage Docker build with health check",
+        "Full CI pipeline with 4 stages",
+        "Pre-commit hooks enforce quality gates"
+      ],
+      "gaps": [
+        "No CD/deployment pipeline",
+        "No docker-compose for local development"
+      ]
+    },
+    "ai_tooling": {
+      "level9": 5,
+      "evidence": "LangGraph multi-agent workflow with 3 nodes. @tool decorator on 4 functions with bind_tools in agent nodes. Structured output via Pydantic state model. No RAG or eval framework.",
+      "strengths": [
+        "LangGraph StateGraph with conditional routing",
+        "Tool calling via @tool + bind_tools pattern",
+        "Pydantic TypedDict for structured state management"
+      ],
+      "gaps": [
+        "No evaluation harness (LangSmith, RAGAS)",
+        "No RAG implementation"
+      ]
+    },
+    "learning": {
+      "level9": 3,
+      "evidence": "Met all challenge requirements. LangGraph is a reasonable framework choice but not novel. No bonus features beyond the spec.",
+      "strengths": [
+        "Solid framework selection with LangGraph"
+      ],
+      "gaps": [
+        "No bonus features beyond spec requirements",
+        "No novel architectural patterns"
+      ]
+    },
+    "shaping": {
+      "level9": 3,
+      "evidence": "specs/ directory with a single planning document outlining the approach. No numbered specs, no tasks.md, no requirements checklist.",
+      "strengths": [
+        "Planning document shows upfront thinking"
+      ],
+      "gaps": [
+        "Single spec file rather than phased numbered specs",
+        "No tasks.md or requirements checklist"
+      ]
+    },
+    "ways_of_working": {
+      "level9": 3,
+      "evidence": "Feature branch with conventional commit messages. No PR templates, no CHANGELOG.",
+      "strengths": [
+        "Conventional commit messages (feat:, fix:, docs:)"
+      ],
+      "gaps": [
+        "No PR templates or contribution guide",
+        "No CHANGELOG"
+      ]
+    },
+    "teaching": {
+      "level9": 3,
+      "evidence": "README has setup instructions and usage examples. No quickstart per feature, no recorded demos.",
+      "strengths": [
+        "Clear setup and usage instructions in README"
+      ],
+      "gaps": [
+        "No quickstart guides per feature",
+        "No docstring examples for complex functions"
+      ]
+    }
+  },
+  "integrity_autonomy": {
+    "task_complexity": {
+      "level3": 1,
+      "evidence": "Multi-agent system with graph-based routing, tool calling, and session management. Moderate complexity relative to the brief."
+    },
+    "ownership": {
+      "level3": 1,
+      "evidence": "All core requirements met. Error handling present but no retry logic or graceful degradation."
+    },
+    "planning": {
+      "level3": 1,
+      "evidence": "Clean folder organization. Single planning spec present. No phased approach evidence."
+    }
+  },
+  "curiosity_evangelism": {
+    "business_impact": {
+      "level3": 1,
+      "evidence": "Customer support context reflected in prompts. No explicit cost/value analysis."
+    }
+  },
+  "collaboration_humanity": {
+    "communication": {
+      "level3": 1,
+      "evidence": "Clear variable names, conventional commits, well-structured README."
+    },
+    "company_match": {
+      "level3": 1,
+      "evidence": "No hardcoded secrets, non-root Docker user, CI pipeline enforces quality."
+    },
+    "proactivity": {
+      "level3": 0,
+      "evidence": "Met requirements but no bonus features or self-initiated improvements."
+    }
+  },
+  "engineering_practices": {
+    "summary": "Strong conventional tooling with full CI pipeline and Docker. Clean architecture with good test coverage. Gaps in observability and dependency management. Net adjustment: 0.",
+    "score_adjustment": 0,
+    "adjustment_reason": "All categories meet baseline expectations. No outstanding features or critical failures.",
+    "categories": [
+      {
+        "id": "clean_architecture",
+        "name": "Clean Architecture & Code Quality",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "Clean module separation, consistent patterns, minor long-function issues.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Dependency injection in agent graph",
+            "location": "graph/builder.py",
+            "description": "Agent nodes receive dependencies via graph state, not global imports.",
+            "suggestion": ""
+          },
+          {
+            "type": "WARNING",
+            "label": "Long functions in router",
+            "location": "graph/router.py:45-92",
+            "description": "Two routing functions exceed 40 lines mixing validation and routing logic.",
+            "suggestion": "Extract validation into a separate function."
+          }
+        ]
+      },
+      {
+        "id": "testing",
+        "name": "Testing Practices",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "Unit tests with mocked LLM calls plus integration tests. 82% coverage.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Mocked LLM responses",
+            "location": "tests/conftest.py",
+            "description": "All OpenAI calls mocked with realistic response fixtures.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "static_analysis",
+        "name": "Static Code Analysis",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "Ruff + mypy configured and passing in CI with pre-commit hooks.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Full static analysis suite",
+            "location": "pyproject.toml, .pre-commit-config.yaml",
+            "description": "Ruff linting, mypy type checking, and black formatting all configured.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "pipeline",
+        "name": "Pipeline & DevOps Quality",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "GitHub Actions CI with lint, type-check, test, build. Multi-stage Docker.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Multi-stage Docker build",
+            "location": "Dockerfile",
+            "description": "Build stage separated from runtime. Non-root user. Health check defined.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "ai_frameworks",
+        "name": "AI Framework Maturity",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "LangGraph multi-agent with tool calling, structured output, and prompt templates.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "LangGraph StateGraph workflow",
+            "location": "graph/builder.py",
+            "description": "3-node graph with conditional routing based on agent state.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "security",
+        "name": "Security Vulnerabilities",
+        "rating": "WARN",
+        "impact": 0,
+        "summary": "No SAST/SCA tooling but no hardcoded secrets. Env vars for all config.",
+        "findings": [
+          {
+            "type": "WARNING",
+            "label": "No security scanning tooling",
+            "location": "Project root",
+            "description": "No bandit, semgrep, or pip-audit configured.",
+            "suggestion": "Add bandit to pre-commit and pip-audit to CI."
+          }
+        ]
+      },
+      {
+        "id": "dependency_management",
+        "name": "Dependency Management",
+        "rating": "WARN",
+        "impact": 0,
+        "summary": "Poetry with lock file. Dev/prod separation. No automated update tooling.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Poetry with lock file",
+            "location": "pyproject.toml, poetry.lock",
+            "description": "Dependencies pinned via poetry.lock for reproducibility.",
+            "suggestion": ""
+          },
+          {
+            "type": "WARNING",
+            "label": "No automated dependency updates",
+            "location": "Project root",
+            "description": "No Dependabot or Renovate configured.",
+            "suggestion": "Add Dependabot for automated security updates."
+          }
+        ]
+      },
+      {
+        "id": "observability",
+        "name": "Observability & Monitoring",
+        "rating": "WARN",
+        "impact": 0,
+        "summary": "Python logging configured. No structured logs, no LLM call tracking, no health endpoint.",
+        "findings": [
+          {
+            "type": "WARNING",
+            "label": "No LLM observability",
+            "location": "agents/",
+            "description": "No token usage or latency logging for OpenAI calls.",
+            "suggestion": "Add LangSmith or custom middleware to log LLM metrics."
+          }
+        ]
+      },
+      {
+        "id": "error_handling",
+        "name": "Error Handling & Resilience",
+        "rating": "WARN",
+        "impact": 0,
+        "summary": "Try/except blocks present. No retry logic or circuit breakers.",
+        "findings": [
+          {
+            "type": "WARNING",
+            "label": "No retry logic",
+            "location": "agents/",
+            "description": "No exponential backoff on OpenAI API calls.",
+            "suggestion": "Add tenacity decorators with exponential backoff."
+          }
+        ]
+      },
+      {
+        "id": "prompt_engineering",
+        "name": "Prompt Engineering Quality",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "Dedicated prompt files with role separation and scope boundaries.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "External prompt templates",
+            "location": "prompts/",
+            "description": "All prompts externalized with clear system/human role separation.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "api_design",
+        "name": "API Design & Contract Quality",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "FastAPI with Pydantic validation, auto-generated OpenAPI, structured error responses.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Structured error handling",
+            "location": "api/exceptions.py",
+            "description": "Custom exception handlers return structured JSON error responses.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "configuration",
+        "name": "Configuration Management",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "Pydantic BaseSettings with .env.example and startup validation.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Pydantic settings with validation",
+            "location": "config/settings.py",
+            "description": "BaseSettings class fails fast on missing required environment variables.",
+            "suggestion": ""
+          }
+        ]
+      },
+      {
+        "id": "code_complexity",
+        "name": "Code Complexity",
+        "rating": "PASS",
+        "impact": 0,
+        "summary": "No files exceed 300 lines. Two functions exceed 40 lines but none exceed 60.",
+        "findings": [
+          {
+            "type": "GOOD_PRACTICE",
+            "label": "Controlled file sizes",
+            "location": "All files",
+            "description": "Largest file is 280 lines. Good decomposition across modules.",
+            "suggestion": ""
+          }
+        ]
+      }
+    ]
+  }
+}
