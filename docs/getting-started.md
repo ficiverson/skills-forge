@@ -232,16 +232,21 @@ Once a skill is good, bundle it into a single portable file you can share. A `.s
 skill-forge pack output_skills/development/python-tdd
 # → ./python-tdd-0.2.0.skillpack
 
-# Bundle multiple skills into a named bundle
+# Bundle multiple skills into a named bundle, baking metadata into the manifest
 skill-forge pack \
   output_skills/development/python-tdd \
   output_skills/security/owasp-review \
   --name backend-team-bundle \
   --version 1.2.0 \
+  --description "Backend defaults: TDD + OWASP review" \
+  --tag backend --tag tdd --tag security \
+  --owner-name "Fer Souto" --owner-email fer@example.com \
   --output backend-team-bundle.skillpack
 ```
 
 The pack command reads `version:` from each skill's frontmatter. Bump that field whenever you ship a change so each release lands as its own versioned `.skillpack`.
+
+The optional `--description`, `--tag`, `--owner-*`, and `--deprecated` flags travel inside the manifest so the same pack carries its own discoverability metadata. When you later run `skill-forge publish`, the registry index defaults to those values — passing the same flags on `publish` overrides them.
 
 A teammate who receives the file extracts it with:
 

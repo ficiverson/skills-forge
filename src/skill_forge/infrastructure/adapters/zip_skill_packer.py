@@ -15,7 +15,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from skill_forge.domain.model import SkillPackManifest, SkillRef
+from skill_forge.domain.model import Owner, SkillPackManifest, SkillRef
 from skill_forge.domain.ports import SkillPacker
 
 _MANIFEST_NAME = "manifest.json"
@@ -104,7 +104,10 @@ class ZipSkillPacker(SkillPacker):
 
 
 def _serialize_manifest(manifest: SkillPackManifest) -> str:
-    payload = {
+    # Optional fields are only written when set, so older readers that
+    # don't know about them stay forwards-compatible and the on-disk
+    # JSON stays minimal.
+    payload: dict[str, object] = {
         "format_version": SkillPackManifest.FORMAT_VERSION,
         "name": manifest.name,
         "version": manifest.version,
@@ -120,6 +123,15 @@ def _serialize_manifest(manifest: SkillPackManifest) -> str:
             for s in manifest.skills
         ],
     }
+    if manifest.tags:
+        payload["tags"] = list(manifest.tags)
+    if manifest.owner is not None:
+        owner_payload: dict[str, object] = {"name": manifest.owner.name}
+        if manifest.owner.email:
+            owner_payload["email"] = manifest.owner.email
+        payload["owner"] = owner_payload
+    if manifest.deprecated:
+        payload["deprecated"] = True
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
@@ -157,6 +169,15 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
         for s in skills_data
     )
 
+    owner_raw = data.get("owner")
+    owner: Owner | None = None
+    if isinstance(owner_raw, dict) and owner_raw.get("name"):
+        owner = Owner(
+            name=str(owner_raw["name"]),
+            email=str(owner_raw.get("email", "")),
+        )
+    tags_raw = data.get("tags") or []
+
     return SkillPackManifest(
         name=data.get("name", ""),
         version=data.get("version", ""),
@@ -164,6 +185,9 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
         created_at=data.get("created_at", ""),
         description=data.get("description", ""),
         skills=skills,
+        tags=tuple(str(t) for t in tags_raw),
+        owner=owner,
+        deprecated=bool(data.get("deprecated", False)),
     )
 
 

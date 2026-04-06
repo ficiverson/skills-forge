@@ -79,17 +79,27 @@ class PublishPack:
             raise FileNotFoundError(f"Pack does not exist: {request.pack_path}")
         manifest = self._packer.read_manifest(request.pack_path)
 
-        description = self._read_description(request.pack_path, manifest)
-        owner = (
-            Owner(name=request.owner_name, email=request.owner_email)
-            if request.owner_name
-            else None
+        # Defaults flow from the manifest (baked in at pack time);
+        # CLI flags on the request override.
+        description = (
+            manifest.description
+            or self._read_description(request.pack_path, manifest)
         )
+        tags = tuple(request.tags) if request.tags else manifest.tags
+        if request.owner_name:
+            owner: Owner | None = Owner(
+                name=request.owner_name,
+                email=request.owner_email,
+            )
+        else:
+            owner = manifest.owner
+        deprecated = request.deprecated or manifest.deprecated
+
         metadata = PublishMetadata(
             description=description,
-            tags=tuple(request.tags),
+            tags=tags,
             owner=owner,
-            deprecated=request.deprecated,
+            deprecated=deprecated,
             release_notes=request.release_notes,
             yanked=request.yanked,
         )

@@ -16,6 +16,7 @@ from skill_forge.application.use_cases.publish_skill import (
     PublishPackRequest,
 )
 from skill_forge.domain.model import (
+    Owner,
     PublishMetadata,
     PublishResult,
     RegistryIndex,
@@ -141,6 +142,70 @@ class TestPublishPack:
         assert recorded_msg == "ship"
         assert recorded_push is False
         assert isinstance(recorded_meta, PublishMetadata)
+
+    def test_defaults_metadata_from_manifest(self, tmp_path: Path) -> None:
+        """When the request omits flags, the publisher gets manifest values."""
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+        publisher = _StubPublisher()
+
+        class _RichPacker(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                base = _manifest()
+                return SkillPackManifest(
+                    name=base.name,
+                    version=base.version,
+                    author=base.author,
+                    created_at=base.created_at,
+                    skills=base.skills,
+                    description="from-manifest",
+                    tags=("tdd",),
+                    owner=Owner(name="ManifestOwner", email="m@x.test"),
+                    deprecated=True,
+                )
+
+        use_case = PublishPack(publisher=publisher, packer=_RichPacker())
+        use_case.execute(PublishPackRequest(pack_path=pack))
+
+        meta = publisher.calls[0][3]
+        assert meta.description == "from-manifest"
+        assert meta.tags == ("tdd",)
+        assert meta.owner is not None and meta.owner.name == "ManifestOwner"
+        assert meta.deprecated is True
+
+    def test_request_overrides_manifest_metadata(self, tmp_path: Path) -> None:
+        pack = tmp_path / "x.skillpack"
+        pack.write_bytes(b"zip-content")
+        publisher = _StubPublisher()
+
+        class _RichPacker(_StubPacker):
+            def read_manifest(self, pack_path):  # type: ignore[no-untyped-def]
+                base = _manifest()
+                return SkillPackManifest(
+                    name=base.name,
+                    version=base.version,
+                    author=base.author,
+                    created_at=base.created_at,
+                    skills=base.skills,
+                    tags=("manifest-tag",),
+                    owner=Owner(name="ManifestOwner"),
+                )
+
+        use_case = PublishPack(publisher=publisher, packer=_RichPacker())
+        use_case.execute(
+            PublishPackRequest(
+                pack_path=pack,
+                tags=("override-tag",),
+                owner_name="CliOwner",
+                owner_email="cli@x.test",
+            )
+        )
+
+        meta = publisher.calls[0][3]
+        assert meta.tags == ("override-tag",)
+        assert meta.owner is not None
+        assert meta.owner.name == "CliOwner"
+        assert meta.owner.email == "cli@x.test"
 
     def test_threads_metadata_into_publisher(self, tmp_path: Path) -> None:
         pack = tmp_path / "x.skillpack"

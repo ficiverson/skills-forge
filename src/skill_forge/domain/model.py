@@ -210,11 +210,28 @@ class SkillRef:
 
 
 @dataclass(frozen=True)
+class Owner:
+    """Value object: contact info for the maintainer of a published skill."""
+
+    name: str
+    email: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ValueError("Owner name cannot be empty")
+
+
+@dataclass(frozen=True)
 class SkillPackManifest:
     """Metadata describing the contents of a .skillpack archive.
 
     A .skillpack is a zip file containing one or more skill directories
-    plus a `manifest.json` at the root with this metadata.
+    plus a ``manifest.json`` at the root with this metadata. New optional
+    fields (``tags``, ``owner``, ``deprecated``) let a pack carry the
+    same metadata that ends up in a registry index, so ``publish`` can
+    default from the manifest instead of asking for everything via CLI
+    flags every time. Older packs without these fields keep working —
+    the codec fills in safe defaults on read.
     """
 
     FORMAT_VERSION: ClassVar[str] = "1"
@@ -225,6 +242,9 @@ class SkillPackManifest:
     created_at: str  # ISO 8601 timestamp
     skills: tuple[SkillRef, ...]
     description: str = ""
+    tags: tuple[str, ...] = ()
+    owner: Owner | None = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.name or not self.name.strip():
@@ -237,18 +257,6 @@ class SkillPackManifest:
     @property
     def skill_count(self) -> int:
         return len(self.skills)
-
-
-@dataclass(frozen=True)
-class Owner:
-    """Value object: contact info for the maintainer of a published skill."""
-
-    name: str
-    email: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.name or not self.name.strip():
-            raise ValueError("Owner name cannot be empty")
 
 
 @dataclass(frozen=True)

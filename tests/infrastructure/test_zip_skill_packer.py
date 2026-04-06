@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from skill_forge.domain.model import SkillPackManifest, SkillRef
+from skill_forge.domain.model import Owner, SkillPackManifest, SkillRef
 from skill_forge.infrastructure.adapters.zip_skill_packer import ZipSkillPacker
 
 
@@ -235,3 +235,54 @@ class TestReadManifest:
     def test_read_manifest_missing_pack_raises(self, tmp_path: Path):
         with pytest.raises(FileNotFoundError):
             ZipSkillPacker().read_manifest(tmp_path / "nope.skillpack")
+
+    def test_roundtrip_with_rich_metadata(self, tmp_path: Path):
+        skill_dir = _make_skill_dir(tmp_path / "src", "dev", "test-skill")
+        manifest = SkillPackManifest(
+            name="test-pack",
+            version="0.1.0",
+            author="tester",
+            created_at="2026-04-06T00:00:00+00:00",
+            description="A test pack",
+            skills=(SkillRef(category="dev", name="test-skill"),),
+            tags=("tdd", "python"),
+            owner=Owner(name="Fer", email="fer@example.com"),
+            deprecated=True,
+        )
+        output = tmp_path / "rich.skillpack"
+        packer = ZipSkillPacker()
+        packer.pack([skill_dir], manifest, output)
+
+        read = packer.read_manifest(output)
+        assert read.tags == ("tdd", "python")
+        assert read.owner is not None
+        assert read.owner.name == "Fer"
+        assert read.owner.email == "fer@example.com"
+        assert read.deprecated is True
+
+    def test_decode_legacy_manifest_without_new_fields(self, tmp_path: Path):
+        """Older manifests (no tags/owner/deprecated) must still decode."""
+        legacy_pack = tmp_path / "legacy.skillpack"
+        with zipfile.ZipFile(legacy_pack, "w") as zf:
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "1",
+                        "name": "legacy",
+                        "version": "0.1.0",
+                        "author": "",
+                        "created_at": "",
+                        "description": "",
+                        "skills": [
+                            {"category": "dev", "name": "x", "version": "0.1.0"}
+                        ],
+                    }
+                ),
+            )
+            zf.writestr("skills/dev/x/SKILL.md", "---\nname: x\n---\n")
+
+        read = ZipSkillPacker().read_manifest(legacy_pack)
+        assert read.tags == ()
+        assert read.owner is None
+        assert read.deprecated is False

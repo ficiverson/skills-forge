@@ -14,6 +14,7 @@ from pathlib import Path
 
 from skill_forge.domain.model import (
     DEFAULT_SKILL_VERSION,
+    Owner,
     Skill,
     SkillPackManifest,
     SkillRef,
@@ -39,6 +40,10 @@ class PackSkillRequest:
     author: str = ""
     pack_name: str = ""
     description: str = ""
+    tags: tuple[str, ...] = ()
+    owner_name: str = ""
+    owner_email: str = ""
+    deprecated: bool = False
 
 
 @dataclass
@@ -81,13 +86,26 @@ class PackSkill:
         pack_name = request.pack_name or refs[0].name
         pack_version = self._resolve_pack_version(request.version, refs)
 
+        # Mirror the first skill's frontmatter description into the
+        # manifest when the caller didn't supply one — saves typing the
+        # same string twice and lets `publish` carry it into the index.
+        description = request.description or skills_with_dirs[0][0].description.text
+        owner = (
+            Owner(name=request.owner_name, email=request.owner_email)
+            if request.owner_name
+            else None
+        )
+
         manifest = SkillPackManifest(
             name=pack_name,
             version=pack_version,
             author=request.author,
             created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            description=request.description,
+            description=description,
             skills=tuple(refs),
+            tags=tuple(request.tags),
+            owner=owner,
+            deprecated=request.deprecated,
         )
 
         output = request.output_path

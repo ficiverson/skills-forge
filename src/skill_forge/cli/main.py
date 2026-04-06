@@ -257,6 +257,28 @@ def pack(
     description: str = typer.Option(
         "", "--description", "-d", help="Short description of the pack"
     ),
+    tags: list[str] = typer.Option(
+        [],
+        "--tag",
+        "-t",
+        help="Tag for the pack (repeatable). Travels in the manifest and "
+        "becomes the default when publishing to a registry.",
+    ),
+    owner_name: str = typer.Option(
+        "",
+        "--owner-name",
+        help="Maintainer name baked into the manifest",
+    ),
+    owner_email: str = typer.Option(
+        "",
+        "--owner-email",
+        help="Maintainer email baked into the manifest",
+    ),
+    deprecated: bool = typer.Option(
+        False,
+        "--deprecated",
+        help="Flag the pack as deprecated in its manifest",
+    ),
 ) -> None:
     """Bundle one or more skills into a portable .skillpack archive."""
     from skill_forge.application.use_cases.pack_skill import PackSkillRequest
@@ -275,6 +297,10 @@ def pack(
         author=author,
         pack_name=name,
         description=description,
+        tags=tuple(tags),
+        owner_name=owner_name,
+        owner_email=owner_email,
+        deprecated=deprecated,
     )
     response = use_case.execute(request)
 
