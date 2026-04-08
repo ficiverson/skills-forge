@@ -22,6 +22,7 @@ from skill_forge.application.use_cases.pack_skill import (
     UnpackSkillRequest,
 )
 from skill_forge.domain.model import (
+    InstallTarget,
     Owner,
     PublishMetadata,
     PublishResult,
@@ -171,6 +172,7 @@ class InstallFromUrlRequest:
     url: str
     dest_dir: Path = field(default_factory=lambda: Path("output_skills"))
     scope: SkillScope = SkillScope.GLOBAL
+    target: InstallTarget = InstallTarget.CLAUDE
     expected_sha256: str = ""
     install: bool = True
 
@@ -222,7 +224,9 @@ class InstallFromUrl:
             installed: list[Path] = []
             if request.install:
                 for path in unpack_response.extracted_paths:
-                    installed.extend(self._installer.install(path, request.scope))
+                    installed.extend(
+                        self._installer.install(path, request.scope, request.target)
+                    )
 
             return InstallFromUrlResponse(
                 manifest=unpack_response.manifest,

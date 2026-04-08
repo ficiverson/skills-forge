@@ -185,7 +185,7 @@ def install(
     except ValueError:
         valid = ", ".join(t.value for t in InstallTarget)
         typer.echo(f"⚠ Unknown target '{target}'. Valid values: {valid}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     if source.startswith(("http://", "https://")):
         from skill_forge.application.use_cases.publish_skill import (
@@ -197,6 +197,7 @@ def install(
             url=source,
             dest_dir=output,
             scope=skill_scope,
+            target=skill_target,
             expected_sha256=sha256,
         )
         response = use_case.execute(request)
@@ -235,7 +236,7 @@ def install(
         local_response = local_use_case.execute(local_request)
     except ValueError as exc:
         typer.echo(f"⚠ {exc}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
 
     for path in local_response.installed_paths:
         typer.echo(f"✔ Installed at {path} ({skill_scope.value}, {skill_target.value})")

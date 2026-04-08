@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 
 from skill_forge.domain.model import InstallTarget, SkillScope
-from skill_forge.infrastructure.adapters.symlink_installer import SymlinkSkillInstaller
-
+from skill_forge.infrastructure.adapters.symlink_installer import (
+    SymlinkSkillInstaller,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -95,7 +96,6 @@ class TestAllTarget:
             project_root=tmp_path / "project",
         )
         # Patch home to tmp_path so we don't write into the real home dir
-        import skill_forge.infrastructure.adapters.symlink_installer as mod
         original_home = Path.home
         Path.home = classmethod(lambda cls: tmp_path)  # type: ignore[method-assign]
         try:
