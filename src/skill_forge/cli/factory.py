@@ -141,4 +141,8 @@ def build_exporter(fmt: ExportFormat) -> SkillExporter:
 
 def build_export_use_case(fmt: ExportFormat) -> ExportSkill:
     """Wire and return the ExportSkill use case for the given format."""
-    return ExportSkill(parser=build_parser(), exporter=build_exporter(fmt))
+    return ExportSkill(
+        parser=build_parser(),
+        exporter=build_exporter(fmt),
+        packer=build_packer(),
+    )

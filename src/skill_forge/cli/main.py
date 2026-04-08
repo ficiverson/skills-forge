@@ -247,7 +247,7 @@ def install(
 def export(
     source: Path = typer.Argument(
         ...,
-        help="Local skill directory path or SKILL.md file to export",
+        help=".skillpack archive to export",
         exists=True,
     ),
     fmt: str = typer.Option(
@@ -281,19 +281,19 @@ def export(
     Examples:
 
       # Plain system prompt — paste into any chat UI
-      skills-forge export output_skills/productivity/sprint-grooming
+      skills-forge export ./packs/productivity-1.0.0.skillpack
 
       # OpenAI Custom GPT JSON config
-      skills-forge export output_skills/productivity/sprint-grooming --format gpt-json
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format gpt-json
 
       # Gemini Gem instructions
-      skills-forge export output_skills/productivity/sprint-grooming --format gem-txt
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format gem-txt
 
       # AWS Bedrock XML prompt template
-      skills-forge export output_skills/productivity/sprint-grooming --format bedrock-xml
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format bedrock-xml
 
       # Self-contained Python MCP server
-      skills-forge export output_skills/productivity/sprint-grooming \\
+      skills-forge export ./packs/productivity-1.0.0.skillpack \\
           --format mcp-server -o ./exports/
     """
     from skill_forge.application.use_cases.export_skill import ExportSkillRequest
@@ -319,7 +319,8 @@ def export(
         typer.echo(f"⚠ {exc}")
         raise typer.Exit(code=1) from exc
 
-    typer.echo(f"✔ Exported [{export_fmt.value}] → {response.output_path}")
+    for path in response.output_paths:
+        typer.echo(f"✔ Exported [{export_fmt.value}] → {path}")
 
     # Print a contextual next-step hint per format.
     if export_fmt == ExportFormat.SYSTEM_PROMPT:
@@ -343,7 +344,9 @@ def export(
             "and paste the <system> block into the System prompt field."
         )
     elif export_fmt == ExportFormat.MCP_SERVER:
-        typer.echo(f"  Run with: python {response.output_path}")
+        for path in response.output_paths:
+            typer.echo(f"  Run with: python {path}")
+            typer.echo(f"  Or: uvx --from \"mcp[cli]\" mcp run {path}")
         typer.echo(
             "  Or add to your MCP host config — see the file header for details."
         )

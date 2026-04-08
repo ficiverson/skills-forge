@@ -230,17 +230,17 @@ class TestMcpServerExporter:
     def test_has_mcp_imports(self, minimal_skill: Skill, tmp_path: Path) -> None:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
         content = out.read_text()
-        assert "from mcp" in content
+        assert "from mcp.server.fastmcp import FastMCP" in content
 
-    def test_has_list_prompts_handler(self, minimal_skill: Skill, tmp_path: Path) -> None:
+    def test_has_prompt_decorator(self, minimal_skill: Skill, tmp_path: Path) -> None:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
         content = out.read_text()
-        assert "list_prompts" in content
+        assert "@mcp.prompt" in content
 
-    def test_has_get_prompt_handler(self, minimal_skill: Skill, tmp_path: Path) -> None:
+    def test_has_run_call(self, minimal_skill: Skill, tmp_path: Path) -> None:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
         content = out.read_text()
-        assert "get_prompt" in content
+        assert "mcp.run()" in content
 
     def test_skill_name_embedded(self, minimal_skill: Skill, tmp_path: Path) -> None:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
@@ -256,8 +256,3 @@ class TestMcpServerExporter:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
         content = out.read_text()
         assert 'if __name__ == "__main__"' in content
-
-    def test_has_asyncio_run(self, minimal_skill: Skill, tmp_path: Path) -> None:
-        out = self.exporter.export(minimal_skill, _BODY, tmp_path)
-        content = out.read_text()
-        assert "asyncio.run" in content

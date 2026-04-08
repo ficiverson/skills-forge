@@ -14,8 +14,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from skill_forge.domain.model import ExportFormat
-from skill_forge.domain.ports import SkillExporter, SkillParser
+from skill_forge.domain.model import ExportFormat, Skill
+from skill_forge.domain.ports import SkillExporter, SkillPacker, SkillParser
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,23 +26,6 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
 def _strip_frontmatter(raw: str) -> str:
     """Return the SKILL.md body with YAML frontmatter removed."""
     return _FRONTMATTER_RE.sub("", raw, count=1).strip()
-
-
-def _find_skill_md(skill_path: Path) -> Path:
-    """Resolve path to the SKILL.md file inside ``skill_path``.
-
-    Accepts either a direct path to ``SKILL.md`` or a skill directory that
-    contains one.
-    """
-    if skill_path.is_file() and skill_path.name == "SKILL.md":
-        return skill_path
-    candidate = skill_path / "SKILL.md"
-    if candidate.exists():
-        return candidate
-    raise FileNotFoundError(
-        f"No SKILL.md found at '{skill_path}'. "
-        "Pass either the skill directory or the SKILL.md file directly."
-    )
 
 
 # ── request / response DTOs ──────────────────────────────────────────────────
@@ -59,7 +42,7 @@ class ExportSkillRequest:
     """Which export format to render."""
 
     output: Path | None = None
-    """Directory where the exported artifact should be written.
+    """Directory where the exported artifact(s) should be written.
     Defaults to the skill directory itself."""
 
 
@@ -67,8 +50,8 @@ class ExportSkillRequest:
 class ExportSkillResponse:
     """Result of a successful export."""
 
-    output_path: Path
-    """Path of the artifact created (file or directory)."""
+    output_paths: list[Path]
+    """Paths of the artifacts created (files or directories)."""
 
     format: ExportFormat
     """Format that was applied."""
@@ -87,23 +70,107 @@ class ExportSkill:
                      implementation based on ``ExportSkillRequest.format``
     """
 
-    def __init__(self, parser: SkillParser, exporter: SkillExporter) -> None:
+    def __init__(
+        self, parser: SkillParser, exporter: SkillExporter, packer: SkillPacker
+    ) -> None:
         self._parser = parser
         self._exporter = exporter
+        self._packer = packer
 
     def execute(self, request: ExportSkillRequest) -> ExportSkillResponse:
-        skill_md = _find_skill_md(request.skill_path)
+        if request.skill_path.suffix != ".skillpack":
+            raise ValueError(
+                f"Invalid source: '{request.skill_path}'. "
+                "The export command now requires a .skillpack archive as input. "
+                "Run `skills-forge pack` first to bundle your skill into a pack."
+            )
+
+        return self._handle_skillpack(request)
+
+    def _export_one(self, skill_md: Path, output_dir_override: Path | None) -> Path:
         raw = skill_md.read_text(encoding="utf-8")
-
-        # Parse the frontmatter → domain Skill object (name, description, …)
         skill = self._parser.parse(raw, skill_md.parent)
-
-        # Extract body (everything below the opening frontmatter block)
         body = _strip_frontmatter(raw)
 
-        # Output directory: explicit arg > skill directory
-        output_dir = request.output or skill_md.parent
+        # Bundle supplements (references, examples, etc.)
+        supplements = self._bundle_supplements(skill, skill_md.parent)
+        if supplements:
+            body = f"{body.strip()}\n\n{supplements}"
 
-        artifact = self._exporter.export(skill, body, output_dir)
+        output_dir = output_dir_override or skill_md.parent
+        return self._exporter.export(skill, body, output_dir)
 
-        return ExportSkillResponse(output_path=artifact, format=request.format)
+    def _bundle_supplements(self, skill: Skill, root: Path) -> str:
+        """Bundle the content of all referenced files into a single string."""
+        sections: list[str] = []
+
+        # Combine all supplement types
+        # (References, Examples, Assets, Scripts)
+        typed_items: list[tuple[str, list]] = [
+            ("References", skill.references),
+            ("Examples", skill.examples),
+            ("Assets", skill.assets),
+            ("Scripts", skill.scripts),
+        ]
+
+        for section_name, items in typed_items:
+            for item in items:
+                # Resolve path relative to skill root
+                file_path = root / item.path
+                if not file_path.exists():
+                    continue
+
+                try:
+                    content = file_path.read_text(encoding="utf-8")
+                    # Use the file extension for syntax highlighting in the block
+                    ext = file_path.suffix.lstrip(".") or "text"
+
+                    sections.append(
+                        f"## Supplement: {item.path}\n"
+                        f"\n"
+                        f"``` {ext}\n"
+                        f"{content.strip()}\n"
+                        f"```"
+                    )
+                except (UnicodeDecodeError, IOError):
+                    # Skip binary files or unreadable files for now
+                    continue
+
+        if not sections:
+            return ""
+
+        return "\n\n".join(
+            [
+                "---",
+                "# BUNDLED SUPPLEMENTS",
+                "The following sections contain the full content of files referenced in the skill.",
+                "",
+                *sections,
+            ]
+        )
+
+    def _handle_skillpack(self, request: ExportSkillRequest) -> ExportSkillResponse:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            self._packer.unpack(request.skill_path, tmp_path)
+
+            # Find all SKILL.md files in the unpacked pack
+            skill_mds = list(tmp_path.rglob("SKILL.md"))
+            if not skill_mds:
+                raise FileNotFoundError(
+                    f"No skills found inside pack '{request.skill_path.name}'"
+                )
+
+            output_base = (request.output or Path(".")) / request.skill_path.stem
+            output_base.mkdir(parents=True, exist_ok=True)
+
+            output_paths: list[Path] = []
+            for skill_md in skill_mds:
+                # When exporting from a pack, we MUST have an output directory
+                # specified, otherwise they'd land in the temp dir and be deleted.
+                path = self._export_one(skill_md, output_base)
+                output_paths.append(path)
+
+            return ExportSkillResponse(output_paths=output_paths, format=request.format)

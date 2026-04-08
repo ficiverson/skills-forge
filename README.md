@@ -470,23 +470,23 @@ skills-forge install output_skills/development/python-tdd --target all
 
 ```bash
 # Plain system prompt — paste into any chat UI
-skills-forge export output_skills/productivity/sprint-grooming
+skills-forge export ./packs/productivity-1.0.0.skillpack
 
 # OpenAI Custom GPT config JSON
-skills-forge export output_skills/productivity/sprint-grooming --format gpt-json
+skills-forge export ./packs/productivity-1.0.0.skillpack --format gpt-json
 
 # Gemini Gem instructions
-skills-forge export output_skills/productivity/sprint-grooming --format gem-txt
+skills-forge export ./packs/productivity-1.0.0.skillpack --format gem-txt
 
 # AWS Bedrock XML prompt template
-skills-forge export output_skills/productivity/sprint-grooming --format bedrock-xml
+skills-forge export ./packs/productivity-1.0.0.skillpack --format bedrock-xml
 
 # Self-contained Python MCP Prompts server
-skills-forge export output_skills/productivity/sprint-grooming --format mcp-server -o ./exports/
-# → python ./exports/sprint-grooming-mcp-server.py
+skills-forge export ./packs/productivity-1.0.0.skillpack --format mcp-server -o ./exports/
+# → Run with: uvx --from "mcp[cli]" mcp run ./exports/productivity-mcp-server.py
 ```
 
-The MCP server format deserves special mention: it generates a single runnable Python file that exposes the skill as an MCP `Prompts` primitive. Any MCP-compatible host (Claude Desktop, Cursor, VS Code, OpenAI desktop app) can connect via stdio and inject the skill at inference time — no installation step on the end user's machine.
+The MCP server format deserves special mention: it generates a single runnable Python file that exposes the skill as an MCP `Prompts` primitive. Any MCP-compatible host (Claude Desktop, Cursor, VS Code, OpenAI desktop app) can connect via stdio and inject the skill at inference time — no installation step on the end user's machine. The generated file includes a ready-to-paste `mcpServers` configuration for Claude Desktop using `uvx`.
 
 **Private repos** — set `GITHUB_TOKEN` in your environment and the fetcher will pass it as a `token` Authorization header on `raw.githubusercontent.com` requests, so private registries work without any extra configuration.
 

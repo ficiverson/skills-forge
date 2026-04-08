@@ -536,67 +536,92 @@ class TestExportCommand:
 
     def test_export_system_prompt_default(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
-        result = runner.invoke(app, ["export", str(skill_dir)])
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        result = runner.invoke(app, ["export", str(pack_path)])
         assert result.exit_code == 0, result.stdout
         assert "system-prompt" in result.stdout
-        assert (skill_dir / "sprint-grooming.system-prompt.md").exists()
+        # Output is now in /test/ subfolder
+        assert (Path("test") / "sprint-grooming.system-prompt.md").exists()
 
     def test_export_gpt_json(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         out = tmp_path / "out"
         result = runner.invoke(
-            app, ["export", str(skill_dir), "--format", "gpt-json", "--output", str(out)]
+            app, ["export", str(pack_path), "--format", "gpt-json", "--output", str(out)]
         )
         assert result.exit_code == 0, result.stdout
         assert "gpt-json" in result.stdout
-        assert (out / "sprint-grooming.gpt.json").exists()
+        assert (out / "test" / "sprint-grooming.gpt.json").exists()
 
     def test_export_gem_txt(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         out = tmp_path / "out"
         result = runner.invoke(
-            app, ["export", str(skill_dir), "--format", "gem-txt", "--output", str(out)]
+            app, ["export", str(pack_path), "--format", "gem-txt", "--output", str(out)]
         )
         assert result.exit_code == 0, result.stdout
-        assert (out / "sprint-grooming.gem.txt").exists()
+        assert (out / "test" / "sprint-grooming.gem.txt").exists()
 
     def test_export_bedrock_xml(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         out = tmp_path / "out"
         result = runner.invoke(
-            app, ["export", str(skill_dir), "--format", "bedrock-xml", "--output", str(out)]
+            app, ["export", str(pack_path), "--format", "bedrock-xml", "--output", str(out)]
         )
         assert result.exit_code == 0, result.stdout
-        assert (out / "sprint-grooming.bedrock.xml").exists()
+        assert (out / "test" / "sprint-grooming.bedrock.xml").exists()
 
     def test_export_mcp_server(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         out = tmp_path / "out"
         result = runner.invoke(
-            app, ["export", str(skill_dir), "--format", "mcp-server", "--output", str(out)]
+            app, ["export", str(pack_path), "--format", "mcp-server", "--output", str(out)]
         )
         assert result.exit_code == 0, result.stdout
-        assert (out / "sprint-grooming-mcp-server.py").exists()
+        assert (out / "test" / "sprint-grooming-mcp-server.py").exists()
 
     def test_export_invalid_format_exits_1(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
-        result = runner.invoke(app, ["export", str(skill_dir), "--format", "unknown"])
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        result = runner.invoke(app, ["export", str(pack_path), "--format", "unknown"])
         assert result.exit_code == 1
         assert "Unknown format" in result.stdout
 
     def test_export_short_flag(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         out = tmp_path / "out"
         result = runner.invoke(
-            app, ["export", str(skill_dir), "-f", "gpt-json", "-o", str(out)]
+            app, ["export", str(pack_path), "-f", "gpt-json", "-o", str(out)]
         )
         assert result.exit_code == 0, result.stdout
-        assert (out / "sprint-grooming.gpt.json").exists()
+        assert (out / "test" / "sprint-grooming.gpt.json").exists()
 
     def test_export_hint_in_output_mcp(self, tmp_path: Path) -> None:
         skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
         result = runner.invoke(
-            app, ["export", str(skill_dir), "--format", "mcp-server"]
+            app, ["export", str(pack_path), "--format", "mcp-server"]
         )
         assert result.exit_code == 0, result.stdout
-        assert "python" in result.stdout
+        assert "mcp run" in result.stdout
