@@ -636,7 +636,7 @@ class TestExportCommand:
             app, ["export", str(pack_path), "--only-skill", "-o", str(out)]
         )
         assert result.exit_code == 0, result.stdout
-        
+
         output_file = out / "test" / "sprint-grooming.system-prompt.md"
         assert output_file.exists()
         content = output_file.read_text()

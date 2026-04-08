@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
-from unittest.mock import patch
 
 from skill_forge.application.use_cases.export_skill import (
     ExportSkill,
@@ -30,15 +28,15 @@ description: test
 def _make_skill_structure(root: Path):
     root.mkdir(parents=True, exist_ok=True)
     (root / "SKILL.md").write_text(_SKILL_MD, encoding="utf-8")
-    
+
     ref_dir = root / "references"
     ref_dir.mkdir()
     (ref_dir / "guide.md").write_text("Reference content", encoding="utf-8")
-    
+
     ex_dir = root / "examples"
     ex_dir.mkdir()
     (ex_dir / "sample.json").write_text('{"test": true}', encoding="utf-8")
-    
+
     return root
 
 class _RecordingExporter(SkillExporter):
@@ -107,7 +105,7 @@ class TestExportSkillBundling:
         skill_root = tmp_path / "source"
         skill_root.mkdir()
         (skill_root / "SKILL.md").write_text(_SKILL_MD, encoding="utf-8")
-        
+
         pack_path = tmp_path / "test.skillpack"
         pack_path.touch()
 
@@ -132,11 +130,15 @@ class TestExportSkillBundling:
         assert "# BUNDLED SUPPLEMENTS" not in body
 
     def test_bundles_scripts_and_assets(self, tmp_path: Path):
-        skill_md = _SKILL_MD + "## Scripts\n- [Run](scripts/run.py)\n## Assets\n- [Data](assets/data.csv)\n"
+        skill_md = (
+            _SKILL_MD
+            + "## Scripts\n- [Run](scripts/run.py)\n"
+            + "## Assets\n- [Data](assets/data.csv)\n"
+        )
         skill_root = tmp_path / "source"
         skill_root.mkdir()
         (skill_root / "SKILL.md").write_text(skill_md, encoding="utf-8")
-        
+
         (skill_root / "scripts").mkdir()
         (skill_root / "scripts" / "run.py").write_text("print('hi')", encoding="utf-8")
         (skill_root / "assets").mkdir()

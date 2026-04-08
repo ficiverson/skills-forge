@@ -122,7 +122,7 @@ class ExportSkill:
             ("Scripts", skill.scripts),
         ]
 
-        for section_name, items in typed_items:
+        for _section_name, items in typed_items:
             for item in items:
                 # Resolve path relative to skill root
                 file_path = root / item.path
@@ -141,7 +141,7 @@ class ExportSkill:
                         f"{content.strip()}\n"
                         f"```"
                     )
-                except (UnicodeDecodeError, IOError):
+                except (UnicodeDecodeError, OSError):
                     # Skip binary files or unreadable files for now
                     continue
 
@@ -152,7 +152,8 @@ class ExportSkill:
             [
                 "---",
                 "# BUNDLED SUPPLEMENTS",
-                "The following sections contain the full content of files referenced in the skill.",
+                "The following sections contain the full content of files referenced "
+                "in the skill.",
                 "",
                 *sections,
             ]

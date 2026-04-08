@@ -114,7 +114,9 @@ class _StubPacker(SkillPacker):
 
 
 class TestExportSkillUseCase:
-    def _make_use_case(self, exporter: SkillExporter, packer: SkillPacker | None = None) -> ExportSkill:
+    def _make_use_case(
+        self, exporter: SkillExporter, packer: SkillPacker | None = None
+    ) -> ExportSkill:
         return ExportSkill(
             parser=MarkdownSkillParser(),
             exporter=exporter,
@@ -254,7 +256,7 @@ class TestExportSkillUseCase:
         skill_dir = _make_skill_dir(tmp_path / "skill")
         exporter = _RecordingExporter()
         use_case = self._make_use_case(exporter)
-        with pytest.raises(ValueError, match="requires a .skillpack archive"):
+        with pytest.raises(ValueError, match=r"requires a \.skillpack archive"):
             use_case.execute(
                 ExportSkillRequest(
                     skill_path=skill_dir,
@@ -270,13 +272,13 @@ class TestExportSkillUseCase:
         # StubPacker will "create" two skills on unpack
         packer = _StubPacker([Path("dummy1"), Path("dummy2")])
         use_case = self._make_use_case(exporter, packer)
-        
+
         resp = use_case.execute(
             ExportSkillRequest(
                 skill_path=pack_path,
                 format=ExportFormat.SYSTEM_PROMPT,
             )
         )
-        
+
         assert len(resp.output_paths) == 2
         assert len(exporter.calls) == 2
