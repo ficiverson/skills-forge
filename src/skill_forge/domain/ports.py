@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    ExportFormat,
     InstallTarget,
     PublishMetadata,
     PublishResult,
@@ -156,6 +157,23 @@ class PackPublisher(ABC):
     @abstractmethod
     def read_index(self) -> RegistryIndex:
         """Return the current index of the registry."""
+
+
+class SkillExporter(ABC):
+    """Port: render a skill into a platform-native export format.
+
+    Exporters are stateless transformers: they receive the parsed ``Skill``
+    domain object, the raw SKILL.md body (frontmatter already stripped), and
+    an ``output_dir`` to write into. They return the path of the artifact
+    they created (file or directory). The use case remains format-agnostic.
+    """
+
+    #: The export format this exporter handles.
+    format: ExportFormat
+
+    @abstractmethod
+    def export(self, skill: Skill, body: str, output_dir: Path) -> Path:
+        """Export ``skill`` and return the path of the created artifact."""
 
 
 class PackFetcher(ABC):

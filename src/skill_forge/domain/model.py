@@ -23,6 +23,28 @@ class SkillScope(Enum):
     PROJECT = "project"
 
 
+class ExportFormat(Enum):
+    """Target format for the ``export`` command.
+
+    Agent-CLI tools (Claude Code, Gemini CLI, Codex, VS Code Copilot) all read
+    SKILL.md natively — use ``install --target`` for those.  These export
+    formats target the *chatbot / API* platforms that have no file-system skill
+    directory and need the skill rendered into their native config shape.
+
+    SYSTEM_PROMPT — plain Markdown suitable for any chat UI system field.
+    GPT_JSON      — OpenAI Custom GPT / Assistants API ``instructions`` JSON.
+    GEM_TXT       — Google Gemini Gem custom instructions plain-text file.
+    BEDROCK_XML   — AWS Bedrock agent prompt XML template.
+    MCP_SERVER    — Self-contained Python MCP Prompts server (single file).
+    """
+
+    SYSTEM_PROMPT = "system-prompt"
+    GPT_JSON = "gpt-json"
+    GEM_TXT = "gem-txt"
+    BEDROCK_XML = "bedrock-xml"
+    MCP_SERVER = "mcp-server"
+
+
 class InstallTarget(Enum):
     """Which agent-CLI tool's skills directory to install into.
 

@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from skill_forge.cli.factory import (
+    build_export_use_case,
     build_install_from_url_use_case,
     build_installer,
     build_lint_use_case,
@@ -240,6 +241,112 @@ def install(
 
     for path in local_response.installed_paths:
         typer.echo(f"✔ Installed at {path} ({skill_scope.value}, {skill_target.value})")
+
+
+@app.command()
+def export(
+    source: Path = typer.Argument(
+        ...,
+        help="Local skill directory path or SKILL.md file to export",
+        exists=True,
+    ),
+    fmt: str = typer.Option(
+        "system-prompt",
+        "--format",
+        "-f",
+        help=(
+            "Export format: system-prompt, gpt-json, gem-txt, bedrock-xml, mcp-server. "
+            "system-prompt — plain Markdown for any chat UI system field. "
+            "gpt-json      — OpenAI Custom GPT / Assistants API config JSON. "
+            "gem-txt       — Google Gemini Gem instructions plain-text file. "
+            "bedrock-xml   — AWS Bedrock agent prompt XML template. "
+            "mcp-server    — Self-contained Python MCP Prompts server."
+        ),
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help=(
+            "Directory to write the exported artifact into. "
+            "Defaults to the skill directory."
+        ),
+    ),
+) -> None:
+    """Export a skill to a platform-native format for chatbot / API platforms.
+
+    For agent-CLI tools that natively support SKILL.md (Claude Code, Gemini CLI,
+    OpenAI Codex, VS Code Copilot) use ``skills-forge install --target`` instead.
+
+    Examples:
+
+      # Plain system prompt — paste into any chat UI
+      skills-forge export output_skills/productivity/sprint-grooming
+
+      # OpenAI Custom GPT JSON config
+      skills-forge export output_skills/productivity/sprint-grooming --format gpt-json
+
+      # Gemini Gem instructions
+      skills-forge export output_skills/productivity/sprint-grooming --format gem-txt
+
+      # AWS Bedrock XML prompt template
+      skills-forge export output_skills/productivity/sprint-grooming --format bedrock-xml
+
+      # Self-contained Python MCP server
+      skills-forge export output_skills/productivity/sprint-grooming \\
+          --format mcp-server -o ./exports/
+    """
+    from skill_forge.application.use_cases.export_skill import ExportSkillRequest
+    from skill_forge.domain.model import ExportFormat
+
+    try:
+        export_fmt = ExportFormat(fmt.lower())
+    except ValueError:
+        valid = ", ".join(f.value for f in ExportFormat)
+        typer.echo(f"⚠ Unknown format '{fmt}'. Valid values: {valid}")
+        raise typer.Exit(code=1) from None
+
+    use_case = build_export_use_case(export_fmt)
+    request = ExportSkillRequest(
+        skill_path=source,
+        format=export_fmt,
+        output=output,
+    )
+
+    try:
+        response = use_case.execute(request)
+    except FileNotFoundError as exc:
+        typer.echo(f"⚠ {exc}")
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"✔ Exported [{export_fmt.value}] → {response.output_path}")
+
+    # Print a contextual next-step hint per format.
+    if export_fmt == ExportFormat.SYSTEM_PROMPT:
+        typer.echo(
+            "  Paste the file contents into the system-prompt / custom-instructions "
+            "field of any chat UI."
+        )
+    elif export_fmt == ExportFormat.GPT_JSON:
+        typer.echo(
+            "  Open https://chatgpt.com/gpts/editor → Configure tab and paste "
+            "the 'instructions' value into the Instructions textarea."
+        )
+    elif export_fmt == ExportFormat.GEM_TXT:
+        typer.echo(
+            "  Open https://gemini.google.com/gems → New Gem and paste "
+            "the file contents into the Instructions field."
+        )
+    elif export_fmt == ExportFormat.BEDROCK_XML:
+        typer.echo(
+            "  AWS Console → Amazon Bedrock → Prompt management → Create prompt "
+            "and paste the <system> block into the System prompt field."
+        )
+    elif export_fmt == ExportFormat.MCP_SERVER:
+        typer.echo(f"  Run with: python {response.output_path}")
+        typer.echo(
+            "  Or add to your MCP host config — see the file header for details."
+        )
 
 
 @app.command()
