@@ -195,3 +195,74 @@ class TestExportSkillBundling:
         assert body is not None
         assert "# BUNDLED SUPPLEMENTS" not in body
         assert "Reference content" not in body
+
+    def test_auto_discovers_and_bundles_unlinked_files(self, tmp_path: Path):
+        # Create a skill with NO links to scripts or assets in SKILL.md
+        skill_root = tmp_path / "source"
+        skill_root.mkdir()
+        (skill_root / "SKILL.md").write_text(_SKILL_MD, encoding="utf-8")
+
+        # But add files to the standard directories
+        (skill_root / "scripts").mkdir()
+        (skill_root / "scripts" / "unlinked.py").write_text("print('auto')", encoding="utf-8")
+        (skill_root / "assets").mkdir()
+        (skill_root / "assets" / "hidden.csv").write_text("1,2,3", encoding="utf-8")
+
+        pack_path = tmp_path / "test.skillpack"
+        pack_path.touch()
+
+        exporter = _RecordingExporter()
+        packer = _StubPacker(skill_root)
+        use_case = ExportSkill(
+            parser=MarkdownSkillParser(),
+            exporter=exporter,
+            packer=packer
+        )
+
+        use_case.execute(
+            ExportSkillRequest(
+                skill_path=pack_path,
+                format=ExportFormat.SYSTEM_PROMPT,
+                output=tmp_path / "out"
+            )
+        )
+
+        body = exporter.recorded_body
+        assert "## Supplement: scripts/unlinked.py" in body
+        assert "print('auto')" in body
+        assert "## Supplement: assets/hidden.csv" in body
+        assert "1,2,3" in body
+
+    def test_avoids_double_bundling_linked_files(self, tmp_path: Path):
+        # Link a script explicitly
+        skill_md = _SKILL_MD + "## Scripts\n- [Run](scripts/run.py)\n"
+        skill_root = tmp_path / "source"
+        skill_root.mkdir()
+        (skill_root / "SKILL.md").write_text(skill_md, encoding="utf-8")
+
+        # Create the file on disk
+        (skill_root / "scripts").mkdir()
+        (skill_root / "scripts" / "run.py").write_text("print('hi')", encoding="utf-8")
+
+        pack_path = tmp_path / "test.skillpack"
+        pack_path.touch()
+
+        exporter = _RecordingExporter()
+        packer = _StubPacker(skill_root)
+        use_case = ExportSkill(
+            parser=MarkdownSkillParser(),
+            exporter=exporter,
+            packer=packer
+        )
+
+        use_case.execute(
+            ExportSkillRequest(
+                skill_path=pack_path,
+                format=ExportFormat.SYSTEM_PROMPT,
+                output=tmp_path / "out"
+            )
+        )
+
+        body = exporter.recorded_body
+        # Check that it only appears once
+        assert body.count("## Supplement: scripts/run.py") == 1

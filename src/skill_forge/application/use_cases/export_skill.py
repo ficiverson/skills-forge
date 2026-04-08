@@ -111,40 +111,50 @@ class ExportSkill:
         return self._exporter.export(skill, body, output_dir)
 
     def _bundle_supplements(self, skill: Skill, root: Path) -> str:
-        """Bundle the content of all referenced files into a single string."""
+        """Bundle all referenced AND local supplemental files into a single string."""
         sections: list[str] = []
+        bundled_paths: set[str] = set()
 
-        # Combine all supplement types
-        # (References, Examples, Assets, Scripts)
-        typed_items: list[tuple[str, list[Any]]] = [
-            ("References", skill.references),
-            ("Examples", skill.examples),
-            ("Assets", skill.assets),
-            ("Scripts", skill.scripts),
-        ]
+        # We collect paths from two sources:
+        # 1. Explicitly linked items in the Skill model (preserves order)
+        # 2. Standard directories on disk (catches everything else)
 
-        for _section_name, items in typed_items:
-            for item in items:
-                # Resolve path relative to skill root
-                file_path = root / item.path
-                if not file_path.exists():
+        # Source 1: Explicitly linked items
+        links: list[Any] = []
+        links.extend(skill.references)
+        links.extend(skill.examples)
+        links.extend(skill.assets)
+        links.extend(skill.scripts)
+
+        for item in links:
+            rel_path = str(item.path)
+            if rel_path in bundled_paths:
+                continue
+
+            section = self._read_supplement_section(root, rel_path)
+            if section:
+                sections.append(section)
+                bundled_paths.add(rel_path)
+
+        # Source 2: Standard directories (auto-discovery)
+        for subdir in ["references", "examples", "assets", "scripts"]:
+            dir_path = root / subdir
+            if not dir_path.is_dir():
+                continue
+
+            # Sort files for deterministic output
+            for file_path in sorted(dir_path.rglob("*")):
+                if not file_path.is_file():
                     continue
 
-                try:
-                    content = file_path.read_text(encoding="utf-8")
-                    # Use the file extension for syntax highlighting in the block
-                    ext = file_path.suffix.lstrip(".") or "text"
-
-                    sections.append(
-                        f"## Supplement: {item.path}\n"
-                        f"\n"
-                        f"``` {ext}\n"
-                        f"{content.strip()}\n"
-                        f"```"
-                    )
-                except (UnicodeDecodeError, OSError):
-                    # Skip binary files or unreadable files for now
+                rel_path = file_path.relative_to(root).as_posix()
+                if rel_path in bundled_paths:
                     continue
+
+                section = self._read_supplement_section(root, rel_path)
+                if section:
+                    sections.append(section)
+                    bundled_paths.add(rel_path)
 
         if not sections:
             return ""
@@ -159,6 +169,28 @@ class ExportSkill:
                 *sections,
             ]
         )
+
+    def _read_supplement_section(self, root: Path, rel_path: str) -> str | None:
+        """Read a file and wrap it in a markdown supplement section."""
+        file_path = root / rel_path
+        if not file_path.exists():
+            return None
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            # Use the file extension for syntax highlighting in the block
+            ext = file_path.suffix.lstrip(".") or "text"
+
+            return (
+                f"## Supplement: {rel_path}\n"
+                f"\n"
+                f"``` {ext}\n"
+                f"{content.strip()}\n"
+                f"```"
+            )
+        except (UnicodeDecodeError, OSError):
+            # Skip binary files or unreadable files
+            return None
 
     def _handle_skillpack(self, request: ExportSkillRequest) -> ExportSkillResponse:
         import tempfile
