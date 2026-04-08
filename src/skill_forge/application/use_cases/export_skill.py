@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 from pathlib import Path
 
 from skill_forge.domain.model import ExportFormat, Skill
@@ -115,7 +116,7 @@ class ExportSkill:
 
         # Combine all supplement types
         # (References, Examples, Assets, Scripts)
-        typed_items: list[tuple[str, list]] = [
+        typed_items: list[tuple[str, list[Any]]] = [
             ("References", skill.references),
             ("Examples", skill.examples),
             ("Assets", skill.assets),
