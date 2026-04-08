@@ -20,16 +20,16 @@ docs/                 # Guides: getting-started, clean-principles
 ## Commands
 
 ```bash
-skill-forge create -n <name> -c <category> -d "<description>" -e <emoji> [-v 0.1.0]
-skill-forge lint <path>                       # Validate a skill or directory
-skill-forge install <path>                    # Symlink into ~/.claude/skills/ (global)
-skill-forge install <path> -s project         # Symlink into .claude/skills/ (project)
-skill-forge install <https-url> [--sha256 …]  # Fetch a remote .skillpack and install it
-skill-forge list [directory]                  # List skills with token estimates
-skill-forge pack <skill-dir...> [-o out]      # Bundle skill(s) into a .skillpack archive
-skill-forge unpack <pack> [-o dest]           # Extract a .skillpack into a directory
-skill-forge publish <pack> -r <registry-clone> -u <base-url> [--push]
-skill-forge init                              # Initialize a new workspace
+skills-forge create -n <name> -c <category> -d "<description>" -e <emoji> [-v 0.1.0]
+skills-forge lint <path>                       # Validate a skill or directory
+skills-forge install <path>                    # Symlink into ~/.claude/skills/ (global)
+skills-forge install <path> -s project         # Symlink into .claude/skills/ (project)
+skills-forge install <https-url> [--sha256 …]  # Fetch a remote .skillpack and install it
+skills-forge list [directory]                  # List skills with token estimates
+skills-forge pack <skill-dir...> [-o out]      # Bundle skill(s) into a .skillpack archive
+skills-forge unpack <pack> [-o dest]           # Extract a .skillpack into a directory
+skills-forge publish <pack> -r <registry-clone> -u <base-url> [--push]
+skills-forge init                              # Initialize a new workspace
 ```
 
 ## Development

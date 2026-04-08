@@ -1,4 +1,4 @@
-# skill-forge
+# skills-forge
 
 A clean-architecture toolkit for crafting high-quality Claude Code skills.
 
@@ -8,7 +8,7 @@ A clean-architecture toolkit for crafting high-quality Claude Code skills.
 
 Writing a Claude Code skill is easy. Writing a **good** one is not. Skills that trigger unreliably, consume too much context, or try to do everything at once make Claude less effective, not more.
 
-skill-forge applies software engineering principles (SRP, OCP, DIP) to the skill authoring process. It gives you a CLI to scaffold, lint, and install skills — with built-in validators that catch common anti-patterns before they reach production.
+skills-forge applies software engineering principles (SRP, OCP, DIP) to the skill authoring process. It gives you a CLI to scaffold, lint, and install skills — with built-in validators that catch common anti-patterns before they reach production.
 
 > **New here?** Read [`docs/getting-started.md`](docs/getting-started.md) for a step-by-step walkthrough of the full authoring loop.
 
@@ -18,10 +18,10 @@ skill-forge applies software engineering principles (SRP, OCP, DIP) to the skill
 pip install -e ".[dev]"
 
 # Initialize a workspace
-skill-forge init
+skills-forge init
 
 # 1. Scaffold a skill
-skill-forge create \
+skills-forge create \
   --name python-tdd \
   --category development \
   --description "Use for TDD with Python. Triggers: pytest, test-first, red-green-refactor, .py files." \
@@ -32,22 +32,22 @@ skill-forge create \
 $EDITOR output_skills/development/python-tdd/SKILL.md
 
 # 3. Lint until clean (fix every error, then warnings)
-skill-forge lint output_skills/development/python-tdd
+skills-forge lint output_skills/development/python-tdd
 
 # 4. Install (symlinks into ~/.claude/skills/)
-skill-forge install output_skills/development/python-tdd
+skills-forge install output_skills/development/python-tdd
 
 # 5. Iterate: edit → re-lint → Claude picks up changes instantly
 
 # 6. Bundle and share with your team
-skill-forge pack output_skills/development/python-tdd
-skill-forge publish ./python-tdd-0.1.0.skillpack \
+skills-forge pack output_skills/development/python-tdd
+skills-forge publish ./python-tdd-0.1.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --push
 
 # Or try installing a real pack from the live registry right now:
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack \
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack \
   --sha256 10d16ba0db7b768219d0adb6c3dd8ea68b62e9f719a0132fdcd2bcf10271c0e6
 ```
 
@@ -57,10 +57,10 @@ The `install` command creates a symlink from your skill directory into `~/.claud
 
 The authoring loop has five steps. Step 2 (the actual writing) is the one that matters most.
 
-1. **Scaffold** with `skill-forge create`. This writes a starter `SKILL.md` plus empty companion directories (`references/`, `examples/`, `assets/`, `scripts/`) when the relevant fields are present.
+1. **Scaffold** with `skills-forge create`. This writes a starter `SKILL.md` plus empty companion directories (`references/`, `examples/`, `assets/`, `scripts/`) when the relevant fields are present.
 2. **Author the content.** Open `SKILL.md` and fill in the description, principles, workflow, and constraints. Drop reference docs into `references/`, sample outputs into `examples/`, and static files into `assets/`.
-3. **Lint** with `skill-forge lint <path>`. Fix every error and warning. The linter checks both the SKILL.md content (description length, vague language, token budget) and the filesystem (do all linked files actually exist?).
-4. **Install** with `skill-forge install <path>`. Use `--scope project` for a project-local install, or omit it for global.
+3. **Lint** with `skills-forge lint <path>`. Fix every error and warning. The linter checks both the SKILL.md content (description length, vague language, token budget) and the filesystem (do all linked files actually exist?).
+4. **Install** with `skills-forge install <path>`. Use `--scope project` for a project-local install, or omit it for global.
 5. **Test and iterate.** Open Claude Code, trigger the skill with a realistic prompt, and watch how it activates. Tweak the description and triggers until activation is reliable.
 
 ### A complete minimal SKILL.md
@@ -121,17 +121,17 @@ If you are an AI agent (e.g. Claude) creating a skill on a user's behalf, follow
 
 1. **Clarify the skill's single responsibility.** Ask the user what trigger condition should activate the skill and what concrete action it should produce. If the answer covers more than one responsibility, split it into multiple skills.
 2. **Pick a category and a kebab-case name.** Names must contain no spaces. Categories live under `output_skills/<category>/<name>/`.
-3. **Run `skill-forge create`** with `--name`, `--category`, `--description`, and `--emoji`. The description must follow the formula above (30–150 tokens, includes triggers).
+3. **Run `skills-forge create`** with `--name`, `--category`, `--description`, and `--emoji`. The description must follow the formula above (30–150 tokens, includes triggers).
 4. **Write the SKILL.md body** using the [minimal example](#a-complete-minimal-skillmd) as a structural template. Required sections: Principles, Workflow (or Instructions), Constraints. Optional but recommended: Hints, References, Examples, Assets.
 5. **Add companion files** when referenced from SKILL.md. Every link in `## References`, `## Examples`, `## Assets`, and `## Scripts` must resolve to a real file on disk — the linter will fail otherwise.
-6. **Run `skill-forge lint <path>`** and fix every issue. Iterate until the linter reports clean. Do not stop on the first warning — fix all of them.
+6. **Run `skills-forge lint <path>`** and fix every issue. Iterate until the linter reports clean. Do not stop on the first warning — fix all of them.
 7. **Stop and report.** Hand the skill back to the user with the path and a one-line summary. Do not install it without explicit user permission.
 
 ### Definition of done
 
 A skill is ready when **all** of these are true:
 
-- [ ] `skill-forge lint <path>` reports clean (zero errors, zero warnings)
+- [ ] `skills-forge lint <path>` reports clean (zero errors, zero warnings)
 - [ ] Description is 30–150 tokens and follows the *Use when... Triggers on...* formula
 - [ ] At least three concrete trigger keywords (file extensions, action verbs, or domain terms)
 - [ ] Principles section has 3–7 imperative bullets
@@ -285,7 +285,7 @@ The linter runs two types of validators:
 
 ## Sharing skills across teams
 
-Once a skill is good, you'll want to share it with your team. skill-forge ships with a `.skillpack` format — a single zip file containing one or more skills plus a JSON manifest — so you can distribute skills via Slack, Notion, email, GitHub releases, or any other channel that can move a file.
+Once a skill is good, you'll want to share it with your team. skills-forge ships with a `.skillpack` format — a single zip file containing one or more skills plus a JSON manifest — so you can distribute skills via Slack, Notion, email, GitHub releases, or any other channel that can move a file.
 
 ### Per-skill versioning
 
@@ -300,16 +300,16 @@ description: |
 ---
 ```
 
-The pack command auto-derives its version from the skill itself, so you don't need to pass `--version` for single-skill packs. Bump the skill's frontmatter version when you ship a change, and the next `pack` will use the new value. Use `skill-forge create --version 0.1.0` to set an initial version when scaffolding.
+The pack command auto-derives its version from the skill itself, so you don't need to pass `--version` for single-skill packs. Bump the skill's frontmatter version when you ship a change, and the next `pack` will use the new value. Use `skills-forge create --version 0.1.0` to set an initial version when scaffolding.
 
 ```bash
 # Bundle a single skill — version auto-derived from frontmatter
-skill-forge pack output_skills/evaluation/ai-eng-evaluator \
+skills-forge pack output_skills/evaluation/ai-eng-evaluator \
   --output ./packs/
 # → ./packs/ai-eng-evaluator-1.0.0.skillpack
 
 # Bundle multiple skills together (explicit pack version recommended)
-skill-forge pack \
+skills-forge pack \
   output_skills/evaluation/ai-eng-evaluator \
   output_skills/evaluation/user-story-test-cases \
   --name evaluation-bundle \
@@ -317,11 +317,11 @@ skill-forge pack \
   --output evaluation-bundle.skillpack
 
 # A teammate receives the file and unpacks it
-skill-forge unpack evaluation-bundle.skillpack --output output_skills/
+skills-forge unpack evaluation-bundle.skillpack --output output_skills/
 
 # Then lints and installs as usual
-skill-forge lint output_skills/evaluation/ai-eng-evaluator
-skill-forge install output_skills/evaluation/ai-eng-evaluator
+skills-forge lint output_skills/evaluation/ai-eng-evaluator
+skills-forge install output_skills/evaluation/ai-eng-evaluator
 ```
 
 Pack version precedence: an explicit `--version` always wins; otherwise a single-skill pack takes the skill's own version; multi-skill bundles without `--version` fall back to the default.
@@ -349,13 +349,13 @@ Each skill records its own version in the manifest, so a multi-skill bundle can 
 
 The packer excludes `__pycache__/`, `.DS_Store`, `.git/`, and `*.pyc` files by default. Unpack rejects archives with `../` paths to defend against zip-slip attacks.
 
-For broader distribution, drop the `.skillpack` into a shared Git repo with CI running `skill-forge lint` on every PR. That gives you version control, code review, and rollback for free without standing up any extra infrastructure.
+For broader distribution, drop the `.skillpack` into a shared Git repo with CI running `skills-forge lint` on every PR. That gives you version control, code review, and rollback for free without standing up any extra infrastructure.
 
 ### Publishing to a git-backed registry
 
-`skill-forge publish` turns any git repo into a free, CDN-backed skill registry. No GitHub Actions, no releases, no API server — just a normal repo where each pack lives at a stable raw URL. Teammates `install` directly from that URL.
+`skills-forge publish` turns any git repo into a free, CDN-backed skill registry. No GitHub Actions, no releases, no API server — just a normal repo where each pack lives at a stable raw URL. Teammates `install` directly from that URL.
 
-A live example registry built with skill-forge lives at [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry) — every URL in this section points at it, so you can `curl` the index, install a real pack, and see exactly what your own registry will look like.
+A live example registry built with skills-forge lives at [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry) — every URL in this section points at it, so you can `curl` the index, install a real pack, and see exactly what your own registry will look like.
 
 The registry repo layout is fixed:
 
@@ -376,10 +376,10 @@ git clone git@github.com:ficiverson/skill-registry.git
 **Publish a pack** — point at the local clone and the public base URL:
 
 ```bash
-skill-forge pack output_skills/evaluation/ai-eng-evaluator
+skills-forge pack output_skills/evaluation/ai-eng-evaluator
 # → ./ai-eng-evaluator-1.0.0.skillpack
 
-skill-forge publish ./ai-eng-evaluator-1.0.0.skillpack \
+skills-forge publish ./ai-eng-evaluator-1.0.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "ai-eng-evaluator 1.0.0" \
@@ -399,23 +399,23 @@ Output:
   https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack
 
   Teammates can install with:
-    skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack --sha256 10d16ba0db7b768219d0adb6c3dd8ea68b62e9f719a0132fdcd2bcf10271c0e6
+    skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack --sha256 10d16ba0db7b768219d0adb6c3dd8ea68b62e9f719a0132fdcd2bcf10271c0e6
 ```
 
 The publisher copies the pack into `packs/<category>/<name>-<version>.skillpack`, regenerates `index.json`, commits, and (with `--push`) pushes. Drop `--push` if you'd rather review the diff first; the commit is already on your local branch.
 
-**Install from a URL** — `skill-forge install` accepts a URL alongside the existing local-path form:
+**Install from a URL** — `skills-forge install` accepts a URL alongside the existing local-path form:
 
 ```bash
 # Direct URL — works for any https:// pointing at a .skillpack
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack
 
 # With sha256 verification (recommended — digest from index.json)
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack \
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/evaluation/ai-eng-evaluator-1.0.0.skillpack \
   --sha256 10d16ba0db7b768219d0adb6c3dd8ea68b62e9f719a0132fdcd2bcf10271c0e6
 
 # Local install still works exactly as before
-skill-forge install output_skills/evaluation/ai-eng-evaluator
+skills-forge install output_skills/evaluation/ai-eng-evaluator
 ```
 
 Behind the scenes the URL form fetches the pack to a temp file, verifies the sha256 if you supplied one, unpacks it via the existing `unpack` flow, and then installs each contained skill into `~/.claude/skills/` (or `.claude/skills/` with `--scope project`).

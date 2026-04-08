@@ -101,17 +101,17 @@ class PublishPack:
         if not description:
             _errors.append(
                 "description is required — bake it in with "
-                '`skill-forge pack --description "..."`'
+                '`skills-forge pack --description "..."`'
             )
         if not tags:
             _errors.append(
                 "at least one tag is required — bake it in with "
-                "`skill-forge pack --tag <tag>`"
+                "`skills-forge pack --tag <tag>`"
             )
         if owner is None or not owner.name or not owner.email:
             _errors.append(
                 "owner name and email are required — bake them in with "
-                '`skill-forge pack --owner-name "..." --owner-email "..."`'
+                '`skills-forge pack --owner-name "..." --owner-email "..."`'
                 " (or override at publish time with --owner-name / --owner-email)"
             )
         if _errors:
@@ -151,7 +151,7 @@ class PublishPack:
             return ""
         ref = manifest.skills[0]
         try:
-            with tempfile.TemporaryDirectory(prefix="skill-forge-pub-") as tmp:
+            with tempfile.TemporaryDirectory(prefix="skills-forge-pub-") as tmp:
                 tmp_dir = Path(tmp)
                 self._packer.unpack(pack_path, tmp_dir)
                 skill_md = tmp_dir / ref.category / ref.name / "SKILL.md"
@@ -201,7 +201,7 @@ class InstallFromUrl:
         self._installer = installer
 
     def execute(self, request: InstallFromUrlRequest) -> InstallFromUrlResponse:
-        with tempfile.TemporaryDirectory(prefix="skill-forge-fetch-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="skills-forge-fetch-") as tmp:
             tmp_pack = Path(tmp) / "downloaded.skillpack"
             self._fetcher.fetch(request.url, tmp_pack)
 

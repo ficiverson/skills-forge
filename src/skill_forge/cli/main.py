@@ -1,4 +1,4 @@
-"""CLI entry point for skill-forge."""
+"""CLI entry point for skills-forge."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from skill_forge.cli.factory import (
 )
 
 app = typer.Typer(
-    name="skill-forge",
+    name="skills-forge",
     help="A clean-architecture toolkit for crafting Claude Code skills.",
     no_args_is_help=True,
 )
@@ -343,8 +343,8 @@ def unpack(
     ):
         typer.echo(f"  → {path}  (v{ref.version})")
     typer.echo(
-        "\nNext: lint the unpacked skills with `skill-forge lint`, then install "
-        "with `skill-forge install`."
+        "\nNext: lint the unpacked skills with `skills-forge lint`, then install "
+        "with `skills-forge install`."
     )
 
 
@@ -352,7 +352,7 @@ def unpack(
 def publish(
     pack_path: Path = typer.Argument(
         ...,
-        help="Path to a .skillpack file produced by `skill-forge pack`",
+        help="Path to a .skillpack file produced by `skills-forge pack`",
         exists=True,
     ),
     registry: Path = typer.Option(
@@ -458,17 +458,17 @@ def publish(
     typer.echo(f"  {result.raw_url}")
     typer.echo("")
     typer.echo("  Teammates can install with:")
-    typer.echo(f"    skill-forge install {result.raw_url} --sha256 {result.sha256}")
+    typer.echo(f"    skills-forge install {result.raw_url} --sha256 {result.sha256}")
 
 
 @app.command()
 def init(
     directory: Path = typer.Argument(
         Path("."),
-        help="Directory to initialize as a skill-forge workspace",
+        help="Directory to initialize as a skills-forge workspace",
     ),
 ) -> None:
-    """Initialize a skill-forge workspace with the recommended structure."""
+    """Initialize a skills-forge workspace with the recommended structure."""
     output_dir = directory / "output_skills"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -476,16 +476,16 @@ def init(
     if not claude_md.exists():
         claude_md.write_text(
             "# Skill Forge Workspace\n\n"
-            "This workspace uses skill-forge to create and manage Claude Code skills.\n\n"
+            "This workspace uses skills-forge to create and manage Claude Code skills.\n\n"
             "## Commands\n\n"
-            "- `skill-forge create` — scaffold a new skill\n"
-            "- `skill-forge lint` — validate skill quality\n"
-            "- `skill-forge install` — install a skill for Claude Code\n"
-            "- `skill-forge list` — list all skills\n",
+            "- `skills-forge create` — scaffold a new skill\n"
+            "- `skills-forge lint` — validate skill quality\n"
+            "- `skills-forge install` — install a skill for Claude Code\n"
+            "- `skills-forge list` — list all skills\n",
             encoding="utf-8",
         )
 
-    typer.echo(f"✔ Initialized skill-forge workspace at {directory.resolve()}")
+    typer.echo(f"✔ Initialized skills-forge workspace at {directory.resolve()}")
 
 
 def _collect_skill_paths(path: Path) -> list[Path]:

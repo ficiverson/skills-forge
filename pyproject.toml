@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skills-forge"
-version = "0.1.1"
+version = "0.1.2"
 description = "A clean-architecture toolkit for crafting, linting, packing, and sharing Claude Code skills"
 readme = "README.md"
 license = { text = "MIT" }
@@ -19,7 +19,7 @@ keywords = [
     "ai-skills",
     "llm",
     "anthropic",
-    "skill-forge",
+    "skills-forge",
     "cli",
 ]
 classifiers = [
@@ -53,7 +53,7 @@ dev = [
 ]
 
 [project.scripts]
-skill-forge = "skill_forge.cli.main:main"
+skills-forge = "skill_forge.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

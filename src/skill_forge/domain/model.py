@@ -1,4 +1,4 @@
-"""Domain models for skill-forge.
+"""Domain models for skills-forge.
 
 These are pure data structures with no dependencies on infrastructure.
 They represent the core concepts of a Claude Code skill.

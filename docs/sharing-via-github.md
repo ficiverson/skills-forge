@@ -1,8 +1,8 @@
 # Sharing skills via raw.githubusercontent.com
 
-This guide walks through a complete end-to-end example of distributing skill-forge skills using a plain GitHub repo as a free, CDN-backed registry. No GitHub Actions, no Releases, no S3, no extra services. Once your registry is set up, publishing a new skill version is one command, and teammates install it with one command.
+This guide walks through a complete end-to-end example of distributing skills-forge skills using a plain GitHub repo as a free, CDN-backed registry. No GitHub Actions, no Releases, no S3, no extra services. Once your registry is set up, publishing a new skill version is one command, and teammates install it with one command.
 
-> **Live example:** Every URL in this guide points at a real, working registry built with skill-forge: [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry). You can `curl` the index, install one of the published packs, and use it as a reference layout for your own.
+> **Live example:** Every URL in this guide points at a real, working registry built with skills-forge: [github.com/ficiverson/skill-registry](https://github.com/ficiverson/skill-registry). You can `curl` the index, install one of the published packs, and use it as a reference layout for your own.
 >
 > ```bash
 > curl https://raw.githubusercontent.com/ficiverson/skill-registry/main/index.json | jq
@@ -16,7 +16,7 @@ Every file in a public GitHub repo is reachable via the raw CDN at:
 https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>
 ```
 
-That URL is a stable, cacheable, anonymous-readable file endpoint. So if you commit a `.skillpack` to a repo, every teammate can `curl` it without any auth. `skill-forge publish` just automates the "commit a `.skillpack` to a repo, update an index, and print the URL" part. `skill-forge install <url>` automates the "fetch, verify, unpack, install" part.
+That URL is a stable, cacheable, anonymous-readable file endpoint. So if you commit a `.skillpack` to a repo, every teammate can `curl` it without any auth. `skills-forge publish` just automates the "commit a `.skillpack` to a repo, update an index, and print the URL" part. `skills-forge install <url>` automates the "fetch, verify, unpack, install" part.
 
 The whole story is two commands plus a normal `git push`.
 
@@ -36,7 +36,7 @@ By the end of this guide you'll have:
   ```
 - A teammate able to install any version with:
   ```bash
-  skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
+  skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
     --sha256 9c4f2a1b...
   ```
 
@@ -57,10 +57,10 @@ cd skill-registry
 cat > README.md <<'EOF'
 # Skill Registry
 
-A skill-forge registry. Install any skill below with:
+A skills-forge registry. Install any skill below with:
 
 ```bash
-skill-forge install <url> --sha256 <digest>
+skills-forge install <url> --sha256 <digest>
 ```
 
 See `index.json` for the full catalog.
@@ -77,12 +77,12 @@ That's the entire registry setup. No workflows, no settings, no protected branch
 
 ## Step 2 — Author and pack a skill
 
-In your normal skill-forge workspace (separate from the registry clone), create a skill:
+In your normal skills-forge workspace (separate from the registry clone), create a skill:
 
 ```bash
-cd ~/code/my-skill-forge-workspace
+cd ~/code/my-skills-forge-workspace
 
-skill-forge create \
+skills-forge create \
   --name python-tdd \
   --category development \
   --description "Use this skill when writing Python with a TDD workflow. Triggers on: pytest, unittest, test-first, red-green-refactor, .py files." \
@@ -93,14 +93,14 @@ skill-forge create \
 Edit the generated `output_skills/development/python-tdd/SKILL.md` to fill in principles, workflow, constraints, and hints. Then lint until clean:
 
 ```bash
-skill-forge lint output_skills/development/python-tdd
+skills-forge lint output_skills/development/python-tdd
 # ✔ development/python-tdd: clean
 ```
 
 Pack it. The pack command auto-derives its version from the `version:` field in frontmatter, so you don't pass `--version`:
 
 ```bash
-skill-forge pack output_skills/development/python-tdd
+skills-forge pack output_skills/development/python-tdd
 ```
 
 Output:
@@ -119,7 +119,7 @@ You now have `./python-tdd-0.1.0.skillpack` ready to publish.
 Point `publish` at your local clone of the registry repo and the public base URL of the raw CDN:
 
 ```bash
-skill-forge publish ./python-tdd-0.1.0.skillpack \
+skills-forge publish ./python-tdd-0.1.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.1.0" \
@@ -151,7 +151,7 @@ Output:
   https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack
 
   Teammates can install with:
-    skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
+    skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
 ```
 
 Behind the scenes, `publish`:
@@ -237,7 +237,7 @@ All metadata fields are optional. Older `index.json` files that predate them kee
 A teammate (or your own laptop in a fresh shell) installs the skill in one command:
 
 ```bash
-skill-forge install \
+skills-forge install \
   https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.1.0.skillpack \
   --sha256 9c4f2a1b8e6d3742fa87b9d1e205c4f8a2b6e9d1c7f4a8b3e2d5c9f1a6b7e8d2
 ```
@@ -276,12 +276,12 @@ description: |
 Re-pack and re-publish. No flags need to change:
 
 ```bash
-cd ~/code/my-skill-forge-workspace
+cd ~/code/my-skills-forge-workspace
 
-skill-forge pack output_skills/development/python-tdd
+skills-forge pack output_skills/development/python-tdd
 # → ./python-tdd-0.2.0.skillpack
 
-skill-forge publish ./python-tdd-0.2.0.skillpack \
+skills-forge publish ./python-tdd-0.2.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" \
@@ -350,7 +350,7 @@ for skill in index.skills:
     print(f"  sha256:  {latest.sha256}")
 ```
 
-This is enough to build a tiny `skill-forge search` or `skill-forge upgrade` script tailored to your team's conventions.
+This is enough to build a tiny `skills-forge search` or `skills-forge upgrade` script tailored to your team's conventions.
 
 ## Private repos
 
@@ -360,7 +360,7 @@ Set `GITHUB_TOKEN` in the environment before running `install`:
 
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 ```
 
@@ -370,7 +370,7 @@ A practical pattern: put the token in your shell rc file so it's always present:
 
 ```bash
 # In ~/.zshrc or ~/.bashrc
-export GITHUB_TOKEN=$(security find-generic-password -s skill-forge-github-token -w)  # macOS Keychain
+export GITHUB_TOKEN=$(security find-generic-password -s skills-forge-github-token -w)  # macOS Keychain
 ```
 
 Or use a `.envrc` (with [direnv](https://direnv.net/)) so the token is only loaded inside your skills workspace.
@@ -383,7 +383,7 @@ You have three options for how teammates pin versions:
 
 2. **Always install latest.** Teammates fetch `index.json`, look up `latest`, and install that URL. Pair with a team chat post when you publish a major change. Best for staying current. Worst when a release introduces a regression.
 
-3. **Lockfile per project.** Commit a small `skills.lock` JSON in each project recording the exact versions it depends on. Re-running install reads the lockfile. Best for reproducibility but requires a wrapper script today (skill-forge doesn't ship a lockfile feature yet).
+3. **Lockfile per project.** Commit a small `skills.lock` JSON in each project recording the exact versions it depends on. Re-running install reads the lockfile. Best for reproducibility but requires a wrapper script today (skills-forge doesn't ship a lockfile feature yet).
 
 For most teams, option 1 with sha256 verification is the right starting point. Add option 2 once you have a half-dozen skills and people are getting tired of typing URLs.
 
@@ -402,7 +402,7 @@ print("|-------|--------|---------|")
 for s in data["skills"]:
     latest = next(v for v in s["versions"] if v["version"] == s["latest"])
     url = f'{data["base_url"]}/{latest["path"]}'
-    print(f'| `{s["category"]}/{s["name"]}` | `{s["latest"]}` | `skill-forge install {url} --sha256 {latest["sha256"][:12]}...` |')
+    print(f'| `{s["category"]}/{s["name"]}` | `{s["latest"]}` | `skills-forge install {url} --sha256 {latest["sha256"][:12]}...` |')
 PY
 git add README.md && git commit -m "refresh README" && git push
 ```
@@ -419,14 +419,14 @@ The whole workflow in one screen:
 git clone git@github.com:ficiverson/skill-registry.git ~/code/skill-registry
 
 # 2. Each release: bump version: in frontmatter, then:
-skill-forge pack output_skills/development/python-tdd
-skill-forge publish ./python-tdd-0.2.0.skillpack \
+skills-forge pack output_skills/development/python-tdd
+skills-forge publish ./python-tdd-0.2.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" --push
 
 # --- Teammate ---
-skill-forge install \
+skills-forge install \
   https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 ```

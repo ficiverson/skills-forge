@@ -1,8 +1,8 @@
-# Getting Started with skill-forge
+# Getting Started with skills-forge
 
-This guide walks you through the full lifecycle: installing skill-forge, creating your first skill, validating it, and making it available to Claude Code.
+This guide walks you through the full lifecycle: installing skills-forge, creating your first skill, validating it, and making it available to Claude Code.
 
-## 1. Install skill-forge
+## 1. Install skills-forge
 
 Clone the repository and install in editable mode:
 
@@ -15,7 +15,7 @@ pip install -e ".[dev]"
 Verify:
 
 ```bash
-skill-forge --help
+skills-forge --help
 ```
 
 ## 2. Initialize a workspace
@@ -24,7 +24,7 @@ If you're starting from scratch (not using this repository directly):
 
 ```bash
 mkdir my-skills && cd my-skills
-skill-forge init
+skills-forge init
 ```
 
 This creates an `output_skills/` directory and a `CLAUDE.md` file. If you cloned this repo, the workspace is already initialized — skills live in `output_skills/<category>/<skill-name>/`.
@@ -34,7 +34,7 @@ This creates an `output_skills/` directory and a `CLAUDE.md` file. If you cloned
 ### Option A: Use the CLI scaffold
 
 ```bash
-skill-forge create \
+skills-forge create \
   --name python-tdd \
   --category development \
   --description "Use for TDD with Python. Triggers: pytest, test-first, red-green-refactor, .py files." \
@@ -136,10 +136,10 @@ Run the linter to catch common problems:
 
 ```bash
 # Lint a single skill
-skill-forge lint output_skills/development/python-tdd/SKILL.md
+skills-forge lint output_skills/development/python-tdd/SKILL.md
 
 # Lint all skills in a directory
-skill-forge lint output_skills/
+skills-forge lint output_skills/
 ```
 
 The linter runs two types of checks:
@@ -171,7 +171,7 @@ Install makes your skill visible to Claude Code. It creates a symlink from your 
 ### Global install (all projects)
 
 ```bash
-skill-forge install output_skills/development/python-tdd
+skills-forge install output_skills/development/python-tdd
 ```
 
 This symlinks into `~/.claude/skills/python-tdd`. Every Claude Code session on your machine will see it.
@@ -179,7 +179,7 @@ This symlinks into `~/.claude/skills/python-tdd`. Every Claude Code session on y
 ### Project-scoped install
 
 ```bash
-skill-forge install output_skills/development/python-tdd --scope project
+skills-forge install output_skills/development/python-tdd --scope project
 ```
 
 This symlinks into `.claude/skills/python-tdd` in the current directory. Only Claude Code sessions in this project will see it.
@@ -210,7 +210,7 @@ After installing, open a new Claude Code session and try a prompt that should tr
 If the skill doesn't trigger, check:
 
 1. **Is the symlink valid?** `ls -la ~/.claude/skills/python-tdd/SKILL.md`
-2. **Is the description precise enough?** Run `skill-forge lint` and check for `description-missing-triggers`
+2. **Is the description precise enough?** Run `skills-forge lint` and check for `description-missing-triggers`
 3. **Does the description match your prompt?** The description is what Claude uses to decide whether to activate
 
 ## 8. Iterate
@@ -218,7 +218,7 @@ If the skill doesn't trigger, check:
 The typical workflow:
 
 ```
-edit SKILL.md  →  skill-forge lint  →  test with Claude  →  repeat
+edit SKILL.md  →  skills-forge lint  →  test with Claude  →  repeat
 ```
 
 Because of the symlink, you never need to reinstall after editing. Just lint to validate your changes, then test in a Claude session.
@@ -229,11 +229,11 @@ Once a skill is good, bundle it into a single portable file you can share. A `.s
 
 ```bash
 # Bundle a single skill — version is auto-derived from frontmatter
-skill-forge pack output_skills/development/python-tdd
+skills-forge pack output_skills/development/python-tdd
 # → ./python-tdd-0.2.0.skillpack
 
 # Bundle multiple skills into a named bundle, baking metadata into the manifest
-skill-forge pack \
+skills-forge pack \
   output_skills/development/python-tdd \
   output_skills/security/owasp-review \
   --name backend-team-bundle \
@@ -246,19 +246,19 @@ skill-forge pack \
 
 The pack command reads `version:` from each skill's frontmatter. Bump that field whenever you ship a change so each release lands as its own versioned `.skillpack`.
 
-The optional `--description`, `--tag`, `--owner-*`, and `--deprecated` flags travel inside the manifest so the same pack carries its own discoverability metadata. When you later run `skill-forge publish`, the registry index defaults to those values — passing the same flags on `publish` overrides them.
+The optional `--description`, `--tag`, `--owner-*`, and `--deprecated` flags travel inside the manifest so the same pack carries its own discoverability metadata. When you later run `skills-forge publish`, the registry index defaults to those values — passing the same flags on `publish` overrides them.
 
 A teammate who receives the file extracts it with:
 
 ```bash
-skill-forge unpack backend-team-bundle.skillpack --output output_skills/
+skills-forge unpack backend-team-bundle.skillpack --output output_skills/
 ```
 
 Then lints and installs the unpacked skills with the usual commands.
 
 ## 10. Publish to a git-backed registry
 
-`skill-forge publish` turns any git repo into a free, CDN-backed skill registry — no GitHub Actions, no releases server, no Slack uploads. It copies the pack into `packs/<category>/<name>-<version>.skillpack` inside a local clone, regenerates `index.json`, and commits. Once pushed to GitHub, every pack is reachable via `raw.githubusercontent.com`.
+`skills-forge publish` turns any git repo into a free, CDN-backed skill registry — no GitHub Actions, no releases server, no Slack uploads. It copies the pack into `packs/<category>/<name>-<version>.skillpack` inside a local clone, regenerates `index.json`, and commits. Once pushed to GitHub, every pack is reachable via `raw.githubusercontent.com`.
 
 **One-time setup** — clone the registry repo locally:
 
@@ -269,7 +269,7 @@ git clone git@github.com:ficiverson/skill-registry.git
 **Publish a pack:**
 
 ```bash
-skill-forge publish ./python-tdd-0.2.0.skillpack \
+skills-forge publish ./python-tdd-0.2.0.skillpack \
   --registry ~/code/skill-registry \
   --base-url https://raw.githubusercontent.com/ficiverson/skill-registry/main \
   --message "python-tdd 0.2.0" \
@@ -293,18 +293,18 @@ Drop `--push` if you'd rather review the diff first; the commit is already on yo
 
 ## 11. Install from a remote URL
 
-`skill-forge install` accepts an `https://` URL alongside the existing local-path form, so teammates install published skills with a single command:
+`skills-forge install` accepts an `https://` URL alongside the existing local-path form, so teammates install published skills with a single command:
 
 ```bash
 # Direct URL
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack
 
 # With sha256 verification (recommended — copy the digest from publish output)
-skill-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
+skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry/main/packs/development/python-tdd-0.2.0.skillpack \
   --sha256 9c4f2a1b...
 
 # Local install still works the same as before
-skill-forge install output_skills/development/python-tdd
+skills-forge install output_skills/development/python-tdd
 ```
 
 Behind the scenes the URL form fetches the pack to a temp file, verifies the sha256 if you supplied one, unpacks it via the regular `unpack` flow, and installs each contained skill into `~/.claude/skills/` (or `.claude/skills/` with `--scope project`).
@@ -315,15 +315,15 @@ For private GitHub repos, set `GITHUB_TOKEN` in your environment and the fetcher
 
 | Command | Description |
 |---------|-------------|
-| `skill-forge init` | Initialize a workspace with `output_skills/` and `CLAUDE.md` |
-| `skill-forge create` | Scaffold a new skill from options |
-| `skill-forge lint <path>` | Validate a skill or directory of skills |
-| `skill-forge list [directory]` | List all skills with token estimates |
-| `skill-forge install <path-or-url>` | Install a skill from a local directory or remote `.skillpack` URL |
-| `skill-forge uninstall <name>` | Remove an installed symlink |
-| `skill-forge pack <skill-dir...>` | Bundle one or more skill directories into a `.skillpack` archive |
-| `skill-forge unpack <pack>` | Extract a `.skillpack` into a destination directory |
-| `skill-forge publish <pack>` | Publish a `.skillpack` to a git-backed registry |
+| `skills-forge init` | Initialize a workspace with `output_skills/` and `CLAUDE.md` |
+| `skills-forge create` | Scaffold a new skill from options |
+| `skills-forge lint <path>` | Validate a skill or directory of skills |
+| `skills-forge list [directory]` | List all skills with token estimates |
+| `skills-forge install <path-or-url>` | Install a skill from a local directory or remote `.skillpack` URL |
+| `skills-forge uninstall <name>` | Remove an installed symlink |
+| `skills-forge pack <skill-dir...>` | Bundle one or more skill directories into a `.skillpack` archive |
+| `skills-forge unpack <pack>` | Extract a `.skillpack` into a destination directory |
+| `skills-forge publish <pack>` | Publish a `.skillpack` to a git-backed registry |
 
 ### create options
 

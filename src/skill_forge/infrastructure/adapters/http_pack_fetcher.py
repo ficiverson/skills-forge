@@ -89,7 +89,7 @@ class HttpPackFetcher(PackFetcher):
     # ----------------------------------------------------------------- helpers
 
     def _build_request(self, url: str) -> urllib.request.Request:
-        headers = {"User-Agent": "skill-forge"}
+        headers = {"User-Agent": "skills-forge"}
         token = os.environ.get("GITHUB_TOKEN")
         if token and "githubusercontent.com" in url:
             headers["Authorization"] = f"token {token}"

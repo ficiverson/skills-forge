@@ -32,7 +32,7 @@ cp -r templates/with-references output_skills/my-category/my-skill
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | yes | Skill name in kebab-case |
-| `version` | no | Semver string (defaults to `0.1.0`). Bump this when shipping a change so `skill-forge pack`/`publish` produce a new versioned `.skillpack`. |
+| `version` | no | Semver string (defaults to `0.1.0`). Bump this when shipping a change so `skills-forge pack`/`publish` produce a new versioned `.skillpack`. |
 | `description` | yes | Trigger description (aim for 30-150 tokens). Include trigger keywords and file extensions. |
 | `depends_on` | no | Other skills this one depends on. Format: `skill-name (reason)` |
 
