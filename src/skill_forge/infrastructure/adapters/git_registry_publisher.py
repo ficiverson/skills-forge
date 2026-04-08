@@ -104,6 +104,7 @@ class GitRegistryPublisher(PackPublisher):
             size_bytes=size,
             release_notes=metadata.release_notes,
             yanked=metadata.yanked,
+            export_formats=metadata.export_formats,
         )
         # Only forward skill-level fields when the caller actually
         # supplied a value, so re-publishes that omit them keep whatever
@@ -113,6 +114,8 @@ class GitRegistryPublisher(PackPublisher):
             upsert_kwargs["description"] = metadata.description
         if metadata.tags:
             upsert_kwargs["tags"] = metadata.tags
+        if metadata.platforms:
+            upsert_kwargs["platforms"] = metadata.platforms
         if metadata.owner is not None:
             upsert_kwargs["owner"] = metadata.owner
         if metadata.deprecated:

@@ -57,7 +57,7 @@ class TestRoundtrip:
         codec = RegistryIndexCodec()
         encoded = codec.encode(_index())
         data = json.loads(encoded)
-        assert data["format_version"] == "1"
+        assert data["format_version"] == "3"
         assert data["registry_name"] == "acme-skills"
         assert data["skills"][0]["latest"] == "0.2.0"
         assert len(data["skills"][0]["versions"]) == 2

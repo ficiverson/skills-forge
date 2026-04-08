@@ -284,6 +284,8 @@ class SkillPackManifest:
     skills: tuple[SkillRef, ...]
     description: str = ""
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()  # install targets baked at pack time
+    export_formats: tuple[str, ...] = ()  # export formats baked at pack time
     owner: Owner | None = None
     deprecated: bool = False
 
@@ -317,6 +319,7 @@ class IndexedVersion:
     size_bytes: int = 0  # 0 means "unknown" (older entries)
     release_notes: str = ""
     yanked: bool = False  # set true when a version is withdrawn but kept for audit
+    export_formats: tuple[str, ...] = ()  # e.g. ("system-prompt", "gpt-json", "mcp-server")
 
     def __post_init__(self) -> None:
         if not self.version or not self.version.strip():
@@ -345,6 +348,7 @@ class IndexedSkill:
     versions: tuple[IndexedVersion, ...]
     description: str = ""
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()  # install targets, e.g. ("claude", "gemini", "vscode")
     owner: Owner | None = None
     deprecated: bool = False
 
@@ -378,7 +382,7 @@ class RegistryIndex:
     verify integrity.
     """
 
-    FORMAT_VERSION: ClassVar[str] = "1"
+    FORMAT_VERSION: ClassVar[str] = "3"
 
     registry_name: str
     base_url: str
@@ -405,6 +409,7 @@ class RegistryIndex:
         *,
         description: str | None = None,
         tags: tuple[str, ...] | None = None,
+        platforms: tuple[str, ...] | None = None,
         owner: Owner | None = None,
         deprecated: bool | None = None,
     ) -> RegistryIndex:
@@ -439,6 +444,7 @@ class RegistryIndex:
                             description if description is not None else s.description
                         ),
                         tags=tags if tags is not None else s.tags,
+                        platforms=platforms if platforms is not None else s.platforms,
                         owner=owner if owner is not None else s.owner,
                         deprecated=(
                             deprecated if deprecated is not None else s.deprecated
@@ -456,6 +462,7 @@ class RegistryIndex:
                     versions=(version,),
                     description=description or "",
                     tags=tags or (),
+                    platforms=platforms or (),
                     owner=owner,
                     deprecated=bool(deprecated) if deprecated is not None else False,
                 )
@@ -490,6 +497,8 @@ class PublishMetadata:
 
     description: str = ""
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()
+    export_formats: tuple[str, ...] = ()
     owner: Owner | None = None
     deprecated: bool = False
     release_notes: str = ""

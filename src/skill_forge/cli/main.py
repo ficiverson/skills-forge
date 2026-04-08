@@ -423,6 +423,25 @@ def pack(
         help="Tag for the pack (repeatable). Travels in the manifest and "
         "becomes the default when publishing to a registry.",
     ),
+    platforms: list[str] = typer.Option(
+        [],
+        "--platform",
+        "-p",
+        help=(
+            "Install target (repeatable): claude, gemini, codex, agents, vscode. "
+            "Baked into the manifest and used as the default when publishing."
+        ),
+    ),
+    export_formats: list[str] = typer.Option(
+        [],
+        "--export-format",
+        "-f",
+        help=(
+            "Supported export format (repeatable): system-prompt, gpt-json, "
+            "gem-txt, bedrock-xml, mcp-server. "
+            "Baked into the manifest and used as the default when publishing."
+        ),
+    ),
     owner_name: str = typer.Option(
         "",
         "--owner-name",
@@ -457,6 +476,8 @@ def pack(
         pack_name=name,
         description=description,
         tags=tuple(tags),
+        platforms=tuple(platforms),
+        export_formats=tuple(export_formats),
         owner_name=owner_name,
         owner_email=owner_email,
         deprecated=deprecated,
@@ -549,6 +570,24 @@ def publish(
         "-t",
         help="Tag for the skill (repeatable). Surfaces in the registry index for discovery.",
     ),
+    platforms: list[str] = typer.Option(
+        [],
+        "--platform",
+        "-p",
+        help=(
+            "Install target (repeatable): claude, gemini, codex, agents, vscode. "
+            "Defaults to the value baked into the manifest at pack time."
+        ),
+    ),
+    export_formats: list[str] = typer.Option(
+        [],
+        "--export-format",
+        help=(
+            "Supported export format (repeatable): system-prompt, gpt-json, "
+            "gem-txt, bedrock-xml, mcp-server. "
+            "Defaults to the value baked into the manifest at pack time."
+        ),
+    ),
     owner_name: str = typer.Option(
         "",
         "--owner-name",
@@ -594,6 +633,8 @@ def publish(
         message=message,
         push=push,
         tags=tuple(tags),
+        platforms=tuple(platforms),
+        export_formats=tuple(export_formats),
         owner_name=owner_name,
         owner_email=owner_email,
         deprecated=deprecated,

@@ -44,6 +44,8 @@ class PublishPackRequest:
     message: str = ""
     push: bool = False
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()
+    export_formats: tuple[str, ...] = ()
     owner_name: str = ""
     owner_email: str = ""
     deprecated: bool = False
@@ -87,6 +89,12 @@ class PublishPack:
             or self._read_description(request.pack_path, manifest)
         )
         tags = tuple(request.tags) if request.tags else manifest.tags
+        platforms = tuple(request.platforms) if request.platforms else manifest.platforms
+        export_formats = (
+            tuple(request.export_formats)
+            if request.export_formats
+            else manifest.export_formats
+        )
         if request.owner_name:
             owner: Owner | None = Owner(
                 name=request.owner_name,
@@ -124,6 +132,8 @@ class PublishPack:
         metadata = PublishMetadata(
             description=description,
             tags=tags,
+            platforms=platforms,
+            export_formats=export_formats,
             owner=owner,
             deprecated=deprecated,
             release_notes=request.release_notes,

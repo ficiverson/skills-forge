@@ -41,6 +41,8 @@ class PackSkillRequest:
     pack_name: str = ""
     description: str = ""
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()
+    export_formats: tuple[str, ...] = ()
     owner_name: str = ""
     owner_email: str = ""
     deprecated: bool = False
@@ -104,6 +106,8 @@ class PackSkill:
             description=description,
             skills=tuple(refs),
             tags=tuple(request.tags),
+            platforms=tuple(request.platforms),
+            export_formats=tuple(request.export_formats),
             owner=owner,
             deprecated=request.deprecated,
         )
