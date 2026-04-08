@@ -272,6 +272,11 @@ def export(
             "Defaults to the skill directory."
         ),
     ),
+    only_skill: bool = typer.Option(
+        False,
+        "--only-skill",
+        help="Export only the SKILL.md content, skipping references/assets.",
+    ),
 ) -> None:
     """Export a skill to a platform-native format for chatbot / API platforms.
 
@@ -311,6 +316,7 @@ def export(
         skill_path=source,
         format=export_fmt,
         output=output,
+        bundle=not only_skill,
     )
 
     try:

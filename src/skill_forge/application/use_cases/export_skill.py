@@ -45,6 +45,9 @@ class ExportSkillRequest:
     """Directory where the exported artifact(s) should be written.
     Defaults to the skill directory itself."""
 
+    bundle: bool = True
+    """Whether to bundle linked references, examples, etc. into the output."""
+
 
 @dataclass(frozen=True)
 class ExportSkillResponse:
@@ -87,15 +90,21 @@ class ExportSkill:
 
         return self._handle_skillpack(request)
 
-    def _export_one(self, skill_md: Path, output_dir_override: Path | None) -> Path:
+    def _export_one(
+        self,
+        skill_md: Path,
+        output_dir_override: Path | None,
+        bundle: bool = True,
+    ) -> Path:
         raw = skill_md.read_text(encoding="utf-8")
         skill = self._parser.parse(raw, skill_md.parent)
         body = _strip_frontmatter(raw)
 
-        # Bundle supplements (references, examples, etc.)
-        supplements = self._bundle_supplements(skill, skill_md.parent)
-        if supplements:
-            body = f"{body.strip()}\n\n{supplements}"
+        if bundle:
+            # Bundle supplements (references, examples, etc.)
+            supplements = self._bundle_supplements(skill, skill_md.parent)
+            if supplements:
+                body = f"{body.strip()}\n\n{supplements}"
 
         output_dir = output_dir_override or skill_md.parent
         return self._exporter.export(skill, body, output_dir)
@@ -170,7 +179,9 @@ class ExportSkill:
             for skill_md in skill_mds:
                 # When exporting from a pack, we MUST have an output directory
                 # specified, otherwise they'd land in the temp dir and be deleted.
-                path = self._export_one(skill_md, output_base)
+                path = self._export_one(
+                    skill_md, output_base, bundle=request.bundle
+                )
                 output_paths.append(path)
 
             return ExportSkillResponse(output_paths=output_paths, format=request.format)

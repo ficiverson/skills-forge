@@ -166,3 +166,30 @@ class TestExportSkillBundling:
         assert "print('hi')" in body
         assert "## Supplement: assets/data.csv" in body
         assert "a,b,c" in body
+
+    def test_skips_bundling_when_requested(self, tmp_path: Path):
+        skill_root = _make_skill_structure(tmp_path / "source")
+        pack_path = tmp_path / "test.skillpack"
+        pack_path.touch()
+
+        exporter = _RecordingExporter()
+        packer = _StubPacker(skill_root)
+        use_case = ExportSkill(
+            parser=MarkdownSkillParser(),
+            exporter=exporter,
+            packer=packer
+        )
+
+        use_case.execute(
+            ExportSkillRequest(
+                skill_path=pack_path,
+                format=ExportFormat.SYSTEM_PROMPT,
+                output=tmp_path / "out",
+                bundle=False
+            )
+        )
+
+        body = exporter.recorded_body
+        assert body is not None
+        assert "# BUNDLED SUPPLEMENTS" not in body
+        assert "Reference content" not in body

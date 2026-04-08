@@ -625,3 +625,19 @@ class TestExportCommand:
         )
         assert result.exit_code == 0, result.stdout
         assert "mcp run" in result.stdout
+
+    def test_export_only_skill_flag(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--only-skill", "-o", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        
+        output_file = out / "test" / "sprint-grooming.system-prompt.md"
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "# BUNDLED SUPPLEMENTS" not in content
