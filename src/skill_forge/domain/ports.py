@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    InstallTarget,
     PublishMetadata,
     PublishResult,
     RegistryIndex,
@@ -44,11 +45,22 @@ class SkillRepository(ABC):
 
 
 class SkillInstaller(ABC):
-    """Port: install/uninstall skills for Claude Code."""
+    """Port: install/uninstall skills into agent-CLI tool directories.
+
+    All supported tools share the agentskills.io SKILL.md format.
+    ``target`` selects which tool's directory receives the skill;
+    ``InstallTarget.ALL`` writes to every applicable directory at once.
+    ``install`` always returns a list so callers handle both cases uniformly.
+    """
 
     @abstractmethod
-    def install(self, skill_path: Path, scope: SkillScope) -> Path:
-        """Install a skill and return the installation path."""
+    def install(
+        self,
+        skill_path: Path,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.CLAUDE,
+    ) -> list[Path]:
+        """Install a skill and return all installation paths created."""
 
     @abstractmethod
     def uninstall(self, skill_name: str, scope: SkillScope) -> bool:

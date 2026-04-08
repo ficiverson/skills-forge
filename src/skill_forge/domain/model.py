@@ -23,6 +23,25 @@ class SkillScope(Enum):
     PROJECT = "project"
 
 
+class InstallTarget(Enum):
+    """Which agent-CLI tool's skills directory to install into.
+
+    All targets use the same SKILL.md format (agentskills.io open standard).
+    The only difference is the destination path on disk.
+
+    AGENTS is the universal cross-vendor alias (.agents/skills/) supported by
+    every conforming tool at project scope.  At global scope each tool still
+    has its own home-directory path, so ALL is provided for that case.
+    """
+
+    CLAUDE = "claude"    # ~/.claude/skills/  |  .claude/skills/
+    GEMINI = "gemini"    # ~/.gemini/skills/  |  .gemini/skills/
+    CODEX = "codex"      # ~/.codex/skills/   |  .codex/skills/
+    VSCODE = "vscode"    # project-only       |  .github/skills/
+    AGENTS = "agents"    # ~/.agents/skills/  |  .agents/skills/  (universal)
+    ALL = "all"          # every applicable target for the chosen scope
+
+
 @dataclass(frozen=True)
 class SkillIdentity:
     """Value object: uniquely identifies a skill."""

@@ -187,6 +187,43 @@ class TestInstallUninstallCommand:
         assert result.exit_code == 1
         assert "was not installed" in result.stdout
 
+    def test_install_target_agents(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir),
+            "--scope", "project",
+            "--target", "agents",
+        ])
+        if result.exit_code == 0:
+            assert "agents" in result.stdout
+            assert ".agents/skills" in result.stdout
+        else:
+            assert result.exception is not None
+
+    def test_install_invalid_target_exits_1(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir), "--target", "nonexistent",
+        ])
+        assert result.exit_code == 1
+        assert "Unknown target" in result.stdout
+
+    def test_install_vscode_global_exits_1(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir),
+            "--scope", "global",
+            "--target", "vscode",
+        ])
+        assert result.exit_code == 1
+        assert "VS Code" in result.stdout
+
 
 class TestPackUnpackCommands:
     def _make_skill(self, base: Path, category: str, name: str) -> Path:
@@ -434,8 +471,8 @@ class TestInstallFromUrlCommand:
         from skill_forge.domain.ports import SkillInstaller
 
         class _NoopInstaller(SkillInstaller):
-            def install(self, skill_path, scope):  # type: ignore[no-untyped-def]
-                return Path(f"/fake/{skill_path.name}")
+            def install(self, skill_path, scope, target=None):  # type: ignore[no-untyped-def]
+                return [Path(f"/fake/{skill_path.name}")]
 
             def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
                 return False

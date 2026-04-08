@@ -222,7 +222,7 @@ class InstallFromUrl:
             installed: list[Path] = []
             if request.install:
                 for path in unpack_response.extracted_paths:
-                    installed.append(self._installer.install(path, request.scope))
+                    installed.extend(self._installer.install(path, request.scope))
 
             return InstallFromUrlResponse(
                 manifest=unpack_response.manifest,

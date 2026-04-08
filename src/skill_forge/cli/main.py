@@ -136,7 +136,17 @@ def install(
         ),
     ),
     scope: str = typer.Option(
-        "global", "--scope", "-s", help="Installation scope: global or project"
+        "global", "--scope", "-s",
+        help="Installation scope: global (user home) or project (current directory)",
+    ),
+    target: str = typer.Option(
+        "claude", "--target", "-t",
+        help=(
+            "Agent tool to install into: claude, gemini, codex, vscode, agents, all. "
+            "'agents' writes to .agents/skills/ — the universal cross-vendor path "
+            "supported by every agentskills.io-conforming tool at project scope. "
+            "'all' writes to every applicable directory for the chosen scope."
+        ),
     ),
     output: Path = typer.Option(
         Path("output_skills"),
@@ -150,10 +160,32 @@ def install(
         help="Expected sha256 of a remote .skillpack (verified before install)",
     ),
 ) -> None:
-    """Install a skill from a local path or a remote .skillpack URL."""
-    from skill_forge.domain.model import SkillScope
+    """Install a skill from a local path or a remote .skillpack URL.
+
+    Examples:
+
+      # default: install into ~/.claude/skills/ (global, Claude Code)
+      skills-forge install output_skills/development/python-tdd
+
+      # universal project path — works with Gemini CLI, Codex, VS Code Copilot, etc.
+      skills-forge install output_skills/development/python-tdd --target agents --scope project
+
+      # install into every supported tool at once (global scope)
+      skills-forge install output_skills/development/python-tdd --target all
+
+      # install from a remote registry into Gemini CLI
+      skills-forge install https://raw.githubusercontent.com/.../pack.skillpack --target gemini
+    """
+    from skill_forge.domain.model import InstallTarget, SkillScope
 
     skill_scope = SkillScope.GLOBAL if scope == "global" else SkillScope.PROJECT
+
+    try:
+        skill_target = InstallTarget(target.lower())
+    except ValueError:
+        valid = ", ".join(t.value for t in InstallTarget)
+        typer.echo(f"⚠ Unknown target '{target}'. Valid values: {valid}")
+        raise typer.Exit(code=1)
 
     if source.startswith(("http://", "https://")):
         from skill_forge.application.use_cases.publish_skill import (
@@ -179,7 +211,7 @@ def install(
             strict=True,
         ):
             typer.echo(f"  → {extracted}")
-            typer.echo(f"    installed at {installed} ({skill_scope.value})")
+            typer.echo(f"    installed at {installed} ({skill_scope.value}, {skill_target.value})")
         return
 
     skill_path = Path(source)
@@ -194,9 +226,19 @@ def install(
 
     installer = build_installer()
     local_use_case = InstallSkill(installer=installer)
-    local_request = InstallSkillRequest(skill_path=skill_path, scope=skill_scope)
-    local_response = local_use_case.execute(local_request)
-    typer.echo(f"✔ Installed at {local_response.installed_path} ({local_response.scope.value})")
+    local_request = InstallSkillRequest(
+        skill_path=skill_path,
+        scope=skill_scope,
+        target=skill_target,
+    )
+    try:
+        local_response = local_use_case.execute(local_request)
+    except ValueError as exc:
+        typer.echo(f"⚠ {exc}")
+        raise typer.Exit(code=1)
+
+    for path in local_response.installed_paths:
+        typer.echo(f"✔ Installed at {path} ({skill_scope.value}, {skill_target.value})")
 
 
 @app.command()
