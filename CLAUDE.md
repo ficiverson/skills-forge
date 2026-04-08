@@ -1,20 +1,20 @@
 # Skill Forge
 
-A clean-architecture toolkit for crafting, validating, and installing Claude Code skills.
+A clean-architecture toolkit for crafting, validating, installing, and exporting Claude Code skills.
 
 ## Project structure
 
 ```
 src/skill_forge/
 ├── domain/           # Core models, validators, ports (zero dependencies)
-├── application/      # Use cases: create, lint, install, pack/unpack, publish, install-from-url
-├── infrastructure/   # Adapters: filesystem, markdown, symlinks, zip packer, git registry, http fetcher
+├── application/      # Use cases: create, lint, install, pack/unpack, publish, install-from-url, export
+├── infrastructure/   # Adapters: filesystem, markdown, symlinks, zip packer, git registry, http fetcher, exporters
 └── cli/              # Typer CLI + composition root (factory.py)
 
 output_skills/        # Authored skills organized by category
 templates/            # Skill scaffolding templates
 tests/                # pytest suite (mirrors src/ layout)
-docs/                 # Guides: getting-started, clean-principles
+docs/                 # Guides: getting-started, clean-principles, universal-export-research
 ```
 
 ## Commands
@@ -30,6 +30,11 @@ skills-forge install <path> -t codex              # ~/.codex/skills/ (OpenAI Cod
 skills-forge install <path> -t vscode -s project  # .github/skills/ (VS Code Copilot)
 skills-forge install <path> -t all                # Every supported tool at once
 skills-forge install <https-url> [--sha256 …]     # Fetch a remote .skillpack and install it
+skills-forge export <path>                        # Export as system-prompt (default)
+skills-forge export <path> -f gpt-json            # OpenAI Custom GPT JSON config
+skills-forge export <path> -f gem-txt             # Google Gemini Gem instructions
+skills-forge export <path> -f bedrock-xml         # AWS Bedrock agent prompt XML
+skills-forge export <path> -f mcp-server [-o dir] # Self-contained Python MCP server
 skills-forge list [directory]                     # List skills with token estimates
 skills-forge pack <skill-dir...> [-o out]         # Bundle skill(s) into a .skillpack archive
 skills-forge unpack <pack> [-o dest]              # Extract a .skillpack into a directory
@@ -54,7 +59,7 @@ skills-forge init                                 # Initialize a new workspace
 
 ```bash
 pip install -e ".[dev]"
-pytest                           # 199 tests
+pytest                           # 257 tests
 ruff check src/ tests/           # Linting
 mypy src/                        # Type checking
 ```

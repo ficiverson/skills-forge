@@ -458,6 +458,36 @@ skills-forge install output_skills/development/python-tdd --target vscode --scop
 skills-forge install output_skills/development/python-tdd --target all
 ```
 
+**Export to chatbot / API platforms (`export --format`)** — agent-CLI tools (Claude Code, Gemini CLI, Codex, VS Code) load SKILL.md natively via `install --target`. For platforms that have no file-system skill directory, use `export` to render the skill in their native format:
+
+| `--format` | Output file | Target platform |
+|---|---|---|
+| `system-prompt` (default) | `<name>.system-prompt.md` | Any chat UI system-prompt field |
+| `gpt-json` | `<name>.gpt.json` | OpenAI Custom GPT / Assistants API |
+| `gem-txt` | `<name>.gem.txt` | Google Gemini Gems |
+| `bedrock-xml` | `<name>.bedrock.xml` | AWS Bedrock agent prompt template |
+| `mcp-server` | `<name>-mcp-server.py` | Any MCP-capable host (Claude Desktop, Cursor, …) |
+
+```bash
+# Plain system prompt — paste into any chat UI
+skills-forge export output_skills/productivity/sprint-grooming
+
+# OpenAI Custom GPT config JSON
+skills-forge export output_skills/productivity/sprint-grooming --format gpt-json
+
+# Gemini Gem instructions
+skills-forge export output_skills/productivity/sprint-grooming --format gem-txt
+
+# AWS Bedrock XML prompt template
+skills-forge export output_skills/productivity/sprint-grooming --format bedrock-xml
+
+# Self-contained Python MCP Prompts server
+skills-forge export output_skills/productivity/sprint-grooming --format mcp-server -o ./exports/
+# → python ./exports/sprint-grooming-mcp-server.py
+```
+
+The MCP server format deserves special mention: it generates a single runnable Python file that exposes the skill as an MCP `Prompts` primitive. Any MCP-compatible host (Claude Desktop, Cursor, VS Code, OpenAI desktop app) can connect via stdio and inject the skill at inference time — no installation step on the end user's machine.
+
 **Private repos** — set `GITHUB_TOKEN` in your environment and the fetcher will pass it as a `token` Authorization header on `raw.githubusercontent.com` requests, so private registries work without any extra configuration.
 
 **Integrity** — every published pack records its sha256 in `index.json`, and `install --sha256 ...` verifies the download against that digest before unpacking. The fetcher also caps downloads at 50 MB by default to refuse runaway responses.
