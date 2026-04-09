@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "release-preflight", "runs": [{"id": "eval-1-full-preflight-with_skill", "prompt": "I think we're ready to cut the v0.3.0 release. The skills-forge repo is at /sessions/zen-funny-mccarthy/mnt/skills-forge and the skill-registry is at /sessions/zen-funny-mccarthy/mnt/skill-registry. Run the full release preflight and tell me if we're good to go.", "eval_id": 1, "outputs": [{"name": "result.txt", "type": "text", "content": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n \ud83d\ude80  Release Preflight Report  \u00b7  skills-forge v0.3.0\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nRELEASE CANDIDATE: v0.3.0 (intended)\nREPOSITORY: /sessions/zen-funny-mccarthy/mnt/skills-forge\nREGISTRY: /sessions/zen-funny-mccarthy/mnt/skill-registry\nEXECUTION DATE: 2026-04-09\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n DETAILED FINDINGS\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n---\nPHASE 1 \u00b7 Code Quality\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n\u2705 PYTEST\n   Result: PASSED\n   Output: 272 tests collected and passed\n   Status: All tests passing in 0.54 seconds\n\n\u2705 RUFF (E/F/W/I/N/UP/B/SIM/RUF rules)\n   Result: PASSED\n   Output: All checks passed! No violations found\n\n\u2705 MYPY (strict type checking)\n   Result: PASSED\n   Output: Success: no issues found in 35 source files\n\nPhase 1 Gate: \u2705 PASS \u2014 Code quality is excellent across all three checks\n\n---\nPHASE 2 \u00b7 Pack Consistency\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nRegistry: /sessions/zen-funny-mccarthy/mnt/skill-registry\nIndex path: index.json (updated 2026-04-09T11:16:47+00:00)\n\nPack Verification Results:\n  \u2705 publish-to-pypi@1.0.0\n  \u2705 ai-eng-evaluator@0.2.0\n  \u2705 ai-eng-evaluator@1.0.0\n  \u2705 user-story-test-cases@0.1.0\n  \u2705 email-tone-reviewer@1.0.0\n  \u2705 meeting-summarizer@1.0.0\n  \u2705 post-linkedin@1.0.0\n  \u2705 sprint-grooming@1.0.0\n  \u2705 backend-api-tester@1.0.0\n  \u2705 full-featured-tester@1.0.0\n\nVerification Details (sample pack: publish-to-pypi@1.0.0):\n  File exists: Yes\n  SHA256 validation: PASS\n  Size validation: PASS\n  Manifest format_version: \"1\" \u2705\n  Platforms (5/5): claude, gemini, codex, vscode, agents \u2705\n  Export formats (5/5): system-prompt, gpt-json, gem-txt, bedrock-xml, mcp-server \u2705\n\nPhase 2 Gate: \u2705 PASS \u2014 All 10 packs validated successfully\n\n---\nPHASE 3 \u00b7 Schema Alignment\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nRegistryIndex.FORMAT_VERSION constant:\n  Value: \"3\" (current)\n  Supported versions: \"1\", \"2\", \"3\" \u2705\n\nSkillPackManifest.FORMAT_VERSION constant:\n  Value: \"1\" (current)\n  Sample pack verification: \"1\" \u2705\n\nRound-trip codec validation:\n  \u2705 index round-trip OK \u2014 9 skills loaded\n  \u2705 FORMAT_VERSION constant integrity verified: \"3\"\n  \u2705 No schema drift detected\n\nPhase 3 Gate: \u2705 PASS \u2014 Schema constants aligned with wire formats\n\n---\nPHASE 4 \u00b7 CLI Sandbox UAT\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nSandbox directory: /sessions/zen-funny-mccarthy/tmp/skills-forge-uat-gc5ui_hw\nAll 12 CLI commands executed end-to-end:\n\n  \u2705 skills-forge init\n  \u2705 skills-forge create\n  \u2705 skills-forge lint\n  \u2705 skills-forge install --scope project --target claude\n  \u2705 skills-forge install --scope project --target agents\n  \u2705 skills-forge list\n  \u2705 skills-forge pack\n  \u2705 skills-forge unpack\n  \u2705 skills-forge export (system-prompt)\n  \u2705 skills-forge export (gpt-json)\n  \u2705 skills-forge uninstall\n  \u2705 skills-forge uninstall (idempotent)\n\nPhase 4 Gate: \u2705 PASS \u2014 All 12 CLI commands passed sandbox UAT\n\n---\nPHASE 5 \u00b7 Release Hygiene\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nChecklist Results:\n\n  [ ] Correct branch\n      Current branch: \"1.0.0\" (branch name suggests future planning, not v0.3.0 tag)\n      \u26a0\ufe0f  WARNING: Branch name does not match intended release tag\n\n  [ ] Version bump\n      Current pyproject.toml version: \"0.2.0\"\n      Intended release: \"0.3.0\"\n      \u26a0\ufe0f  WARNING: pyproject.toml has not been bumped to 0.3.0\n\n  [ ] RELEASE_NOTES\n      Expected file: RELEASE_NOTES_0.3.0.md\n      Status: NOT FOUND\n      \u26a0\ufe0f  WARNING: Release notes for v0.3.0 not yet prepared\n\n  [ ] ROADMAP\n      Expected file: ROADMAP_0.3.0.md (or ROADMAP_1.0.0.md if planning ahead)\n      Status: ROADMAP_1.0.0.md exists (future planning)\n      \u2139\ufe0f  INFO: Roadmap exists for v1.0.0, but not specifically for v0.3.0\n\n  [ ] Changelog / commit log\n      Last tag: v0.1.2\n      Commits since last tag: 16 commits\n      Sample recent commits:\n        447ab41 fix(tests): remove unused pytest import, sort imports in test_install_skill\n        4fbc57b feat(v0.3.0): BKL-001 depends_on enforcement, BKL-002 full uninstall, BKL-003 list alias\n        a797ee9 docs: add v1.0.0 roadmap with 32 backlog items across 6 milestones\n        74db765 Put all files into bundle\n        2a7f517 Fix issue with default platform and formats\n        4e796cd feat: add platforms + export_formats across pack/publish pipeline\n      \u2705 Commits tell coherent story; v0.3.0 features present in commit 4fbc57b\n\n  [ ] Registry index.json updated_at\n      Value: \"2026-04-09T11:16:47+00:00\" (recent, same day)\n      \u2705 Registry index timestamp is current\n\n  [ ] README + index.html regenerated\n      Script exists: /sessions/zen-funny-mccarthy/mnt/skill-registry/regenerate-readme.py\n      Last run: Not checked, script available\n      \u26a0\ufe0f  TODO: Run regenerate-readme.py if README.md or index.html are stale\n\n  [ ] Clean working tree\n      skills-forge repo status:\n        Modified: .agents/skills/my-skill, .claude/skills/my-skill\n        Untracked: output_skills/distribution/ (new skill added)\n        \u26a0\ufe0f  WARNING: Uncommitted changes detected\n\n      skill-registry repo status:\n        Untracked: .DS_Store (benign)\n        \u2705 Otherwise clean\n\nPhase 5 Gate: \u26a0\ufe0f  WARNING \u2014 4 items require attention before release\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n SUMMARY TABLE\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n  Phase 1 \u00b7 Code Quality        \u2705  272 tests, ruff OK, mypy OK\n  Phase 2 \u00b7 Pack Consistency    \u2705  10/10 packs verified\n  Phase 3 \u00b7 Schema Alignment    \u2705  FORMAT_VERSION aligned (3/1)\n  Phase 4 \u00b7 CLI Sandbox UAT     \u2705  12/12 commands passed\n  Phase 5 \u00b7 Release Hygiene     \u26a0\ufe0f  4 items need attention\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Overall: \u26a0\ufe0f  CONDITIONAL GREEN BOARD\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nVERDICT: NOT READY TO RELEASE (\u26a0\ufe0f hygiene issues must be resolved)\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n REQUIRED ACTIONS BEFORE TAGGING v0.3.0\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nBLOCKER 1: Bump version in pyproject.toml\n  File: /sessions/zen-funny-mccarthy/mnt/skills-forge/pyproject.toml\n  Current: version = \"0.2.0\"\n  Required: version = \"0.3.0\"\n  Command: Edit pyproject.toml and change version line\n\nBLOCKER 2: Create RELEASE_NOTES_0.3.0.md\n  File: /sessions/zen-funny-mccarthy/mnt/skills-forge/RELEASE_NOTES_0.3.0.md\n  Content: Summarize the 16 commits since v0.1.2, highlighting:\n    - BKL-001: depends_on enforcement\n    - BKL-002: Full uninstall (uninstall exits 0 on missing skills)\n    - BKL-003: list alias\n    - Export functionality (system-prompt, gpt-json, gem-txt, bedrock-xml, mcp-server)\n    - Multi-platform install (--target flag for claude, gemini, codex, vscode, agents)\n    - Pack/publish pipeline enhancements\n\nBLOCKER 3: Commit or stash uncommitted changes\n  Files affected:\n    - .agents/skills/my-skill (modified)\n    - .claude/skills/my-skill (modified)\n    - output_skills/distribution/ (untracked)\n  Action: Either commit these changes or stash them before release\n  Recommendation: If these are test files, stash them. If they're release-ready, commit them.\n\nBLOCKER 4: Regenerate registry README (optional but recommended)\n  Directory: /sessions/zen-funny-mccarthy/mnt/skill-registry\n  Command: python regenerate-readme.py\n  Purpose: Update README.md and index.html to reflect latest skill-registry state\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n RELEASE READINESS SUMMARY\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nCode Quality:       \u2705 EXCELLENT \u2014 All tests pass, zero linting/type errors\nPack Consistency:   \u2705 PERFECT \u2014 All 10 packs valid and consistent\nSchema Integrity:   \u2705 SOLID \u2014 No version drift, codec round-trip OK\nCLI Functionality:  \u2705 COMPLETE \u2014 All 12 commands exercised successfully\nRelease Hygiene:    \u26a0\ufe0f  INCOMPLETE \u2014 Must resolve 4 items before tagging\n\nRECOMMENDATION: Once the 4 blocking items are resolved, the release is safe to tag.\nThe code is production-ready; the remaining work is administrative preparation.\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\nEOF\n"}], "grading": null}, {"id": "eval-1-full-preflight-without_skill", "prompt": "I think we're ready to cut the v0.3.0 release. The skills-forge repo is at /sessions/zen-funny-mccarthy/mnt/skills-forge and the skill-registry is at /sessions/zen-funny-mccarthy/mnt/skill-registry. Run the full release preflight and tell me if we're good to go.", "eval_id": 1, "outputs": [{"name": "result.txt", "type": "text", "content": "================================================================================\nSKILLS-FORGE v0.3.0 RELEASE PREFLIGHT REPORT\n================================================================================\nDate: 2026-04-09\nRepository: /sessions/zen-funny-mccarthy/mnt/skills-forge\nCommit: 4fbc57b (feat(v0.3.0): BKL-001, BKL-002, BKL-003)\nTarget Version: 0.3.0 (currently labeled as 0.2.0 in pyproject.toml)\n\n================================================================================\nTEST SUITE RESULTS\n================================================================================\n\n\u2705 UNIT TESTS: 272 PASSED (100%)\n   - Command: pytest -v\n   - Runtime: 1.07s\n   - All test categories passing:\n     * application/use_cases: 100% pass\n     * domain: 100% pass\n     * infrastructure/adapters: 100% pass\n     * cli: 100% pass\n\n\u2705 CODE COVERAGE: 92% (1945 statements total)\n   High-coverage modules (>95%):\n   - domain/ports.py: 100%\n   - domain/model.py: 94% (18 statements not covered)\n   - domain/validators.py: 97%\n   - application/use_cases/create_skill.py: 100%\n   - application/use_cases/pack_skill.py: 100%\n   - application/use_cases/lint_skill.py: 100%\n   - application/use_cases/install_skill.py: 96% (2 statements not covered)\n   - infrastructure/adapters/markdown_parser.py: 99%\n   - infrastructure/adapters/markdown_renderer.py: 98%\n\n\u2705 LINTING: PASSED\n   - Command: ruff check src/ tests/\n   - Result: All checks passed!\n   - Target: Python 3.10+ (line length 99)\n   - Strict rules: E, F, W, I, N, UP, B, SIM, RUF\n\n\u2705 TYPE CHECKING: PASSED\n   - Command: python -m mypy src/\n   - Result: Success - no issues found in 35 source files\n   - Mode: strict (--strict flag enabled)\n\n================================================================================\nv0.3.0 FEATURE IMPLEMENTATION VERIFICATION\n================================================================================\n\nBKL-001: ENFORCE depends_on DURING INSTALL \u2705 COMPLETE\n   Status: Fully implemented and tested\n   Coverage:\n   - InstallSkill use case accepts optional SkillParser\n   - _check_dependencies() resolves each depends_on entry\n   - Missing dependencies reported in InstallSkillResponse.missing_dependencies\n   - CLI install warns with per-dependency install hints\n   - --no-deps flag implemented for offline/CI scenarios\n   - Circular dependency detection: Present in domain model\n   Tests:\n   - test_no_missing_deps_when_all_installed\n   - test_reports_missing_dependency\n   - test_skip_deps_suppresses_check\n   - test_multiple_missing_dependencies\n   - All passing \u2705\n\nBKL-002: COMPLETE UNINSTALL USE CASE \u2705 COMPLETE\n   Status: Fully implemented and tested\n   Coverage:\n   - UninstallSkill use case created (new class in install_skill.py)\n   - SkillInstaller.uninstall() port updated (returns list[Path])\n   - SymlinkSkillInstaller.uninstall() removes from resolved target dir(s)\n   - UninstallSkillResponse with removed_paths list\n   - was_installed property: bool indicating if any symlinks removed\n   - CLI uninstall command wired with --target/-t flag\n   - Idempotent: Safe to run on uninstalled skills (exit code 0)\n   - --target all support\n   Tests:\n   - test_uninstall_installed_skill\n   - test_uninstall_missing_skill_is_idempotent\n   - test_uninstall_with_explicit_target\n   - All passing \u2705\n\nBKL-003: LIST ALIAS FOR LIST-SKILLS \u2705 COMPLETE\n   Status: Fully implemented\n   Coverage:\n   - Extracted shared _do_list_skills() helper function\n   - Added @app.command(name=\"list\") alias in CLI\n   - Both list-skills and list commands now work identically\n   - CLAUDE.md references to `skills-forge list` now function correctly\n   No deprecation warning or breaking change; both names are valid\n\n================================================================================\nCLI FUNCTIONALITY VALIDATION\n================================================================================\n\n\u2705 Help System\n   - skills-forge --help: Full help output displayed correctly\n   - All commands listed:\n     * create, lint, list-skills, list (alias), install, export, uninstall,\n       pack, unpack, publish, init\n   - Per-command help working: uninstall --help, install --help, list --help\n\n\u2705 Core Commands\n   - create: Tested in application/use_cases\n   - lint: Full test suite passing\n   - list/list-skills: Both aliases functional\n   - install: With --no-deps flag support\n   - uninstall: With --target flag support\n   - export: Multiple format support (gpt-json, gem-txt, bedrock-xml, mcp-server)\n   - pack/unpack: Full round-trip testing\n   - publish: Git registry integration tested\n\n================================================================================\nBUILD & DISTRIBUTION\n================================================================================\n\n\u2705 Python Build System\n   - Command: python -m build\n   - Output: Successfully built skills_forge-0.2.0.tar.gz and -py3-none-any.whl\n   - Package metadata: Correct\n   - Entry point: skill_forge.cli.main:main configured\n   - Dependencies: typer>=0.12 (correct)\n   - Python version: >=3.10 (correct)\n\n\u2705 Package Structure\n   - Source layout: src/ (correct)\n   - All modules included:\n     * skill_forge/__init__.py\n     * skill_forge/domain/ (model, ports, validators)\n     * skill_forge/application/ (use_cases, services)\n     * skill_forge/infrastructure/ (adapters, templates)\n     * skill_forge/cli/ (main, factory)\n\n================================================================================\nGIT & REPOSITORY STATE\n================================================================================\n\n\u2705 skills-forge Repository\n   - Branch: 1.0.0\n   - Latest commit: 4fbc57b (v0.3.0 feature commit)\n   - Status: 2 untracked symlinks (test artifacts from pytest runs, safe to ignore)\n     * .agents/skills/my-skill (test artifact)\n     * .claude/skills/my-skill (test artifact)\n   - Dirty files: None (artifacts can be cleaned with git clean -fd)\n\n\u2705 skill-registry Repository\n   - Branch: 1.0.0\n   - Latest commit: a285d8a (chore: align all skillpack manifests with index.json metadata)\n   - Status: Clean (only .DS_Store untracked)\n   - Skillpacks verified:\n     * 4 categories (development, evaluation, productivity, testing)\n     * Multiple published packs with proper versioning\n     * Index format_version: \"3\" (supports all new features)\n\n================================================================================\nVERSION METADATA\n================================================================================\n\n\u26a0\ufe0f  OUTSTANDING ITEMS FOR RELEASE\n\n1. Version Number in pyproject.toml: NEEDS UPDATE\n   Current: version = \"0.2.0\"\n   Required for release: version = \"0.3.0\"\n   File: /sessions/zen-funny-mccarthy/mnt/skills-forge/pyproject.toml (line 7)\n\n2. CHANGELOG: NOT FOUND\n   - No CHANGELOG.md, HISTORY.md, or CHANGES.md file in repository\n   - Recommendation: Create CHANGELOG.md documenting v0.3.0 features\n   - Should include:\n     * BKL-001: depends_on enforcement during install\n     * BKL-002: complete uninstall use case (uninstall command)\n     * BKL-003: list alias for list-skills command\n\n3. Release Documentation: OPTIONAL BUT RECOMMENDED\n   - Consider updating ROADMAP_1.0.0.md to mark v0.3.0 as released\n   - Update README.md if it references specific version capabilities\n\n================================================================================\nSKILL-REGISTRY READINESS (v0.3.0 Related Items)\n================================================================================\n\n\u2705 BKL-004: Full-featured-tester version consistency\n   - Status: RESOLVED in commit a6a37d1\n   - Both pack filename and internal manifest: v1.0.0 (consistent)\n   - Index properly reflects this version\n\n\u2705 BKL-005: README and index.html committed to registry\n   - Status: RESOLVED in commit a6a37d1\n   - Both files present and up-to-date\n   - Latest commit aligns manifests with index metadata\n\n================================================================================\nFINAL VERDICT\n================================================================================\n\n\ud83d\udfe2 READY FOR RELEASE WITH ONE ACTION ITEM\n\nStatus: v0.3.0 features are COMPLETE, TESTED, and PRODUCTION-READY.\n\nAll acceptance criteria met:\n\u2705 depends_on enforcement with --no-deps flag (BKL-001)\n\u2705 Full uninstall implementation with --target support (BKL-002)\n\u2705 List alias command functional (BKL-003)\n\u2705 272 unit tests passing (100%)\n\u2705 92% code coverage\n\u2705 Linting clean (ruff)\n\u2705 Type checking clean (mypy strict)\n\u2705 Build artifacts validated\n\u2705 Registry items resolved (BKL-004, BKL-005)\n\nREQUIRED BEFORE RELEASE:\n\u2192 Update version in pyproject.toml from 0.2.0 to 0.3.0\n\nRECOMMENDED (Non-blocking):\n\u2192 Create CHANGELOG.md documenting v0.3.0 feature additions\n\u2192 Clean test artifacts: git clean -fd .agents/ .claude/\n\nRELEASE SIGN-OFF: \u2705 GO\nYou are ready to cut the v0.3.0 release after updating the version number.\n\n================================================================================\n"}], "grading": null}, {"id": "eval-2-pack-schema-with_skill", "prompt": "Before I tag this as 1.0.0, can you verify that all the packs in the registry at /sessions/zen-funny-mccarthy/mnt/skill-registry are consistent \u2014 sha256, sizes, manifest versions all matching? Also check that the schema hasn't drifted in the skills-forge code at /sessions/zen-funny-mccarthy/mnt/skills-forge.", "eval_id": 2, "outputs": [{"name": "result.txt", "type": "text", "content": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n \ud83d\ude80  Release Preflight  \u00b7  skills-forge v0.2.0\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nTask: Pre-release verification before tagging v1.0.0\nRegistry: /sessions/zen-funny-mccarthy/mnt/skill-registry\nWorking directory: /sessions/zen-funny-mccarthy/mnt/skills-forge\nDate: 2026-04-09\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Phase 1 \u00b7 Code Quality\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n  \u2705 PYTEST\n     Command: pytest --tb=short -q\n     Result: 272 tests passed\n     Status: All tests passed without failures\n\n  \u2705 RUFF\n     Command: ruff check src/ tests/\n     Result: All checks passed\n     Coverage: E/F/W/I/N/UP/B/SIM/RUF rules across src/ and tests/\n     Status: No linting violations found\n\n  \u2705 MYPY\n     Command: mypy src/\n     Result: Success - no issues found in 35 source files\n     Status: Type checking complete with no errors\n\n  Phase 1 Result: \u2705 PASS\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Phase 2 \u00b7 Pack Consistency\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nRegistry Index Analysis:\n- Location: /sessions/zen-funny-mccarthy/mnt/skill-registry/index.json\n- Total skills: 9\n- Total versions/packs: 10\n\nIndividual Pack Checks:\n\n  \u2705 publish-to-pypi@1.0.0\n     File: packs/development/publish-to-pypi-1.0.0.skillpack\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest.version: \u2705 \"1.0.0\" matches\n     export_formats: \u2705 all 5 present (bedrock-xml, gem-txt, gpt-json, mcp-server, system-prompt)\n     platforms: \u2705 all 5 present (agents, claude, codex, gemini, vscode)\n\n  \u2705 ai-eng-evaluator@0.2.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 ai-eng-evaluator@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 user-story-test-cases@0.1.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 email-tone-reviewer@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 meeting-summarizer@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 post-linkedin@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 sprint-grooming@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 backend-api-tester@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\n  \u2705 full-featured-tester@1.0.0\n     sha256: \u2705 verified\n     size_bytes: \u2705 verified\n     manifest metadata: \u2705 complete\n\nPack Consistency Result:\n  All 10 packs passed consistency checks \u2705\n\n  Phase 2 Result: \u2705 PASS\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Phase 3 \u00b7 Schema Alignment\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nRegistryIndex Format Version:\n  Constant (code): RegistryIndex.FORMAT_VERSION = \"3\"\n  Codec support: Accepts \"1\", \"2\", \"3\"\n  Current index.json: format_version \"3\"\n  Status: \u2705 ALIGNED\n\nSkillPackManifest Format Version:\n  Constant (code): SkillPackManifest.FORMAT_VERSION = \"1\"\n  Sample pack (publish-to-pypi-1.0.0.skillpack):\n    - format_version: \"1\" \u2705\n    - platforms: [agents, claude, codex, gemini, vscode] \u2705 all 5 present\n    - export_formats: [bedrock-xml, gem-txt, gpt-json, mcp-server, system-prompt] \u2705 all 5 present\n\nDomain Model Round-Trip Test:\n  \u2705 index round-trip OK \u2014 9 skills loaded\n  File: /sessions/zen-funny-mccarthy/mnt/skill-registry/index.json\n  Successful decode and re-encode without data loss\n  RegistryIndex.FORMAT_VERSION = \"3\" (in-code constant)\n  SkillPackManifest.FORMAT_VERSION = \"1\" (in-code constant)\n\nSchema Alignment Result:\n  No drift detected between code constants and wire formats.\n  \u2705 All schema versions aligned\n\n  Phase 3 Result: \u2705 PASS\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Phase 4 \u00b7 CLI Sandbox UAT\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nSandbox: /sessions/zen-funny-mccarthy/tmp/skills-forge-uat-omwdy8da\nPATH: /sessions/zen-funny-mccarthy/.local/bin\n\nCommand Test Results:\n\n  \u2705 skills-forge init\n     Workspace initialization successful\n\n  \u2705 skills-forge create\n     Skill scaffolding (category=testing, name=uat-skill, emoji=\ud83e\uddea) successful\n\n  \u2705 skills-forge lint\n     SKILL.md validation passed for generated skill\n\n  \u2705 skills-forge install --scope project --target claude\n     Symlink into .claude/skills/ successful\n\n  \u2705 skills-forge install --scope project --target agents\n     Symlink into .agents/skills/ successful\n\n  \u2705 skills-forge list\n     List installed skills successful\n\n  \u2705 skills-forge pack\n     Bundle into .skillpack (uat-skill-0.1.0.skillpack) successful\n\n  \u2705 skills-forge unpack\n     Extract .skillpack into directory successful\n\n  \u2705 skills-forge export (system-prompt)\n     Plain-text export format successful\n\n  \u2705 skills-forge export (gpt-json)\n     OpenAI JSON export format successful\n\n  \u2705 skills-forge uninstall\n     Remove symlinks successful\n\n  \u2705 skills-forge uninstall (idempotent)\n     Re-run on already-removed exits 0 (idempotent behavior verified)\n\nCLI Sandbox UAT Result:\n  All 12 commands passed without error \u2705\n  Temp directory cleaned up successfully\n\n  Phase 4 Result: \u2705 PASS\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  Phase 5 \u00b7 Release Hygiene\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nRelease Branch:\n  Current branch: 1.0.0\n  Expected: Release branch for v1.0.0\n  Status: \u2705 Correct branch (1.0.0)\n\nVersion Bump:\n  pyproject.toml [project].version: 0.2.0\n  Intended release: 1.0.0\n  Status: \u26a0\ufe0f VERSION MISMATCH\n  Note: Branch is \"1.0.0\" but pyproject.toml still shows \"0.2.0\"\n  Action required: Update pyproject.toml version field to \"1.0.0\"\n\nRELEASE_NOTES:\n  Status: \u274c MISSING\n  Expected: RELEASE_NOTES_1.0.0.md\n  Current files: None found\n  Action required: Create RELEASE_NOTES_1.0.0.md documenting all changes since last tag\n  Changes since last tag (20 commits):\n    - fix(tests): remove unused pytest import, sort imports in test_install_skill\n    - feat(v0.3.0): BKL-001 depends_on enforcement, BKL-002 full uninstall, BKL-003 list alias\n    - docs: add v1.0.0 roadmap with 32 backlog items across 6 milestones\n    - Put all files into bundle\n    - Fix issue with default platform and formats\n    - feat: add platforms + export_formats across pack/publish pipeline\n    - Fix lint\n    - (13 more commits)\n\nROADMAP:\n  File: ROADMAP_1.0.0.md\n  Status: \u2705 Present and current\n  Last modified: 2026-04-09\n  Note: Contains 32 backlog items across 6 milestones, updated for v1.0.0\n\nChangelog / Commit Log:\n  Last tag: (from git describe --tags --abbrev=0)\n  Commits since last tag: 20 commits\n  Status: \u2705 Coherent commit history\n  Sample messages show feature work, fixes, and docs updates aligned with roadmap\n\nRegistry Index updated_at:\n  Current value: 2026-04-09T11:16:47+00:00\n  Status: \u2705 Recently refreshed\n\nREADME + index.html:\n  Skills-Forge README: Updated 2026-04-08\n  Status: \u2705 Current\n  Note: Skill registry's README/index.html should be regenerated via registry repo\n\nClean Working Tree:\n  Skills-Forge git status:\n    - M .agents/skills/my-skill (modified)\n    - M .claude/skills/my-skill (modified)\n    ?? output_skills/distribution/ (untracked)\n  Status: \u26a0\ufe0f NOT CLEAN\n  Action required:\n    1. Review/commit modifications to .agents/skills/my-skill\n    2. Review/commit modifications to .claude/skills/my-skill\n    3. Review/commit or .gitignore output_skills/distribution/\n\n  Skill Registry git status:\n    (Not checked in this session; verify separately)\n\nPhase 5 Result: \u26a0\ufe0f INCOMPLETE \u2014 2 items need attention\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  SUMMARY\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPhase 1 \u00b7 Code Quality        \u2705  272 tests, ruff OK, mypy OK\nPhase 2 \u00b7 Pack Consistency    \u2705  10/10 packs verified (sha256, size, manifest)\nPhase 3 \u00b7 Schema Alignment    \u2705  FORMAT_VERSION \"3\"/\"1\" aligned, no drift\nPhase 4 \u00b7 CLI Sandbox UAT     \u2705  12/12 commands pass end-to-end\nPhase 5 \u00b7 Release Hygiene     \u26a0\ufe0f  2 items need attention:\n                                  - pyproject.toml version must be \"1.0.0\" (currently \"0.2.0\")\n                                  - RELEASE_NOTES_1.0.0.md is missing\n                                  - Working tree not clean (3 modified/untracked items)\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nOverall Assessment: \u26a0\ufe0f NOT READY TO TAG v1.0.0\n\nAll technical/code quality gates (Phases 1-4) are GREEN and passing.\nSchema is aligned, all 10 registry packs are consistent, CLI works end-to-end.\n\nHowever, release hygiene items must be fixed before tagging:\n\n1. REQUIRED FIX (blocking):\n   - Update pyproject.toml version from \"0.2.0\" to \"1.0.0\"\n   - Create RELEASE_NOTES_1.0.0.md documenting changes\n\n2. RECOMMENDED (non-blocking but recommended):\n   - Clean git working tree (review .agents/.claude symlink changes)\n   - Verify skill-registry working tree is also clean\n\nOnce these items are resolved, the release will be ready:\n  git tag -a v1.0.0 -m \"Release v1.0.0: <summary>\"\n  git push origin 1.0.0 v1.0.0\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\nReport generated: 2026-04-09 13:45:00 UTC\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n"}], "grading": null}, {"id": "eval-2-pack-schema-without_skill", "prompt": "Before I tag this as 1.0.0, can you verify that all the packs in the registry at /sessions/zen-funny-mccarthy/mnt/skill-registry are consistent \u2014 sha256, sizes, manifest versions all matching? Also check that the schema hasn't drifted in the skills-forge code at /sessions/zen-funny-mccarthy/mnt/skills-forge.", "eval_id": 2, "outputs": [{"name": "result.txt", "type": "text", "content": "================================================================================\n                    RELEASE PREFLIGHT VERIFICATION REPORT\n                         skills-forge v1.0.0\n================================================================================\n\nDATE: 2026-04-09\nFOCUS: Registry pack consistency & schema validation\n\n================================================================================\n                           1. REGISTRY OVERVIEW\n================================================================================\n\nLocation: /sessions/zen-funny-mccarthy/mnt/skill-registry/\nIndex Format Version: 3\nIndex Last Updated: 2026-04-09T11:16:47+00:00\nTotal Skills: 9\nTotal Pack Versions: 10\n\nSkills by Category:\n  - development/publish-to-pypi (1 version: 1.0.0)\n  - evaluation/ai-eng-evaluator (2 versions: 0.2.0, 1.0.0)\n  - evaluation/user-story-test-cases (1 version: 0.1.0)\n  - productivity/email-tone-reviewer (1 version: 1.0.0)\n  - productivity/meeting-summarizer (1 version: 1.0.0)\n  - productivity/post-linkedin (1 version: 1.0.0)\n  - productivity/sprint-grooming (1 version: 1.0.0)\n  - testing/backend-api-tester (1 version: 1.0.0)\n  - testing/full-featured-tester (1 version: 1.0.0)\n\n================================================================================\n                    2. PACK INTEGRITY VERIFICATION\n================================================================================\n\nAll 10 pack files verified against index.json metadata:\n\nDEVELOPMENT PACKS\n  [PASS] publish-to-pypi-1.0.0.skillpack\n    - SHA256: 03e55c70aa25273bcccdaf7898f04569bd8f35d7d32e9bb7f251a538253dce7e\n    - Size: 5,566 bytes\n    - Status: VERIFIED\n\nEVALUATION PACKS\n  [PASS] ai-eng-evaluator-0.2.0.skillpack\n    - SHA256: fcef186619f22bea9f46c41ff4844b19ef96a166b3f014fd7436d232d8748c05\n    - Size: 38,797 bytes\n    - Status: VERIFIED\n\n  [PASS] ai-eng-evaluator-1.0.0.skillpack\n    - SHA256: a000a52203431cd0738e689677c82931845da6e66c72fd599a300c8f8516c31b\n    - Size: 38,800 bytes\n    - Status: VERIFIED\n\n  [PASS] user-story-test-cases-0.1.0.skillpack\n    - SHA256: d055da9495bc6f1a3f056b01b3c2a4af1305930b5a1324fc4aca485eac14430a\n    - Size: 1,401 bytes\n    - Status: VERIFIED\n\nPRODUCTIVITY PACKS\n  [PASS] email-tone-reviewer-1.0.0.skillpack\n    - SHA256: 6ce014db7b80273c0fdafd5067f79e0849efcfd4dcfa2141b197faf78f56e771\n    - Size: 2,658 bytes\n    - Status: VERIFIED\n\n  [PASS] meeting-summarizer-1.0.0.skillpack\n    - SHA256: 7e6359b301aab4ff959a7eaee7dea6794a78282c7d7458cad1e3f346e50e4cb8\n    - Size: 2,465 bytes\n    - Status: VERIFIED\n\n  [PASS] post-linkedin-1.0.0.skillpack\n    - SHA256: f131b0fa751a967480b8b7309f9ac93a25940450b02eda6fd428190caa7d150a\n    - Size: 3,569 bytes\n    - Status: VERIFIED\n\n  [PASS] sprint-grooming-1.0.0.skillpack\n    - SHA256: 8f7f4eb99659d47882ba8e3476c2b7a94529b46cd945327f93c78597fb638923\n    - Size: 3,167 bytes\n    - Status: VERIFIED\n\nTESTING PACKS\n  [PASS] backend-api-tester-1.0.0.skillpack\n    - SHA256: 85555a7e380ddc2ac4cdff038617ef28af24b90d901f15a9af9fb06099ca99f2\n    - Size: 1,749 bytes\n    - Status: VERIFIED\n\n  [PASS] full-featured-tester-1.0.0.skillpack\n    - SHA256: da252d32163fcf180e8f086bafb9e002e8af4c9ffa25023f31e58f066a9292ee\n    - Size: 3,483 bytes\n    - Status: VERIFIED\n\nRESULT: 10/10 packs verified - all SHA256 and size_bytes match index.json\n\n================================================================================\n                    3. PACK MANIFEST SCHEMA VERIFICATION\n================================================================================\n\nAll 10 pack manifests (manifest.json inside each .skillpack) validated:\n\n  [PASS] Format Version consistency: All packs use format_version=\"1\"\n  [PASS] Version field validation: All packs have non-empty version matching filename\n  [PASS] Export formats declaration: All packs declare 5 export formats\n    - system-prompt\n    - gpt-json\n    - gem-txt\n    - bedrock-xml\n    - mcp-server\n\nRESULT: All manifest schemas are consistent and correct\n\n================================================================================\n                    4. PLATFORM COVERAGE VERIFICATION\n================================================================================\n\nAll 9 unique skills declare support for 5 target platforms:\n\n  [PASS] claude - Claude Code CLI (~/.claude/skills/)\n  [PASS] gemini - Google Gemini CLI (~/.gemini/skills/)\n  [PASS] codex - OpenAI Codex (~/.codex/skills/)\n  [PASS] agents - Universal cross-vendor (.agents/skills/)\n  [PASS] vscode - VS Code Copilot (.github/skills/)\n\nRESULT: 9/9 skills support full platform matrix\n\n================================================================================\n                    5. SKILLS-FORGE SCHEMA DEFINITIONS\n================================================================================\n\nSource: /sessions/zen-funny-mccarthy/mnt/skills-forge/src/skill_forge/domain/\n\nFormat Constants:\n  [PASS] SkillPackManifest.FORMAT_VERSION = \"1\"\n  [PASS] RegistryIndex.FORMAT_VERSION = \"3\"\n\nExportFormat Enum (5 formats):\n  [PASS] SYSTEM_PROMPT = \"system-prompt\"\n  [PASS] GPT_JSON = \"gpt-json\"\n  [PASS] GEM_TXT = \"gem-txt\"\n  [PASS] BEDROCK_XML = \"bedrock-xml\"\n  [PASS] MCP_SERVER = \"mcp-server\"\n\nInstallTarget Enum (6 targets):\n  [PASS] CLAUDE = \"claude\"\n  [PASS] GEMINI = \"gemini\"\n  [PASS] CODEX = \"codex\"\n  [PASS] VSCODE = \"vscode\"\n  [PASS] AGENTS = \"agents\"\n  [PASS] ALL = \"all\"\n\nRegistry Codec Forward Compatibility:\n  [PASS] RegistryIndexCodec.decode() supports format_version=\"1\"\n  [PASS] RegistryIndexCodec.decode() supports format_version=\"2\"\n  [PASS] RegistryIndexCodec.decode() supports format_version=\"3\"\n\nManifest Serialization:\n  [PASS] _serialize_manifest() includes format_version=\"1\"\n  [PASS] _serialize_manifest() includes all required fields\n  [PASS] _serialize_manifest() properly handles optional fields\n\nRESULT: No schema drift detected between code and registry\n\n================================================================================\n                    6. DETAILED CONSISTENCY CHECKS\n================================================================================\n\nRegistry Index Structure:\n  [PASS] 10 index entries map 1:1 to 10 pack files\n  [PASS] All paths in index.json are repo-relative and match filesystem\n  [PASS] All sha256 values are valid 64-character hex digests\n  [PASS] All size_bytes values are positive integers\n\nPack Manifest Alignment:\n  [PASS] Each manifest version matches corresponding index entry\n  [PASS] Each manifest export_formats list matches index declaration\n  [PASS] No format_version mismatches (all \"1\")\n  [PASS] All manifests have required fields (name, version, author, created_at)\n\nIndex Metadata Quality:\n  [PASS] published_at timestamps present and valid ISO 8601 format\n  [PASS] All skills have owner information (name and email)\n  [PASS] All skills have meaningful descriptions (>50 characters)\n  [PASS] All skills have relevant tags (>2 tags each)\n\nRESULT: Full consistency verified across all layers\n\n================================================================================\n                    7. SUMMARY OF FINDINGS\n================================================================================\n\nREGISTRY INTEGRITY:\n  - File count: 10 skillpack files\n  - Index entries: 10 version entries\n  - Mapping: 100% (all files referenced in index)\n  - SHA256 verification: 10/10 PASS\n  - Size verification: 10/10 PASS\n\nMANIFEST SCHEMAS:\n  - Format consistency: 10/10 PASS (all \"1\")\n  - Version fields: 10/10 PASS\n  - Export formats: 10/10 PASS (all 5 formats declared)\n  - Required fields: 10/10 PASS\n\nCODE-REGISTRY ALIGNMENT:\n  - SkillPackManifest.FORMAT_VERSION: ALIGNED (1)\n  - RegistryIndex.FORMAT_VERSION: ALIGNED (3)\n  - ExportFormat enum: ALIGNED (5 values)\n  - InstallTarget enum: ALIGNED (6 values)\n  - Codec compatibility: ALIGNED (supports v1, v2, v3)\n\nQUALITY METRICS:\n  - Platform coverage: 9/9 skills full matrix\n  - Metadata completeness: 9/9 skills complete\n  - Forward compatibility: SUPPORTED (v1 and v2 indices decodable)\n\n================================================================================\n                    8. RELEASE READINESS ASSESSMENT\n================================================================================\n\nAll preflight checks completed successfully:\n\n  REGISTRY HEALTH:           EXCELLENT (10/10 packs verified)\n  SCHEMA ALIGNMENT:          ALIGNED (code matches registry)\n  DATA INTEGRITY:            VERIFIED (all SHA256/sizes correct)\n  FORWARD COMPATIBILITY:     SUPPORTED (v1/v2/v3 decodable)\n  MANIFEST CONSISTENCY:      PERFECT (no drift detected)\n\nVERDICT: READY FOR v1.0.0 RELEASE\n\nThe skill-registry at /sessions/zen-funny-mccarthy/mnt/skill-registry/ is fully\nconsistent with the skills-forge schema definitions at\n/sessions/zen-funny-mccarthy/mnt/skills-forge/. No issues detected.\n\nRECOMMENDATION: Proceed with v1.0.0 release tag.\n\n================================================================================\n"}], "grading": null}, {"id": "eval-3-uat-only-with_skill", "prompt": "Run UAT for skills-forge at /sessions/zen-funny-mccarthy/mnt/skills-forge \u2014 I want to make sure every CLI command still works correctly before we publish to PyPI.", "eval_id": 3, "outputs": [{"name": "result.txt", "type": "text", "content": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n  \ud83d\ude80  Release Preflight  \u00b7  skills-forge v0.2.0\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nEXECUTIVE SUMMARY\nAll five phases completed. Code quality excellent. UAT fully successful.\nMinor warnings in release hygiene (missing RELEASE_NOTES) but non-blocking.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPHASE 1 \u2014 CODE QUALITY\nStatus: \u2705 PASS\n\nAll three checks passed with zero failures:\n  \u2022 pytest: 272 passed in 0.47s\n  \u2022 ruff check src/ tests/: All checks passed\n  \u2022 mypy src/: Success \u2014 no issues found in 35 source files\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPHASE 2 \u2014 PACK CONSISTENCY\nStatus: \u26a0\ufe0f  NOT APPLICABLE\n\nNo index.json found at project root. This phase applies to skill registries with\npackaged skills, not to the skills-forge project workspace itself. Skipping.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPHASE 3 \u2014 SCHEMA ALIGNMENT\nStatus: \u2705 PASS\n\nFORMAT_VERSION constants verified and aligned:\n  \u2022 SkillPackManifest.FORMAT_VERSION = \"1\" \u2705\n  \u2022 RegistryIndex.FORMAT_VERSION = \"3\" \u2705\n  \u2022 Codec supports backward compatibility for versions 1, 2, 3 \u2705\n\nSchema validation: Round-trip load of index.json successful (if present).\nNo codec drift detected.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPHASE 4 \u2014 CLI SANDBOX UAT (CRITICAL)\nStatus: \u2705 PASS\n\nAll 12 CLI commands exercised in isolated sandbox environment:\n  \u2705  skills-forge init\n  \u2705  skills-forge create\n  \u2705  skills-forge lint\n  \u2705  skills-forge install --scope project --target claude\n  \u2705  skills-forge install --scope project --target agents\n  \u2705  skills-forge list\n  \u2705  skills-forge pack\n  \u2705  skills-forge unpack\n  \u2705  skills-forge export (system-prompt)\n  \u2705  skills-forge export (gpt-json)\n  \u2705  skills-forge uninstall\n  \u2705  skills-forge uninstall (idempotent)\n\nResult: All 12 commands passed \u2705\n\nSandbox workspace cleaned up successfully.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nPHASE 5 \u2014 RELEASE HYGIENE\nStatus: \u26a0\ufe0f  WARNINGS (non-blocking)\n\nChecklist results:\n  [\u2705] Correct branch: on \"1.0.0\" branch (intended release branch)\n  [\u26a0\ufe0f]  Version bump: pyproject.toml version=\"0.2.0\" (latest tag v0.1.2, \n        17 commits ahead on 1.0.0 branch)\n  [\u274c] RELEASE_NOTES: Missing RELEASE_NOTES_0.2.0.md\n  [\u2705] ROADMAP: ROADMAP_1.0.0.md exists and current\n  [\u2705] Changelog: git log shows coherent history since v0.1.2 (17 commits)\n  [\u26a0\ufe0f]  Clean working tree: Modified symlinks (.agents/skills/my-skill, \n        .claude/skills/my-skill) and untracked files in output_skills/distribution/\n\nKey concerns:\n  1. Missing RELEASE_NOTES_0.2.0.md for the current version\n  2. Dirty working tree due to symlink modifications and untracked files\n  3. These are non-blocking but should be addressed before PyPI publication\n\nRecommendation: Create RELEASE_NOTES_0.2.0.md with summary of changes since v0.1.2.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nSUMMARY TABLE\n\n  Phase 1 \u00b7 Code Quality          \u2705  272 tests, ruff OK, mypy OK\n  Phase 2 \u00b7 Pack Consistency      \u26a0\ufe0f  N/A (not a registry)\n  Phase 3 \u00b7 Schema Alignment      \u2705  FORMAT_VERSION \"1\"/\"3\" aligned\n  Phase 4 \u00b7 CLI Sandbox UAT       \u2705  12/12 commands passed\n  Phase 5 \u00b7 Release Hygiene       \u26a0\ufe0f  Missing RELEASE_NOTES; dirty tree\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nOVERALL STATUS: \u2705 GREEN with \u26a0\ufe0f WARNINGS\n\nThe codebase is ready for release with minor administrative cleanup:\n  \u2022 All automated checks (Phase 1\u20134) passed cleanly\n  \u2022 Every CLI command works correctly in UAT sandbox\n  \u2022 RELEASE_NOTES should be created before publishing to PyPI\n  \u2022 Working tree should be cleaned before tagging\n\nNO BLOCKING ISSUES FOUND. Ready to proceed with release.\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n"}], "grading": null}, {"id": "eval-3-uat-only-without_skill", "prompt": "Run UAT for skills-forge at /sessions/zen-funny-mccarthy/mnt/skills-forge \u2014 I want to make sure every CLI command still works correctly before we publish to PyPI.", "eval_id": 3, "outputs": [{"name": "result.txt", "type": "text", "content": "SKILLS-FORGE UAT RESULTS\n========================\nTest Date: April 9, 2026\nRepository: /sessions/zen-funny-mccarthy/mnt/skills-forge\nPython Version: 3.10+\nTyper Version: 0.12+\n\nUNIT TEST SUITE\n===============\nTest Framework: pytest\nTotal Tests: 272\nPassed: 272\nFailed: 0\nExecution Time: 0.48 seconds\nStatus: PASS\n\nTest Categories Verified:\n- Domain Models (Skill, SkillPack, validators) - ALL PASS\n- Application Use Cases (create, lint, install, pack, unpack, export, publish) - ALL PASS\n- Infrastructure Adapters (filesystem, markdown, symlinks, zip, git, http, exporters) - ALL PASS\n- CLI Integration Tests - ALL PASS\n\nKEY VALIDATORS TESTED:\n- Description length validation (30-150 tokens)\n- Description precision (vague/overly broad phrases)\n- Trigger word detection in descriptions\n- Principles validation\n- Context budget enforcement\n- References depth validation\n- Single responsibility principle\n- Starter character detection\n- Token estimate accuracy\n\nEXPORTER TESTS VERIFIED:\n- System Prompt format (markdown)\n- GPT JSON format with knowledge files\n- Gemini Gem format (text)\n- AWS Bedrock XML format\n- MCP Server format (Python)\n\nCLI COMMAND TESTING\n===================\n\nTest 1: skills-forge --help\nStatus: PASS\n- All commands visible and documented\n- Options correctly displayed\n\nTest 2: CREATE COMMAND\nStatus: PASS\n- Command: skills-forge create -n \"test-skill\" -c \"testing\" -d \"A simple test skill\" -e \"\ud83e\uddea\" -v \"0.1.0\"\n- Result: Successfully created skill in output_skills/testing/test-skill\n- Skill metadata properly set (name, category, version, emoji, description)\n\nTest 3: LIST COMMAND\nStatus: PASS\n- Command: skills-forge list output_skills\n- Result: Correctly listed created skills with token estimates\n- Output format: \"category/name (~X tokens)\"\n\nTest 4: LINT COMMAND\nStatus: PASS\n- Command: skills-forge lint output_skills/testing/test-skill\n- Result: Properly identified warnings (short description, missing principles)\n- Severity levels correct (WARNING)\n- Actionable feedback provided\n\nTest 5: PACK COMMAND\nStatus: PASS\n- Command: skills-forge pack output_skills/testing/test-skill -o packs\n- Result: Generated test-skill-0.1.0.skillpack archive\n- Manifest properly created with version, skill count, format version\n- Archive integrity verified\n\nTest 6: EXPORT COMMAND (system-prompt)\nStatus: PASS\n- Command: skills-forge export packs/test-skill-0.1.0.skillpack -f system-prompt -o exports\n- Result: Generated markdown file in exports/test-skill-0.1.0/\n- Output filename: test-skill.system-prompt.md\n- Proper guidance provided for usage\n\nTest 7: EXPORT COMMAND (gpt-json)\nStatus: PASS\n- Command: skills-forge export packs/test-skill-0.1.0.skillpack -f gpt-json -o exports\n- Result: Generated valid JSON file\n- Output filename: test-skill.gpt.json\n- Proper OpenAI Custom GPT format\n\nTest 8: EXPORT COMMAND (gem-txt)\nStatus: PASS\n- Command: skills-forge export packs/test-skill-0.1.0.skillpack -f gem-txt -o exports\n- Result: Generated plain text file\n- Output filename: test-skill.gem.txt\n- Google Gemini format compliance\n\nTest 9: EXPORT COMMAND (bedrock-xml)\nStatus: PASS\n- Command: skills-forge export packs/test-skill-0.1.0.skillpack -f bedrock-xml -o exports\n- Result: Generated XML file with proper structure\n- Output filename: test-skill.bedrock.xml\n- AWS Bedrock prompt template format verified\n\nTest 10: EXPORT COMMAND (mcp-server)\nStatus: PASS\n- Command: skills-forge export packs/test-skill-0.1.0.skillpack -f mcp-server -o exports\n- Result: Generated Python MCP server file\n- Output filename: test-skill-mcp-server.py\n- Self-contained MCP server implementation\n- Proper imports and decorators verified\n\nTest 11: UNPACK COMMAND\nStatus: PASS\n- Command: skills-forge unpack packs/test-skill-0.1.0.skillpack -o unpacked\n- Result: Successfully extracted skillpack\n- Created directory structure: unpacked/testing/test-skill\n- Metadata preserved (name, category, version)\n- Files intact and readable\n\nTest 12: INSTALL COMMAND (global scope)\nStatus: PASS\n- Command: skills-forge install unpacked/testing/test-skill\n- Result: Created symlink at ~/.claude/skills/test-skill (global)\n- Target installation verified\n- Proper feedback message displayed\n\nTest 13: INSTALL COMMAND (project scope)\nStatus: PASS\n- Command: skills-forge install unpacked/testing/test-skill -s project\n- Result: Created symlink at ./.claude/skills/test-skill (project)\n- Project-local installation verified\n- Scope parameter working correctly\n\nTest 14: INSTALL COMMAND (agents target)\nStatus: PASS\n- Command: skills-forge install unpacked/testing/test-skill -t agents -s project\n- Result: Created symlink at ./.agents/skills/test-skill\n- Universal cross-vendor path created\n- Target specification working\n\nTest 15: UNINSTALL COMMAND\nStatus: PASS\n- Command: skills-forge uninstall test-skill\n- Result: Successfully removed symlink from global Claude skills\n- Idempotent behavior verified\n\nTest 16: INIT COMMAND\nStatus: PASS\n- Command: skills-forge init\n- Result: Created workspace structure with output_skills directory\n- Directory ready for new skills\n- Standard template structure established\n\nTest 17: Error Handling - Duplicate Creation\nStatus: PASS\n- Command: skills-forge create -n \"test-skill\" -c \"testing\" (duplicate)\n- Result: Properly detected existing skill\n- Warning message: \"Skill 'test-skill' already exists.\"\n- Graceful error handling\n\nTest 18: Error Handling - Non-existent Path\nStatus: PASS\n- Command: skills-forge lint nonexistent\n- Result: Proper error message for missing path\n- Exit code indicates failure\n- User guidance provided\n\nTest 19: Error Handling - Invalid Export Format\nStatus: PASS\n- Command: skills-forge export <pack> -f invalid-format\n- Result: Clear error listing valid formats\n- Valid values shown: system-prompt, gpt-json, gem-txt, bedrock-xml, mcp-server\n- Helpful user guidance\n\nINTEGRATION TESTING\n===================\n\nTest 20: Full Workflow - Create -> Pack -> Export -> Unpack -> Install\nStatus: PASS\nSteps Verified:\n1. Created new skill with emoji and version\n2. Packed skill into .skillpack archive\n3. Exported to all 5 supported formats\n4. Unpacked archive back to directory structure\n5. Installed both globally and at project scope\n6. Verified all intermediate outputs\n\nTest 21: Multiple Skills in Same Category\nStatus: PASS\n- Created multiple skills in testing category\n- List command shows all skills with correct token estimates\n- Pack/export handles single and multiple skills correctly\n\nDIRECTORY STRUCTURE VERIFICATION\n=================================\n\u2713 output_skills/ - Created properly\n\u2713 Skill files (SKILL.md) - Generated with correct format\n\u2713 Symlink targets created in ~/.claude/skills/\n\u2713 Project scope .claude/skills/ created when needed\n\u2713 .agents/skills/ cross-vendor path created\n\u2713 Export output directories created as needed\n\nDEPENDENCY ANALYSIS\n===================\n- All external imports verified (typer, pathlib, json, xml)\n- No missing dependencies detected during any command execution\n- Clean architecture maintained (domain <- application <- infrastructure)\n\nERROR RECOVERY\n==============\n\u2713 Malformed input handled gracefully\n\u2713 Missing files produce clear error messages\n\u2713 Invalid options show helpful usage information\n\u2713 File conflicts handled without data loss\n\u2713 Symlink conflicts handled with clear feedback\n\nPERFORMANCE\n===========\n\u2713 Commands complete within expected timeframes\n\u2713 Unit test suite runs in 0.48 seconds (272 tests)\n\u2713 No memory leaks or resource warnings\n\u2713 Large file handling verified (pack/unpack)\n\nCOMPATIBILITY VERIFICATION\n==========================\nTarget Platforms Tested:\n\u2713 Claude Code (.claude/skills/)\n\u2713 Gemini CLI (.gemini/skills/ path verified)\n\u2713 OpenAI Codex (.codex/skills/ path verified)\n\u2713 VS Code Copilot (.github/skills/ path verified)\n\u2713 Universal Cross-Vendor (.agents/skills/ path verified)\n\nExport Formats Tested:\n\u2713 system-prompt (markdown for Claude)\n\u2713 gpt-json (OpenAI GPT JSON)\n\u2713 gem-txt (Google Gemini instructions)\n\u2713 bedrock-xml (AWS Bedrock XML)\n\u2713 mcp-server (Model Context Protocol Python)\n\nDOCUMENTATION ACCURACY\n======================\n\u2713 Help text matches actual behavior\n\u2713 Command descriptions accurate\n\u2713 Usage examples work as documented\n\u2713 Guidance messages match documentation\n\nRELEASE READINESS ASSESSMENT\n=============================\n\nFunctionality: READY\n- All core features working\n- All export formats functional\n- All installation targets supported\n- Error handling robust\n\nCode Quality: READY\n- 272 unit tests all passing\n- Clean architecture maintained\n- Type checking compatible\n- Linting standards met\n\nStability: READY\n- No crashes or exceptions in normal usage\n- Proper error messages for edge cases\n- Graceful handling of invalid input\n- Consistent behavior across all commands\n\nDocumentation: READY\n- Help text complete and accurate\n- Command usage examples work\n- Platform integration guidance provided\n- Error messages are helpful\n\nRISKS IDENTIFIED\n================\nNone critical. Minor observations:\n- URL-based installation requires network connectivity (expected)\n- File permissions may vary across systems (user-dependent)\n- Git integration for publish requires git repository setup\n\nRECOMMENDATIONS FOR PyPI PUBLICATION\n=====================================\n\nPre-Publication Checklist:\n\u2713 Version bumping (currently at 0.1.0 per test, verify release version)\n\u2713 Setup.py/pyproject.toml configured correctly\n\u2713 Dependencies listed: typer >= 0.12\n\u2713 Python version requirement: >= 3.10\n\u2713 License included in distribution\n\u2713 README.md or similar documentation\n\nPublication Steps:\n1. Verify version in setup.py/pyproject.toml\n2. Run: python -m build (creates wheel and sdist)\n3. Test with: python -m twine check dist/*\n4. Upload: python -m twine upload dist/* --repository testpypi (test first)\n5. Verify installation: pip install skills-forge\n6. Run post-install verification\n\nSUMMARY\n=======\n\nSTATUS: APPROVED FOR PUBLICATION\n\nAll critical functionality verified and working correctly.\nUnit test suite comprehensive (272 tests) with 100% pass rate.\nCLI interface stable and user-friendly.\nError handling robust and helpful.\nDocumentation accurate and complete.\nAll export formats operational.\nCross-platform compatibility confirmed.\n\nThe skills-forge project is ready for publication to PyPI.\n\nTest Execution Date: 2026-04-09\nTest Executor: Automated UAT Suite\nConfidence Level: High (100% test pass rate, all commands verified)\n"}], "grading": null}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "release-preflight", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-04-09T11:30:35Z", "evals_run": [1, 2, 3], "runs_per_configuration": 3}, "runs": [{"eval_id": 1, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4, "time_seconds": 96.4, "tokens": 40529, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "All 5 phases are executed and reported (code quality, pack consistency, schema alignment, CLI UAT, release hygiene)", "passed": true, "evidence": "Report contains all 5 phases with detailed findings for each, culminating in a summary table."}, {"text": "A summary table is produced listing each phase with a \u2705/\u26a0\ufe0f/\u274c status and a brief result", "passed": true, "evidence": "The SUMMARY TABLE section shows all 5 phases with \u2705/\u26a0\ufe0f icons and one-line descriptions."}, {"text": "An overall verdict is stated (e.g. 'green board', 'ready to release', or specific blockers)", "passed": true, "evidence": "Overall verdict: 'CONDITIONAL GREEN BOARD' with 4 specific blockers listed."}, {"text": "The check_packs.py and uat_sandbox.py scripts are actually executed rather than just described", "passed": true, "evidence": "Phase 2 shows per-pack \u2705 results from running check_packs.py; Phase 4 shows the sandbox temp dir path and all 12 commands from uat_sandbox.py."}], "notes": []}, {"eval_id": 2, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4, "time_seconds": 109.9, "tokens": 46791, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "check_packs.py is run against the registry and per-pack results are shown", "passed": true, "evidence": "All 10 packs shown with \u2705 per-entry, using the check_packs.py script structure."}, {"text": "FORMAT_VERSION constants are checked for both RegistryIndex and SkillPackManifest", "passed": true, "evidence": "Both FORMAT_VERSION constants explicitly verified: RegistryIndex='3', SkillPackManifest='1'."}, {"text": "A codec round-trip (load index.json) is performed to verify no schema drift", "passed": true, "evidence": "Round-trip test: '\u2705 index round-trip OK \u2014 9 skills loaded' explicitly reported."}, {"text": "The result accurately reflects the current state (all 10 packs should pass given we just fixed everything)", "passed": true, "evidence": "All 10 packs show \u2705 with sha256, size, manifest details verified."}], "notes": []}, {"eval_id": 3, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4, "time_seconds": 96.3, "tokens": 41847, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "uat_sandbox.py is actually executed (not just described), and output shown", "passed": true, "evidence": "The report shows the sandbox temp directory path and all 12 command results from uat_sandbox.py execution."}, {"text": "All 12 UAT commands appear in the output (init, create, lint, install x2, list, pack, unpack, export x2, uninstall x2)", "passed": true, "evidence": "All 12 commands listed with \u2705 per entry: init, create, lint, install (claude), install (agents), list, pack, unpack, export (system-prompt), export (gpt-json), uninstall, uninstall (idempotent)."}, {"text": "A summary count is given (e.g. 'All 12 commands passed')", "passed": true, "evidence": "Phase 4 result: 'All 12 commands passed end-to-end testing'."}, {"text": "Even for a UAT-focused request, pytest/ruff/mypy are also run (per the skill's principle of running all phases)", "passed": true, "evidence": "Phase 1 (pytest, ruff, mypy) run first even though request only asked for UAT."}], "notes": []}, {"eval_id": 1, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.75, "passed": 3, "failed": 1, "total": 4, "time_seconds": 101.9, "tokens": 52577, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "All 5 phases are executed and reported (code quality, pack consistency, schema alignment, CLI UAT, release hygiene)", "passed": true, "evidence": "Report covers all 5 phases in a structured format with detailed results."}, {"text": "A summary table is produced listing each phase with a \u2705/\u26a0\ufe0f/\u274c status and a brief result", "passed": true, "evidence": "A summary section lists each phase with status symbols and brief descriptions."}, {"text": "An overall verdict is stated (e.g. 'green board', 'ready to release', or specific blockers)", "passed": true, "evidence": "Verdict: 'GO FOR RELEASE' with specific action items (version bump, CHANGELOG)."}, {"text": "The check_packs.py and uat_sandbox.py scripts are actually executed rather than just described", "passed": false, "evidence": "Pack consistency done by manually reading index.json and checking files with custom Python snippets, not by running check_packs.py. UAT also done manually rather than via uat_sandbox.py."}], "notes": []}, {"eval_id": 2, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.75, "passed": 3, "failed": 1, "total": 4, "time_seconds": 111.5, "tokens": 60409, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "check_packs.py is run against the registry and per-pack results are shown", "passed": false, "evidence": "Per-pack verification done with custom manual Python snippets, not by running check_packs.py. Results are correct but the reproducible script was not used."}, {"text": "FORMAT_VERSION constants are checked for both RegistryIndex and SkillPackManifest", "passed": true, "evidence": "Both constants verified: SkillPackManifest.FORMAT_VERSION='1', RegistryIndex.FORMAT_VERSION='3', and codec backward compatibility confirmed."}, {"text": "A codec round-trip (load index.json) is performed to verify no schema drift", "passed": true, "evidence": "Round-trip codec validation performed \u2014 10 packs loaded and verified successfully."}, {"text": "The result accurately reflects the current state (all 10 packs should pass given we just fixed everything)", "passed": true, "evidence": "All 10 packs reported as passing with sha256, size, and metadata verified correctly."}], "notes": []}, {"eval_id": 3, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.75, "passed": 3, "failed": 1, "total": 4, "time_seconds": 104.4, "tokens": 44629, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "uat_sandbox.py is actually executed (not just described), and output shown", "passed": false, "evidence": "UAT commands tested manually via individual subprocess calls or by running the test suite, not via uat_sandbox.py. No sandbox temp directory path shown."}, {"text": "All 12 UAT commands appear in the output (init, create, lint, install x2, list, pack, unpack, export x2, uninstall x2)", "passed": true, "evidence": "All commands covered though in a different structure: export tested for all 5 formats rather than just 2, and more commands included."}, {"text": "A summary count is given (e.g. 'All 12 commands passed')", "passed": true, "evidence": "'All 12 commands passed' stated in the Phase 4 result."}, {"text": "Even for a UAT-focused request, pytest/ruff/mypy are also run (per the skill's principle of running all phases)", "passed": true, "evidence": "Phase 1 (pytest, ruff, mypy) run alongside UAT \u2014 272 tests passing reported."}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 100.8667, "stddev": 7.8233, "min": 96.3, "max": 109.9}, "tokens": {"mean": 43055.6667, "stddev": 3301.3357, "min": 40529, "max": 46791}}, "without_skill": {"pass_rate": {"mean": 0.75, "stddev": 0.0, "min": 0.75, "max": 0.75}, "time_seconds": {"mean": 105.9333, "stddev": 4.9803, "min": 101.9, "max": 111.5}, "tokens": {"mean": 52538.3333, "stddev": 7890.0711, "min": 44629, "max": 60409}}, "delta": {"pass_rate": "+0.25", "time_seconds": "-5.1", "tokens": "-9483"}}, "notes": []}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>
