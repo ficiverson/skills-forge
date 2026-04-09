@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 from skill_forge.application.use_cases.install_skill import (
     InstallSkill,
     InstallSkillRequest,
@@ -15,7 +13,6 @@ from skill_forge.application.use_cases.install_skill import (
 )
 from skill_forge.domain.model import Dependency, InstallTarget, Skill, SkillScope
 from skill_forge.domain.ports import SkillInstaller, SkillParser
-
 
 # ── Stubs ─────────────────────────────────────────────────────────────────────
 
