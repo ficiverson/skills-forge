@@ -166,23 +166,37 @@ Fix errors before installing. Warnings are recommendations. Info items are sugge
 
 ## 6. Install the skill
 
-Install makes your skill visible to Claude Code. It creates a symlink from your source directory into Claude's skill discovery path.
+Install makes your skill visible to an agent-CLI tool. It creates a symlink from your source directory into the target tool's skill discovery path. All targets share the same SKILL.md format — the [agentskills.io](https://agentskills.io/specification) open standard adopted by Claude Code, Gemini CLI, OpenAI Codex, VS Code Copilot, and 20+ other tools.
 
-### Global install (all projects)
+### Global install — Claude Code (default)
 
 ```bash
 skills-forge install output_skills/development/python-tdd
 ```
 
-This symlinks into `~/.claude/skills/python-tdd`. Every Claude Code session on your machine will see it.
+Symlinks into `~/.claude/skills/python-tdd`. Every Claude Code session on your machine sees it.
 
-### Project-scoped install
+### Project install — universal path (recommended for shared repos)
 
 ```bash
-skills-forge install output_skills/development/python-tdd --scope project
+skills-forge install output_skills/development/python-tdd --target agents --scope project
 ```
 
-This symlinks into `.claude/skills/python-tdd` in the current directory. Only Claude Code sessions in this project will see it.
+Symlinks into `.agents/skills/python-tdd`. This is the cross-vendor alias scanned by every agentskills.io-conforming tool — teammates using Gemini CLI, OpenAI Codex, or VS Code Copilot all pick it up without any per-tool setup.
+
+### Install for a specific tool
+
+```bash
+skills-forge install output_skills/development/python-tdd --target gemini   # ~/.gemini/skills/
+skills-forge install output_skills/development/python-tdd --target codex    # ~/.codex/skills/
+skills-forge install output_skills/development/python-tdd --target vscode --scope project  # .github/skills/
+```
+
+### Install for every tool at once
+
+```bash
+skills-forge install output_skills/development/python-tdd --target all
+```
 
 ### What the symlink means
 
@@ -341,8 +355,20 @@ For private GitHub repos, set `GITHUB_TOKEN` in your environment and the fetcher
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--scope, -s` | no | `global` (default) or `project` |
+| `--target, -t` | no | Tool to install into: `claude` (default), `gemini`, `codex`, `vscode`, `agents`, `all` |
 | `--output, -o` | no | Where to unpack remote packs (default: `output_skills`). Only used for URL installs. |
 | `--sha256` | no | Expected sha256 of a remote `.skillpack`. Verified before unpack. |
+
+**`--target` paths:**
+
+| Target | Global | Project |
+|--------|--------|---------|
+| `claude` | `~/.claude/skills/` | `.claude/skills/` |
+| `gemini` | `~/.gemini/skills/` | `.gemini/skills/` |
+| `codex` | `~/.codex/skills/` | `.codex/skills/` |
+| `vscode` | *(not supported)* | `.github/skills/` |
+| `agents` | `~/.agents/skills/` | `.agents/skills/` |
+| `all` | all above | all above |
 
 ### pack options
 

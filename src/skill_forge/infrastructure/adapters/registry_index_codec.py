@@ -40,9 +40,11 @@ class RegistryIndexCodec:
     def decode(self, text: str) -> RegistryIndex:
         data: dict[str, Any] = json.loads(text)
         format_version = str(data.get("format_version", "1"))
-        if format_version != RegistryIndex.FORMAT_VERSION:
+        _supported = {"1", "2", "3"}
+        if format_version not in _supported:
             raise ValueError(
-                f"Unsupported registry index format version: {format_version}"
+                f"Unsupported registry index format version: {format_version!r} "
+                f"(supported: {sorted(_supported)})"
             )
         skills_raw = data.get("skills", [])
         skills: list[IndexedSkill] = []
@@ -69,6 +71,8 @@ class RegistryIndexCodec:
             out["description"] = s.description
         if s.tags:
             out["tags"] = list(s.tags)
+        if s.platforms:
+            out["platforms"] = list(s.platforms)
         if s.owner is not None:
             owner_payload: dict[str, Any] = {"name": s.owner.name}
             if s.owner.email:
@@ -93,6 +97,8 @@ class RegistryIndexCodec:
             out["release_notes"] = v.release_notes
         if v.yanked:
             out["yanked"] = True
+        if v.export_formats:
+            out["export_formats"] = list(v.export_formats)
         return out
 
     def _decode_skill(self, s: dict[str, Any]) -> IndexedSkill | None:
@@ -108,6 +114,7 @@ class RegistryIndexCodec:
                 email=str(owner_raw.get("email", "")),
             )
         tags_raw = s.get("tags") or []
+        platforms_raw = s.get("platforms") or []
         return IndexedSkill(
             category=s["category"],
             name=s["name"],
@@ -115,11 +122,13 @@ class RegistryIndexCodec:
             versions=versions,
             description=str(s.get("description", "")),
             tags=tuple(str(t) for t in tags_raw),
+            platforms=tuple(str(p) for p in platforms_raw),
             owner=owner,
             deprecated=bool(s.get("deprecated", False)),
         )
 
     def _decode_version(self, v: dict[str, Any]) -> IndexedVersion:
+        export_formats_raw = v.get("export_formats") or []
         return IndexedVersion(
             version=v["version"],
             path=v["path"],
@@ -128,4 +137,5 @@ class RegistryIndexCodec:
             size_bytes=int(v.get("size_bytes", 0) or 0),
             release_notes=str(v.get("release_notes", "")),
             yanked=bool(v.get("yanked", False)),
+            export_formats=tuple(str(f) for f in export_formats_raw),
         )

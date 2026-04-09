@@ -125,6 +125,10 @@ def _serialize_manifest(manifest: SkillPackManifest) -> str:
     }
     if manifest.tags:
         payload["tags"] = list(manifest.tags)
+    if manifest.platforms:
+        payload["platforms"] = list(manifest.platforms)
+    if manifest.export_formats:
+        payload["export_formats"] = list(manifest.export_formats)
     if manifest.owner is not None:
         owner_payload: dict[str, object] = {"name": manifest.owner.name}
         if manifest.owner.email:
@@ -178,6 +182,9 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
         )
     tags_raw = data.get("tags") or []
 
+    platforms_raw = data.get("platforms") or []
+    export_formats_raw = data.get("export_formats") or []
+
     return SkillPackManifest(
         name=data.get("name", ""),
         version=data.get("version", ""),
@@ -186,6 +193,8 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
         description=data.get("description", ""),
         skills=skills,
         tags=tuple(str(t) for t in tags_raw),
+        platforms=tuple(str(p) for p in platforms_raw),
+        export_formats=tuple(str(f) for f in export_formats_raw),
         owner=owner,
         deprecated=bool(data.get("deprecated", False)),
     )

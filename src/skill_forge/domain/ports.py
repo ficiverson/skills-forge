@@ -11,6 +11,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    ExportFormat,
+    InstallTarget,
     PublishMetadata,
     PublishResult,
     RegistryIndex,
@@ -44,11 +46,22 @@ class SkillRepository(ABC):
 
 
 class SkillInstaller(ABC):
-    """Port: install/uninstall skills for Claude Code."""
+    """Port: install/uninstall skills into agent-CLI tool directories.
+
+    All supported tools share the agentskills.io SKILL.md format.
+    ``target`` selects which tool's directory receives the skill;
+    ``InstallTarget.ALL`` writes to every applicable directory at once.
+    ``install`` always returns a list so callers handle both cases uniformly.
+    """
 
     @abstractmethod
-    def install(self, skill_path: Path, scope: SkillScope) -> Path:
-        """Install a skill and return the installation path."""
+    def install(
+        self,
+        skill_path: Path,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.CLAUDE,
+    ) -> list[Path]:
+        """Install a skill and return all installation paths created."""
 
     @abstractmethod
     def uninstall(self, skill_name: str, scope: SkillScope) -> bool:
@@ -144,6 +157,23 @@ class PackPublisher(ABC):
     @abstractmethod
     def read_index(self) -> RegistryIndex:
         """Return the current index of the registry."""
+
+
+class SkillExporter(ABC):
+    """Port: render a skill into a platform-native export format.
+
+    Exporters are stateless transformers: they receive the parsed ``Skill``
+    domain object, the raw SKILL.md body (frontmatter already stripped), and
+    an ``output_dir`` to write into. They return the path of the artifact
+    they created (file or directory). The use case remains format-agnostic.
+    """
+
+    #: The export format this exporter handles.
+    format: ExportFormat
+
+    @abstractmethod
+    def export(self, skill: Skill, body: str, output_dir: Path) -> Path:
+        """Export ``skill`` and return the path of the created artifact."""
 
 
 class PackFetcher(ABC):

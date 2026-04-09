@@ -187,6 +187,43 @@ class TestInstallUninstallCommand:
         assert result.exit_code == 1
         assert "was not installed" in result.stdout
 
+    def test_install_target_agents(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir),
+            "--scope", "project",
+            "--target", "agents",
+        ])
+        if result.exit_code == 0:
+            assert "agents" in result.stdout
+            assert ".agents/skills" in result.stdout
+        else:
+            assert result.exception is not None
+
+    def test_install_invalid_target_exits_1(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir), "--target", "nonexistent",
+        ])
+        assert result.exit_code == 1
+        assert "Unknown target" in result.stdout
+
+    def test_install_vscode_global_exits_1(self, tmp_path: Path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
+        result = runner.invoke(app, [
+            "install", str(skill_dir),
+            "--scope", "global",
+            "--target", "vscode",
+        ])
+        assert result.exit_code == 1
+        assert "VS Code" in result.stdout
+
 
 class TestPackUnpackCommands:
     def _make_skill(self, base: Path, category: str, name: str) -> Path:
@@ -434,8 +471,8 @@ class TestInstallFromUrlCommand:
         from skill_forge.domain.ports import SkillInstaller
 
         class _NoopInstaller(SkillInstaller):
-            def install(self, skill_path, scope):  # type: ignore[no-untyped-def]
-                return Path(f"/fake/{skill_path.name}")
+            def install(self, skill_path, scope, target=None):  # type: ignore[no-untyped-def]
+                return [Path(f"/fake/{skill_path.name}")]
 
             def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
                 return False
@@ -471,3 +508,136 @@ class TestInitCommand:
         assert "Initialized" in result.stdout
         assert (tmp_path / "workspace" / "output_skills").is_dir()
         assert (tmp_path / "workspace" / "CLAUDE.md").is_file()
+
+
+# ── export command ────────────────────────────────────────────────────────────
+
+_SKILL_MD_CONTENT = """\
+---
+name: sprint-grooming
+description: |
+  Convert rough ideas into production-ready user stories.
+  Triggers on: sprint, grooming, user story, backlog, acceptance criteria.
+---
+
+## Workflow
+
+1. Read the input.
+2. Write the user story.
+"""
+
+
+class TestExportCommand:
+    def _make_skill(self, tmp_path: Path) -> Path:
+        skill_dir = tmp_path / "productivity" / "sprint-grooming"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(_SKILL_MD_CONTENT, encoding="utf-8")
+        return skill_dir
+
+    def test_export_system_prompt_default(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        result = runner.invoke(app, ["export", str(pack_path)])
+        assert result.exit_code == 0, result.stdout
+        assert "system-prompt" in result.stdout
+        # Output is now in /test/ subfolder
+        assert (Path("test") / "sprint-grooming.system-prompt.md").exists()
+
+    def test_export_gpt_json(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--format", "gpt-json", "--output", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "gpt-json" in result.stdout
+        assert (out / "test" / "sprint-grooming.gpt.json").exists()
+
+    def test_export_gem_txt(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--format", "gem-txt", "--output", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert (out / "test" / "sprint-grooming.gem.txt").exists()
+
+    def test_export_bedrock_xml(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--format", "bedrock-xml", "--output", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert (out / "test" / "sprint-grooming.bedrock.xml").exists()
+
+    def test_export_mcp_server(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--format", "mcp-server", "--output", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert (out / "test" / "sprint-grooming-mcp-server.py").exists()
+
+    def test_export_invalid_format_exits_1(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        result = runner.invoke(app, ["export", str(pack_path), "--format", "unknown"])
+        assert result.exit_code == 1
+        assert "Unknown format" in result.stdout
+
+    def test_export_short_flag(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "-f", "gpt-json", "-o", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert (out / "test" / "sprint-grooming.gpt.json").exists()
+
+    def test_export_hint_in_output_mcp(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--format", "mcp-server"]
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "mcp run" in result.stdout
+
+    def test_export_only_skill_flag(self, tmp_path: Path) -> None:
+        skill_dir = self._make_skill(tmp_path)
+        pack_path = tmp_path / "test.skillpack"
+        runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
+
+        out = tmp_path / "out"
+        result = runner.invoke(
+            app, ["export", str(pack_path), "--only-skill", "-o", str(out)]
+        )
+        assert result.exit_code == 0, result.stdout
+
+        output_file = out / "test" / "sprint-grooming.system-prompt.md"
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "# BUNDLED SUPPLEMENTS" not in content

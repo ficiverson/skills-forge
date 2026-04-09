@@ -22,6 +22,7 @@ from skill_forge.application.use_cases.pack_skill import (
     UnpackSkillRequest,
 )
 from skill_forge.domain.model import (
+    InstallTarget,
     Owner,
     PublishMetadata,
     PublishResult,
@@ -43,6 +44,8 @@ class PublishPackRequest:
     message: str = ""
     push: bool = False
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()
+    export_formats: tuple[str, ...] = ()
     owner_name: str = ""
     owner_email: str = ""
     deprecated: bool = False
@@ -86,6 +89,12 @@ class PublishPack:
             or self._read_description(request.pack_path, manifest)
         )
         tags = tuple(request.tags) if request.tags else manifest.tags
+        platforms = tuple(request.platforms) if request.platforms else manifest.platforms
+        export_formats = (
+            tuple(request.export_formats)
+            if request.export_formats
+            else manifest.export_formats
+        )
         if request.owner_name:
             owner: Owner | None = Owner(
                 name=request.owner_name,
@@ -123,6 +132,8 @@ class PublishPack:
         metadata = PublishMetadata(
             description=description,
             tags=tags,
+            platforms=platforms,
+            export_formats=export_formats,
             owner=owner,
             deprecated=deprecated,
             release_notes=request.release_notes,
@@ -171,6 +182,7 @@ class InstallFromUrlRequest:
     url: str
     dest_dir: Path = field(default_factory=lambda: Path("output_skills"))
     scope: SkillScope = SkillScope.GLOBAL
+    target: InstallTarget = InstallTarget.CLAUDE
     expected_sha256: str = ""
     install: bool = True
 
@@ -222,7 +234,9 @@ class InstallFromUrl:
             installed: list[Path] = []
             if request.install:
                 for path in unpack_response.extracted_paths:
-                    installed.append(self._installer.install(path, request.scope))
+                    installed.extend(
+                        self._installer.install(path, request.scope, request.target)
+                    )
 
             return InstallFromUrlResponse(
                 manifest=unpack_response.manifest,

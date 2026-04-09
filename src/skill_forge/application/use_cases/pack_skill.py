@@ -14,6 +14,8 @@ from pathlib import Path
 
 from skill_forge.domain.model import (
     DEFAULT_SKILL_VERSION,
+    ExportFormat,
+    InstallTarget,
     Owner,
     Skill,
     SkillPackManifest,
@@ -41,6 +43,8 @@ class PackSkillRequest:
     pack_name: str = ""
     description: str = ""
     tags: tuple[str, ...] = ()
+    platforms: tuple[str, ...] = ()
+    export_formats: tuple[str, ...] = ()
     owner_name: str = ""
     owner_email: str = ""
     deprecated: bool = False
@@ -96,6 +100,18 @@ class PackSkill:
             else None
         )
 
+        # Default to all supported platforms and formats if not explicitly specified.
+        # This makes the registry index entries high-fidelity by default.
+        platforms = tuple(request.platforms)
+        if not platforms:
+            platforms = tuple(
+                t.value for t in InstallTarget if t != InstallTarget.ALL
+            )
+
+        export_formats = tuple(request.export_formats)
+        if not export_formats:
+            export_formats = tuple(f.value for f in ExportFormat)
+
         manifest = SkillPackManifest(
             name=pack_name,
             version=pack_version,
@@ -104,6 +120,8 @@ class PackSkill:
             description=description,
             skills=tuple(refs),
             tags=tuple(request.tags),
+            platforms=platforms,
+            export_formats=export_formats,
             owner=owner,
             deprecated=request.deprecated,
         )

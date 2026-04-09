@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from skill_forge.cli.factory import (
+    build_export_use_case,
     build_install_from_url_use_case,
     build_installer,
     build_lint_use_case,
@@ -136,7 +137,17 @@ def install(
         ),
     ),
     scope: str = typer.Option(
-        "global", "--scope", "-s", help="Installation scope: global or project"
+        "global", "--scope", "-s",
+        help="Installation scope: global (user home) or project (current directory)",
+    ),
+    target: str = typer.Option(
+        "claude", "--target", "-t",
+        help=(
+            "Agent tool to install into: claude, gemini, codex, vscode, agents, all. "
+            "'agents' writes to .agents/skills/ — the universal cross-vendor path "
+            "supported by every agentskills.io-conforming tool at project scope. "
+            "'all' writes to every applicable directory for the chosen scope."
+        ),
     ),
     output: Path = typer.Option(
         Path("output_skills"),
@@ -150,10 +161,32 @@ def install(
         help="Expected sha256 of a remote .skillpack (verified before install)",
     ),
 ) -> None:
-    """Install a skill from a local path or a remote .skillpack URL."""
-    from skill_forge.domain.model import SkillScope
+    """Install a skill from a local path or a remote .skillpack URL.
+
+    Examples:
+
+      # default: install into ~/.claude/skills/ (global, Claude Code)
+      skills-forge install output_skills/development/python-tdd
+
+      # universal project path — works with Gemini CLI, Codex, VS Code Copilot, etc.
+      skills-forge install output_skills/development/python-tdd --target agents --scope project
+
+      # install into every supported tool at once (global scope)
+      skills-forge install output_skills/development/python-tdd --target all
+
+      # install from a remote registry into Gemini CLI
+      skills-forge install https://raw.githubusercontent.com/.../pack.skillpack --target gemini
+    """
+    from skill_forge.domain.model import InstallTarget, SkillScope
 
     skill_scope = SkillScope.GLOBAL if scope == "global" else SkillScope.PROJECT
+
+    try:
+        skill_target = InstallTarget(target.lower())
+    except ValueError:
+        valid = ", ".join(t.value for t in InstallTarget)
+        typer.echo(f"⚠ Unknown target '{target}'. Valid values: {valid}")
+        raise typer.Exit(code=1) from None
 
     if source.startswith(("http://", "https://")):
         from skill_forge.application.use_cases.publish_skill import (
@@ -165,6 +198,7 @@ def install(
             url=source,
             dest_dir=output,
             scope=skill_scope,
+            target=skill_target,
             expected_sha256=sha256,
         )
         response = use_case.execute(request)
@@ -179,7 +213,7 @@ def install(
             strict=True,
         ):
             typer.echo(f"  → {extracted}")
-            typer.echo(f"    installed at {installed} ({skill_scope.value})")
+            typer.echo(f"    installed at {installed} ({skill_scope.value}, {skill_target.value})")
         return
 
     skill_path = Path(source)
@@ -194,9 +228,134 @@ def install(
 
     installer = build_installer()
     local_use_case = InstallSkill(installer=installer)
-    local_request = InstallSkillRequest(skill_path=skill_path, scope=skill_scope)
-    local_response = local_use_case.execute(local_request)
-    typer.echo(f"✔ Installed at {local_response.installed_path} ({local_response.scope.value})")
+    local_request = InstallSkillRequest(
+        skill_path=skill_path,
+        scope=skill_scope,
+        target=skill_target,
+    )
+    try:
+        local_response = local_use_case.execute(local_request)
+    except ValueError as exc:
+        typer.echo(f"⚠ {exc}")
+        raise typer.Exit(code=1) from exc
+
+    for path in local_response.installed_paths:
+        typer.echo(f"✔ Installed at {path} ({skill_scope.value}, {skill_target.value})")
+
+
+@app.command()
+def export(
+    source: Path = typer.Argument(
+        ...,
+        help=".skillpack archive to export",
+        exists=True,
+    ),
+    fmt: str = typer.Option(
+        "system-prompt",
+        "--format",
+        "-f",
+        help=(
+            "Export format: system-prompt, gpt-json, gem-txt, bedrock-xml, mcp-server. "
+            "system-prompt — plain Markdown for any chat UI system field. "
+            "gpt-json      — OpenAI Custom GPT / Assistants API config JSON. "
+            "gem-txt       — Google Gemini Gem instructions plain-text file. "
+            "bedrock-xml   — AWS Bedrock agent prompt XML template. "
+            "mcp-server    — Self-contained Python MCP Prompts server."
+        ),
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help=(
+            "Directory to write the exported artifact into. "
+            "Defaults to the skill directory."
+        ),
+    ),
+    only_skill: bool = typer.Option(
+        False,
+        "--only-skill",
+        help="Export only the SKILL.md content, skipping references/assets.",
+    ),
+) -> None:
+    """Export a skill to a platform-native format for chatbot / API platforms.
+
+    For agent-CLI tools that natively support SKILL.md (Claude Code, Gemini CLI,
+    OpenAI Codex, VS Code Copilot) use ``skills-forge install --target`` instead.
+
+    Examples:
+
+      # Plain system prompt — paste into any chat UI
+      skills-forge export ./packs/productivity-1.0.0.skillpack
+
+      # OpenAI Custom GPT JSON config
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format gpt-json
+
+      # Gemini Gem instructions
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format gem-txt
+
+      # AWS Bedrock XML prompt template
+      skills-forge export ./packs/productivity-1.0.0.skillpack --format bedrock-xml
+
+      # Self-contained Python MCP server
+      skills-forge export ./packs/productivity-1.0.0.skillpack \\
+          --format mcp-server -o ./exports/
+    """
+    from skill_forge.application.use_cases.export_skill import ExportSkillRequest
+    from skill_forge.domain.model import ExportFormat
+
+    try:
+        export_fmt = ExportFormat(fmt.lower())
+    except ValueError:
+        valid = ", ".join(f.value for f in ExportFormat)
+        typer.echo(f"⚠ Unknown format '{fmt}'. Valid values: {valid}")
+        raise typer.Exit(code=1) from None
+
+    use_case = build_export_use_case(export_fmt)
+    request = ExportSkillRequest(
+        skill_path=source,
+        format=export_fmt,
+        output=output,
+        bundle=not only_skill,
+    )
+
+    try:
+        response = use_case.execute(request)
+    except FileNotFoundError as exc:
+        typer.echo(f"⚠ {exc}")
+        raise typer.Exit(code=1) from exc
+
+    for path in response.output_paths:
+        typer.echo(f"✔ Exported [{export_fmt.value}] → {path}")
+
+    # Print a contextual next-step hint per format.
+    if export_fmt == ExportFormat.SYSTEM_PROMPT:
+        typer.echo(
+            "  Paste the file contents into the system-prompt / custom-instructions "
+            "field of any chat UI."
+        )
+    elif export_fmt == ExportFormat.GPT_JSON:
+        typer.echo(
+            "  Open https://chatgpt.com/gpts/editor → Configure tab and paste "
+            "the 'instructions' value into the Instructions textarea."
+        )
+    elif export_fmt == ExportFormat.GEM_TXT:
+        typer.echo(
+            "  Open https://gemini.google.com/gems → New Gem and paste "
+            "the file contents into the Instructions field."
+        )
+    elif export_fmt == ExportFormat.BEDROCK_XML:
+        typer.echo(
+            "  AWS Console → Amazon Bedrock → Prompt management → Create prompt "
+            "and paste the <system> block into the System prompt field."
+        )
+    elif export_fmt == ExportFormat.MCP_SERVER:
+        for path in response.output_paths:
+            typer.echo(f"  Run with: python {path}")
+            typer.echo(f"  Or: uvx --from \"mcp[cli]\" mcp run {path}")
+        typer.echo(
+            "  Or add to your MCP host config — see the file header for details."
+        )
 
 
 @app.command()
@@ -264,6 +423,25 @@ def pack(
         help="Tag for the pack (repeatable). Travels in the manifest and "
         "becomes the default when publishing to a registry.",
     ),
+    platforms: list[str] = typer.Option(
+        [],
+        "--platform",
+        "-p",
+        help=(
+            "Install target (repeatable): claude, gemini, codex, agents, vscode. "
+            "Baked into the manifest and used as the default when publishing."
+        ),
+    ),
+    export_formats: list[str] = typer.Option(
+        [],
+        "--export-format",
+        "-f",
+        help=(
+            "Supported export format (repeatable): system-prompt, gpt-json, "
+            "gem-txt, bedrock-xml, mcp-server. "
+            "Baked into the manifest and used as the default when publishing."
+        ),
+    ),
     owner_name: str = typer.Option(
         "",
         "--owner-name",
@@ -298,6 +476,8 @@ def pack(
         pack_name=name,
         description=description,
         tags=tuple(tags),
+        platforms=tuple(platforms),
+        export_formats=tuple(export_formats),
         owner_name=owner_name,
         owner_email=owner_email,
         deprecated=deprecated,
@@ -390,6 +570,24 @@ def publish(
         "-t",
         help="Tag for the skill (repeatable). Surfaces in the registry index for discovery.",
     ),
+    platforms: list[str] = typer.Option(
+        [],
+        "--platform",
+        "-p",
+        help=(
+            "Install target (repeatable): claude, gemini, codex, agents, vscode. "
+            "Defaults to the value baked into the manifest at pack time."
+        ),
+    ),
+    export_formats: list[str] = typer.Option(
+        [],
+        "--export-format",
+        help=(
+            "Supported export format (repeatable): system-prompt, gpt-json, "
+            "gem-txt, bedrock-xml, mcp-server. "
+            "Defaults to the value baked into the manifest at pack time."
+        ),
+    ),
     owner_name: str = typer.Option(
         "",
         "--owner-name",
@@ -435,6 +633,8 @@ def publish(
         message=message,
         push=push,
         tags=tuple(tags),
+        platforms=tuple(platforms),
+        export_formats=tuple(export_formats),
         owner_name=owner_name,
         owner_email=owner_email,
         deprecated=deprecated,

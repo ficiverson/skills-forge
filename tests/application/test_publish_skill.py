@@ -105,9 +105,9 @@ class _StubInstaller(SkillInstaller):
     def __init__(self) -> None:
         self.installed: list[Path] = []
 
-    def install(self, skill_path, scope):  # type: ignore[no-untyped-def]
+    def install(self, skill_path, scope, target=None):  # type: ignore[no-untyped-def]
         self.installed.append(skill_path)
-        return Path(f"/fake/install/{skill_path.name}")
+        return [Path(f"/fake/install/{skill_path.name}")]
 
     def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
         return False

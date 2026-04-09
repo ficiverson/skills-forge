@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from skill_forge.domain.model import SkillScope
+from skill_forge.domain.model import InstallTarget, SkillScope
 from skill_forge.domain.ports import SkillInstaller
 
 
@@ -13,12 +13,19 @@ from skill_forge.domain.ports import SkillInstaller
 class InstallSkillRequest:
     skill_path: Path
     scope: SkillScope = SkillScope.GLOBAL
+    target: InstallTarget = InstallTarget.CLAUDE
 
 
 @dataclass
 class InstallSkillResponse:
-    installed_path: Path
-    scope: SkillScope
+    installed_paths: list[Path] = field(default_factory=list)
+    scope: SkillScope = SkillScope.GLOBAL
+    target: InstallTarget = InstallTarget.CLAUDE
+
+    @property
+    def installed_path(self) -> Path:
+        """Convenience accessor for the first (or only) installed path."""
+        return self.installed_paths[0]
 
 
 @dataclass
@@ -34,16 +41,19 @@ class UninstallSkillResponse:
 
 
 class InstallSkill:
-    """Install a skill for Claude Code to discover."""
+    """Install a skill into one or more agent-CLI tool directories."""
 
     def __init__(self, installer: SkillInstaller) -> None:
         self._installer = installer
 
     def execute(self, request: InstallSkillRequest) -> InstallSkillResponse:
-        path = self._installer.install(request.skill_path, request.scope)
+        paths = self._installer.install(
+            request.skill_path, request.scope, request.target
+        )
         return InstallSkillResponse(
-            installed_path=path,
+            installed_paths=paths,
             scope=request.scope,
+            target=request.target,
         )
 
 

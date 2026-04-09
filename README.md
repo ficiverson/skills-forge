@@ -34,8 +34,14 @@ $EDITOR output_skills/development/python-tdd/SKILL.md
 # 3. Lint until clean (fix every error, then warnings)
 skills-forge lint output_skills/development/python-tdd
 
-# 4. Install (symlinks into ~/.claude/skills/)
+# 4. Install — default (Claude Code, global)
 skills-forge install output_skills/development/python-tdd
+
+# Or: universal project install — works with Gemini CLI, Codex, VS Code Copilot too
+skills-forge install output_skills/development/python-tdd --target agents --scope project
+
+# Or: write to every supported tool at once
+skills-forge install output_skills/development/python-tdd --target all
 
 # 5. Iterate: edit → re-lint → Claude picks up changes instantly
 
@@ -51,7 +57,20 @@ skills-forge install https://raw.githubusercontent.com/ficiverson/skill-registry
   --sha256 10d16ba0db7b768219d0adb6c3dd8ea68b62e9f719a0132fdcd2bcf10271c0e6
 ```
 
-The `install` command creates a symlink from your skill directory into `~/.claude/skills/` (global) or `.claude/skills/` (project-scoped), so Claude Code discovers it automatically. Because it's a symlink, you edit the source in `output_skills/`, re-lint, and the installed version updates without reinstalling.
+The `install` command creates a symlink from your skill directory into the target tool's skills directory. Because it's a symlink, you edit the source in `output_skills/`, re-lint, and the installed version updates without reinstalling.
+
+All targets share the same SKILL.md format — the [agentskills.io](https://agentskills.io/specification) open standard adopted by Claude Code, Gemini CLI, OpenAI Codex, VS Code Copilot, and 20+ other tools.
+
+| `--target` | Global path | Project path |
+|---|---|---|
+| `claude` *(default)* | `~/.claude/skills/` | `.claude/skills/` |
+| `gemini` | `~/.gemini/skills/` | `.gemini/skills/` |
+| `codex` | `~/.codex/skills/` | `.codex/skills/` |
+| `vscode` | *(no global)* | `.github/skills/` |
+| `agents` | `~/.agents/skills/` | `.agents/skills/` |
+| `all` | all of the above | all of the above |
+
+`agents` is the recommended target for shared repos — every conforming tool scans `.agents/skills/` at project scope, so teammates on Gemini CLI, Codex, or VS Code Copilot all pick up the same skills without any per-tool setup.
 
 ## Authoring workflow
 
@@ -60,7 +79,7 @@ The authoring loop has five steps. Step 2 (the actual writing) is the one that m
 1. **Scaffold** with `skills-forge create`. This writes a starter `SKILL.md` plus empty companion directories (`references/`, `examples/`, `assets/`, `scripts/`) when the relevant fields are present.
 2. **Author the content.** Open `SKILL.md` and fill in the description, principles, workflow, and constraints. Drop reference docs into `references/`, sample outputs into `examples/`, and static files into `assets/`.
 3. **Lint** with `skills-forge lint <path>`. Fix every error and warning. The linter checks both the SKILL.md content (description length, vague language, token budget) and the filesystem (do all linked files actually exist?).
-4. **Install** with `skills-forge install <path>`. Use `--scope project` for a project-local install, or omit it for global.
+4. **Install** with `skills-forge install <path>`. Use `--scope project` for a project-local install, or omit it for global. Add `--target agents` to install into `.agents/skills/` — the universal cross-vendor path that works for every agentskills.io-conforming tool (Gemini CLI, Codex, VS Code Copilot, etc.). Use `--target all` to write to every supported tool at once.
 5. **Test and iterate.** Open Claude Code, trigger the skill with a realistic prompt, and watch how it activates. Tweak the description and triggers until activation is reliable.
 
 ### A complete minimal SKILL.md
@@ -419,6 +438,55 @@ skills-forge install output_skills/evaluation/ai-eng-evaluator
 ```
 
 Behind the scenes the URL form fetches the pack to a temp file, verifies the sha256 if you supplied one, unpacks it via the existing `unpack` flow, and then installs each contained skill into `~/.claude/skills/` (or `.claude/skills/` with `--scope project`).
+
+**Multi-platform install (`--target`)** — skills-forge supports every major agent-CLI tool. All targets use the same SKILL.md format; only the destination path differs:
+
+```bash
+# Install into Gemini CLI (global)
+skills-forge install output_skills/development/python-tdd --target gemini
+
+# Install into OpenAI Codex (global)
+skills-forge install output_skills/development/python-tdd --target codex
+
+# Universal project path — works for all tools (recommended for shared repos)
+skills-forge install output_skills/development/python-tdd --target agents --scope project
+
+# VS Code Copilot (project-only — no global skills dir in VS Code)
+skills-forge install output_skills/development/python-tdd --target vscode --scope project
+
+# Write to every supported tool at once
+skills-forge install output_skills/development/python-tdd --target all
+```
+
+**Export to chatbot / API platforms (`export --format`)** — agent-CLI tools (Claude Code, Gemini CLI, Codex, VS Code) load SKILL.md natively via `install --target`. For platforms that have no file-system skill directory, use `export` to render the skill in their native format:
+
+| `--format` | Output file | Target platform |
+|---|---|---|
+| `system-prompt` (default) | `<name>.system-prompt.md` | Any chat UI system-prompt field |
+| `gpt-json` | `<name>.gpt.json` | OpenAI Custom GPT / Assistants API |
+| `gem-txt` | `<name>.gem.txt` | Google Gemini Gems |
+| `bedrock-xml` | `<name>.bedrock.xml` | AWS Bedrock agent prompt template |
+| `mcp-server` | `<name>-mcp-server.py` | Any MCP-capable host (Claude Desktop, Cursor, …) |
+
+```bash
+# Plain system prompt — paste into any chat UI
+skills-forge export ./packs/productivity-1.0.0.skillpack
+
+# OpenAI Custom GPT config JSON
+skills-forge export ./packs/productivity-1.0.0.skillpack --format gpt-json
+
+# Gemini Gem instructions
+skills-forge export ./packs/productivity-1.0.0.skillpack --format gem-txt
+
+# AWS Bedrock XML prompt template
+skills-forge export ./packs/productivity-1.0.0.skillpack --format bedrock-xml
+
+# Self-contained Python MCP Prompts server
+skills-forge export ./packs/productivity-1.0.0.skillpack --format mcp-server -o ./exports/
+# → Run with: uvx --from "mcp[cli]" mcp run ./exports/productivity-mcp-server.py
+```
+
+The MCP server format deserves special mention: it generates a single runnable Python file that exposes the skill as an MCP `Prompts` primitive. Any MCP-compatible host (Claude Desktop, Cursor, VS Code, OpenAI desktop app) can connect via stdio and inject the skill at inference time — no installation step on the end user's machine. The generated file includes a ready-to-paste `mcpServers` configuration for Claude Desktop using `uvx`.
 
 **Private repos** — set `GITHUB_TOKEN` in your environment and the fetcher will pass it as a `token` Authorization header on `raw.githubusercontent.com` requests, so private registries work without any extra configuration.
 
