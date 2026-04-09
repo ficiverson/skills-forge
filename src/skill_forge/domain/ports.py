@@ -64,8 +64,13 @@ class SkillInstaller(ABC):
         """Install a skill and return all installation paths created."""
 
     @abstractmethod
-    def uninstall(self, skill_name: str, scope: SkillScope) -> bool:
-        """Uninstall a skill. Returns True if it was installed."""
+    def uninstall(
+        self,
+        skill_name: str,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.ALL,
+    ) -> list[Path]:
+        """Uninstall a skill. Returns the list of paths that were removed."""
 
     @abstractmethod
     def is_installed(self, skill_name: str, scope: SkillScope) -> bool:

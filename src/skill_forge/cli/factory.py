@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from skill_forge.application.use_cases.export_skill import ExportSkill
+from skill_forge.application.use_cases.install_skill import InstallSkill
 from skill_forge.application.use_cases.lint_skill import LintSkill
 from skill_forge.application.use_cases.pack_skill import PackSkill, UnpackSkill
 from skill_forge.application.use_cases.publish_skill import (
@@ -72,6 +73,10 @@ def build_repository(base_path: Path) -> FilesystemSkillRepository:
 
 def build_installer() -> SymlinkSkillInstaller:
     return SymlinkSkillInstaller()
+
+
+def build_install_use_case() -> InstallSkill:
+    return InstallSkill(installer=build_installer(), parser=build_parser())
 
 
 def build_lint_use_case() -> LintSkill:
