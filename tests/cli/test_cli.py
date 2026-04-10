@@ -184,8 +184,9 @@ class TestInstallUninstallCommand:
         result = runner.invoke(app, [
             "uninstall", "nonexistent-skill", "--scope", "project",
         ])
-        assert result.exit_code == 1
-        assert "was not installed" in result.stdout
+        # Idempotent — not an error if the skill was never installed
+        assert result.exit_code == 0
+        assert "nothing to remove" in result.stdout
 
     def test_install_target_agents(self, tmp_path: Path):
         skill_dir = tmp_path / "my-skill"
@@ -474,8 +475,8 @@ class TestInstallFromUrlCommand:
             def install(self, skill_path, scope, target=None):  # type: ignore[no-untyped-def]
                 return [Path(f"/fake/{skill_path.name}")]
 
-            def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
-                return False
+            def uninstall(self, skill_name, scope, target=None):  # type: ignore[no-untyped-def]
+                return []
 
             def is_installed(self, skill_name, scope):  # type: ignore[no-untyped-def]
                 return False

@@ -9,6 +9,7 @@ import typer
 from skill_forge.cli.factory import (
     build_export_use_case,
     build_install_from_url_use_case,
+    build_install_use_case,
     build_installer,
     build_lint_use_case,
     build_pack_use_case,
@@ -106,14 +107,8 @@ def lint(
         raise typer.Exit(code=exit_code)
 
 
-@app.command()
-def list_skills(
-    directory: Path = typer.Argument(
-        Path("output_skills"),
-        help="Base directory containing skills",
-    ),
-) -> None:
-    """List all skills in a directory."""
+def _do_list_skills(directory: Path) -> None:
+    """Shared implementation for list-skills and list commands."""
     repo = build_repository(directory)
     skills = repo.list_all()
 
@@ -125,6 +120,28 @@ def list_skills(
         tokens = skill.total_estimated_tokens
         marker = "✔" if tokens <= 1200 else "⚠"
         typer.echo(f"  {marker} {skill.identity} (~{tokens} tokens)")
+
+
+@app.command()
+def list_skills(
+    directory: Path = typer.Argument(
+        Path("output_skills"),
+        help="Base directory containing skills",
+    ),
+) -> None:
+    """List all skills in a directory."""
+    _do_list_skills(directory)
+
+
+@app.command(name="list")
+def list_skills_alias(
+    directory: Path = typer.Argument(
+        Path("output_skills"),
+        help="Base directory containing skills",
+    ),
+) -> None:
+    """Alias for list-skills. List all skills in a directory."""
+    _do_list_skills(directory)
 
 
 @app.command()
@@ -160,8 +177,17 @@ def install(
         "--sha256",
         help="Expected sha256 of a remote .skillpack (verified before install)",
     ),
+    no_deps: bool = typer.Option(
+        False,
+        "--no-deps",
+        help="Skip dependency resolution check",
+    ),
 ) -> None:
     """Install a skill from a local path or a remote .skillpack URL.
+
+    If the skill declares ``depends_on`` in its frontmatter, skills-forge checks
+    whether those skills are already installed and warns about any that are missing.
+    Use --no-deps to skip this check.
 
     Examples:
 
@@ -222,16 +248,15 @@ def install(
         raise typer.Exit(code=1)
 
     from skill_forge.application.use_cases.install_skill import (
-        InstallSkill,
         InstallSkillRequest,
     )
 
-    installer = build_installer()
-    local_use_case = InstallSkill(installer=installer)
+    local_use_case = build_install_use_case()
     local_request = InstallSkillRequest(
         skill_path=skill_path,
         scope=skill_scope,
         target=skill_target,
+        skip_deps=no_deps,
     )
     try:
         local_response = local_use_case.execute(local_request)
@@ -241,6 +266,13 @@ def install(
 
     for path in local_response.installed_paths:
         typer.echo(f"✔ Installed at {path} ({skill_scope.value}, {skill_target.value})")
+
+    if local_response.missing_dependencies:
+        typer.echo("")
+        typer.echo("  ⚠ Missing dependencies (install these first):")
+        for dep in local_response.missing_dependencies:
+            typer.echo(f"    · {dep}  →  skills-forge install <path-to-{dep}>")
+        typer.echo("")
 
 
 @app.command()
@@ -362,28 +394,56 @@ def export(
 def uninstall(
     skill_name: str = typer.Argument(..., help="Name of the skill to uninstall"),
     scope: str = typer.Option(
-        "global", "--scope", "-s", help="Installation scope: global or project"
+        "global", "--scope", "-s",
+        help="Installation scope: global or project",
+    ),
+    target: str = typer.Option(
+        "all", "--target", "-t",
+        help=(
+            "Which tool target(s) to remove from: "
+            "claude, gemini, codex, vscode, agents, all (default: all)"
+        ),
     ),
 ) -> None:
-    """Uninstall a previously installed skill."""
+    """Uninstall a previously installed skill.
+
+    Removes the symlink(s) created by ``install`` for the given skill name.
+    Use --target to limit removal to a specific tool; defaults to all targets.
+    Idempotent: safe to run even if the skill is not currently installed.
+    """
     from skill_forge.application.use_cases.install_skill import (
         UninstallSkill,
         UninstallSkillRequest,
     )
-    from skill_forge.domain.model import SkillScope
+    from skill_forge.domain.model import InstallTarget, SkillScope
 
     skill_scope = SkillScope.GLOBAL if scope == "global" else SkillScope.PROJECT
+
+    try:
+        install_target = InstallTarget(target)
+    except ValueError:
+        valid = ", ".join(t.value for t in InstallTarget)
+        typer.echo(f"⚠ Unknown target '{target}'. Valid values: {valid}")
+        raise typer.Exit(code=1) from None
+
     installer = build_installer()
     use_case = UninstallSkill(installer=installer)
 
-    request = UninstallSkillRequest(skill_name=skill_name, scope=skill_scope)
+    request = UninstallSkillRequest(
+        skill_name=skill_name,
+        scope=skill_scope,
+        target=install_target,
+    )
     response = use_case.execute(request)
 
     if response.was_installed:
-        typer.echo(f"✔ Uninstalled '{skill_name}' ({response.scope.value})")
+        for path in response.removed_paths:
+            typer.echo(f"✔ Removed {path}")
     else:
-        typer.echo(f"⚠ Skill '{skill_name}' was not installed ({response.scope.value})")
-        raise typer.Exit(code=1)
+        typer.echo(
+            f"⚠ '{skill_name}' was not found in any {skill_scope.value} "
+            f"target directory — nothing to remove."
+        )
 
 
 @app.command()

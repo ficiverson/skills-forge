@@ -109,8 +109,8 @@ class _StubInstaller(SkillInstaller):
         self.installed.append(skill_path)
         return [Path(f"/fake/install/{skill_path.name}")]
 
-    def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
-        return False
+    def uninstall(self, skill_name, scope, target=None):  # type: ignore[no-untyped-def]
+        return []
 
     def is_installed(self, skill_name, scope):  # type: ignore[no-untyped-def]
         return False

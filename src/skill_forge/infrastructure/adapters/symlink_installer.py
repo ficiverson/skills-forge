@@ -80,14 +80,25 @@ class SymlinkSkillInstaller(SkillInstaller):
             installed.append(link_path)
         return installed
 
-    def uninstall(self, skill_name: str, scope: SkillScope) -> bool:
-        """Remove from the default (CLAUDE) target for the given scope."""
-        target_dir = self._resolve_dirs(scope, InstallTarget.CLAUDE)[0]
-        link_path = target_dir / skill_name
-        if link_path.exists() or link_path.is_symlink():
-            link_path.unlink()
-            return True
-        return False
+    def uninstall(
+        self,
+        skill_name: str,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.ALL,
+    ) -> list[Path]:
+        """Remove symlinks for skill_name from every resolved target directory.
+
+        Returns the list of paths that were actually removed. Paths that did
+        not exist are silently skipped (idempotent behaviour).
+        """
+        dirs = self._resolve_dirs(scope, target)
+        removed: list[Path] = []
+        for target_dir in dirs:
+            link_path = target_dir / skill_name
+            if link_path.exists() or link_path.is_symlink():
+                link_path.unlink()
+                removed.append(link_path)
+        return removed
 
     def is_installed(self, skill_name: str, scope: SkillScope) -> bool:
         target_dir = self._resolve_dirs(scope, InstallTarget.CLAUDE)[0]
