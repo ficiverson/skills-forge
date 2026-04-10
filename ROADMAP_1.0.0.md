@@ -36,6 +36,9 @@
   `SKILL.md` so old CLI versions fail fast instead of silently misbehaving.
 - *NEW-004 · `skills-forge diff`* — Show what changed between the installed version
   and the registry latest before running `update`.
+- *NEW-005 · Evals as first-class skill component* — `evals/evals.json` becomes a
+  formal part of the skill spec: domain model, parser, linter, scaffold, and a new
+  `skills-forge test` command that executes evals against Claude and grades assertions.
 
 ---
 
@@ -43,19 +46,117 @@
 
 | Version | Theme | Scope |
 |---------|-------|-------|
-| v0.4.0 | **Configuration & Security Baseline** | Multi-registry config, private auth first-class, SHA256 warning, `requires-forge` |
+| v0.4.0 | **Quality & Configuration Baseline** | Evals first-class + `test` command, multi-registry config, SHA256 warning, `requires-forge` |
 | v0.5.0 | **Developer Experience** | `update`, `doctor`, `info`, `list --filter`, `init` improvements |
 | v0.6.0 | **Universal Platform Support** | 3 new export formats, `allowed-tools`, `diff` command |
-| v0.7.0 | **Registry Governance** | Yank, deprecation, `diff` tooling for publishers |
+| v0.7.0 | **Registry Governance** | Yank, deprecation, private auth config |
 | v0.8.0 | **Production Hardening** | 95% coverage, E2E tests, error quality, docs site, CI |
 | **v1.0.0** | **General Availability** | Stable API, CHANGELOG, migration guide, PyPI release |
 
 ---
 
-## v0.4.0 — Configuration & Security Baseline
+## v0.4.0 — Quality & Configuration Baseline
 
-The goal of this milestone is to make skills-forge safe and ergonomic for teams
-with multiple registries, private repos, and CI environments.
+The goal of this milestone is to formalise skill quality (evals) and make
+skills-forge safe and ergonomic for teams with multiple registries and CI environments.
+
+### NEW-005 · Evals as first-class skill component + `skills-forge test`
+**Priority:** High · **Effort:** M
+
+`evals/` is the missing fourth pillar alongside `scripts/`, `references/`, and
+`assets/`. The packer already bundles whatever it finds in the skill directory, so
+`evals/evals.json` is technically in every `.skillpack` today — but it is invisible
+to the domain model, parser, linter, and CLI. This item makes it real.
+
+**Skill directory layout after this change:**
+```
+skill-name/
+├── SKILL.md               # instructions (required)
+├── evals/
+│   ├── evals.json         # test cases with assertions (new, formal)
+│   └── fixtures/          # input files referenced by test cases
+├── scripts/               # automation scripts
+├── references/            # on-demand reference docs
+└── assets/                # templates, icons, fonts
+```
+
+**Domain model additions:**
+```python
+@dataclass(frozen=True)
+class EvalAssertion:
+    id: str
+    text: str            # human-readable criterion (used by llm-judge)
+    type: str            # "contains" | "not-contains" | "regex" | "llm-judge"
+    expected: str = ""   # pattern/string for contains/not-contains/regex
+
+@dataclass(frozen=True)
+class EvalCase:
+    id: int
+    prompt: str
+    expected_output: str        # narrative description of the ideal output
+    assertions: list[EvalAssertion] = field(default_factory=list)
+    files: list[str] = field(default_factory=list)  # fixture paths
+
+# Added to Skill:
+evals: list[EvalCase] = field(default_factory=list)
+```
+
+**`evals/evals.json` schema:**
+```json
+{
+  "skill_name": "my-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The user prompt to test",
+      "expected_output": "Narrative description of what a good response looks like",
+      "assertions": [
+        {
+          "id": "summary-present",
+          "text": "Response includes a summary section",
+          "type": "contains",
+          "expected": "## Summary"
+        },
+        {
+          "id": "quality-check",
+          "text": "Response is professional and complete",
+          "type": "llm-judge"
+        }
+      ],
+      "files": ["fixtures/sample.pdf"]
+    }
+  ]
+}
+```
+
+**New `skills-forge test` command:**
+```bash
+skills-forge test output_skills/evaluation/ai-eng-evaluator/
+# Running 3 evals for ai-eng-evaluator…
+#   eval-1 basic-submission      ✅  4/4 assertions  (12.3s)
+#   eval-2 senior-candidate      ✅  4/4 assertions  (14.1s)
+#   eval-3 edge-case-empty-repo  ⚠️  3/4 assertions  (9.8s)
+#     ✘ report-pdf-generated: "output.pdf" not found in outputs
+# Pass rate: 92%  (11/12 assertions)  exit 1
+
+skills-forge test output_skills/ --filter "evaluation"   # run evals for a category
+skills-forge test my-skill.skillpack                     # run from a packed skill
+```
+
+Acceptance criteria:
+- `evals/evals.json` is parsed into `Skill.evals`; parse errors produce clear lint issues
+- `skills-forge create` scaffolds an `evals/evals.json` with one example eval case
+- `lint` warns (not errors) when a skill has zero evals — evals are good practice, not mandatory
+- `lint` errors on malformed `evals.json` (invalid JSON, missing required fields)
+- `skills-forge test` runs each eval case using Claude CLI (`claude -p`), grades assertions,
+  prints per-eval and per-assertion results, exits non-zero if any assertion fails
+- `contains` / `not-contains` / `regex` assertions graded programmatically
+- `llm-judge` assertions graded by a second Claude call with the assertion text as criterion
+- Evals are **excluded** from all platform exports (system-prompt, gpt-json, etc.) —
+  they are quality tooling, not instructions
+- `list` and `info` show eval count: `(3 evals)` alongside token estimate
+
+---
 
 ### BKL-007 · Multi-registry config file
 **Priority:** High · **Effort:** M
@@ -443,6 +544,7 @@ work not appropriate for a GA release:
 
 | ID | Title | Milestone | Priority | Effort |
 |----|-------|-----------|----------|--------|
+| NEW-005 | Evals first-class + `skills-forge test` | v0.4.0 | High | M |
 | BKL-007 | Multi-registry config file | v0.4.0 | High | M |
 | BKL-010 | Private registry auth (config first-class) | v0.4.0 | High | S |
 | BKL-013 | SHA256 warning + E2E test | v0.4.0 | High | S |
@@ -469,6 +571,6 @@ work not appropriate for a GA release:
 | BKL-031 | v0.x → v1.0 migration guide | v1.0.0 | Medium | S |
 | BKL-032 | PyPI release and announcement | v1.0.0 | High | S |
 
-**Total in scope:** 25 items across 6 milestones  
+**Total in scope:** 26 items across 6 milestones  
 **Deferred to post-v1.0:** 4 items  
 **Effort key:** S = 1–2 days · M = 3–5 days · L = 1–2 weeks
