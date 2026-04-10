@@ -1,347 +1,389 @@
 # skills-forge — Roadmap to v1.0.0
 
-> Current stable: **v0.2.0**  
-> Target GA: **v1.0.0**  
-> Approach: six milestone releases (v0.3 → v0.8) converging on a production-grade, fully documented, 95%-covered toolkit.
+> **Current stable:** v0.3.0  
+> **Target GA:** v1.0.0  
+> **Approach:** Five milestone releases (v0.4 → v0.8) converging on a production-grade,
+> fully documented, 95%-covered toolkit with a stable public API contract.
 
 ---
 
-## Backlog Sources
+## What changed from the v0.2.0 roadmap
 
-This roadmap was compiled from:
-- Known issues and technical debt discovered during v0.2.0 assessment sessions
-- Features mentioned in the blog post as "upcoming" (OpenAPI exporter, Actions)
-- Gaps identified in the universal export research document (`docs/universal-export-research.md`)
-- Domain model fields that are parsed but not yet enforced (`depends_on`)
-- CLI commands that exist as stubs but lack full use-case implementations (`uninstall`)
-- Architecture patterns the clean-architecture design enables but hasn't yet surfaced
+**Removed from scope (post-v1.0 parking lot):**
+- *BKL-006 · Registry search* — The registry is a static GitHub repo; discovery belongs
+  to the website (`index.html`) and GitHub search, not the CLI. A client-side search
+  wrapper adds no value that `grep` on a local `index.json` doesn't already provide.
+- *BKL-009 · Registry index caching* — Only meaningful as infrastructure for search.
+  Removed with it.
+- *BKL-014 · OpenAPI/Actions exporter* — Inspecting Python type annotations to
+  auto-generate a FastAPI server is a different product (skills-forge as a deployment
+  platform). Excellent long-term vision; not right for v1.0.
+- *BKL-020 · Pre/post install hooks* — Arbitrary script execution at install time
+  requires a sandboxing model that deserves its own design phase. Security-first approach
+  means this ships only when the model is right.
+
+**Corrected scopes based on code audit:**
+- *BKL-010 · Private auth* — `GITHUB_TOKEN` env-var support already exists in
+  `http_pack_fetcher.py`. Scope reduced to first-class config file support.
+- *BKL-013 · SHA256 on install-from-url* — Verification logic already exists in
+  the use case; gap is a missing warning when `--sha256` is omitted and no E2E test.
+
+**New items added:**
+- *NEW-001 · `skills-forge info`* — Per-skill detail view (version, targets, deps).
+- *NEW-002 · `list --filter`* — Local filtering of installed skills; replaces the
+  registry search use case for the installed-skills workflow.
+- *NEW-003 · `requires-forge` frontmatter* — Minimum CLI version constraint in
+  `SKILL.md` so old CLI versions fail fast instead of silently misbehaving.
+- *NEW-004 · `skills-forge diff`* — Show what changed between the installed version
+  and the registry latest before running `update`.
 
 ---
 
 ## Milestones Overview
 
-| Version | Theme | Target |
-|---------|-------|--------|
-| v0.3.0 | **Dependency & lifecycle completeness** | Core install/uninstall/depends_on loop closes |
-| v0.4.0 | **Registry discovery** | Search, multi-registry config, list improvements |
-| v0.5.0 | **Registry governance** | Private auth, yank, deprecation, signing |
-| v0.6.0 | **Platform expansion** | OpenAPI exporter, Actions, 3 new export formats |
-| v0.7.0 | **Operational tooling** | Update command, registry management CLI, hooks |
-| v0.8.0 | **Production hardening** | 95% coverage, integration suite, docs site, error quality |
-| **v1.0.0** | **GA** | Changelog, migration guide, stable API contract |
+| Version | Theme | Scope |
+|---------|-------|-------|
+| v0.4.0 | **Configuration & Security Baseline** | Multi-registry config, private auth first-class, SHA256 warning, `requires-forge` |
+| v0.5.0 | **Developer Experience** | `update`, `doctor`, `info`, `list --filter`, `init` improvements |
+| v0.6.0 | **Universal Platform Support** | 3 new export formats, `allowed-tools`, `diff` command |
+| v0.7.0 | **Registry Governance** | Yank, deprecation, `diff` tooling for publishers |
+| v0.8.0 | **Production Hardening** | 95% coverage, E2E tests, error quality, docs site, CI |
+| **v1.0.0** | **General Availability** | Stable API, CHANGELOG, migration guide, PyPI release |
 
 ---
 
-## v0.3.0 — Dependency & Lifecycle Completeness
+## v0.4.0 — Configuration & Security Baseline
 
-### BKL-001 · Enforce `depends_on` during install
-**Priority:** High · **Effort:** M
-
-The `depends_on` field is parsed from `SKILL.md` frontmatter and stored in the domain model, but is never consulted during `install`. If Skill A declares `depends_on: python-tdd`, installing A should either auto-install `python-tdd` or warn the user it is missing.
-
-Acceptance criteria:
-- `install` resolves direct dependencies from the same registry the pack was installed from
-- `--no-deps` flag skips resolution for offline/CI scenarios
-- Circular dependency detection raises a clean error before any installation occurs
-- `lint` warns when a declared dependency is not found in any configured registry
-
-### BKL-002 · Complete `uninstall` use case
-**Priority:** High · **Effort:** S
-
-The `uninstall` command is registered in the CLI but the application-layer use case (`uninstall_skill.py`) does not exist. The command currently has no implementation behind it.
-
-Acceptance criteria:
-- Removes symlink(s) created by `install` for the specified skill and target
-- `--target all` removes from every path it was installed to
-- Warns if the skill is listed as a dependency of another installed skill
-- Idempotent: running twice on the same skill is not an error
-
-### BKL-003 · `list` alias for `list-skills`
-**Priority:** Low · **Effort:** XS
-
-The `CLAUDE.md` documentation and the blog post both refer to `skills-forge list`. The actual command is `skills-forge list-skills`. Add `list` as an alias. No behavioral change.
-
-### BKL-004 · Fix `full-featured-tester` version mismatch in public registry
-**Priority:** High · **Effort:** XS
-
-Pack filename and index say `1.0.0`; the manifest inside the `.skillpack` says `1.1.0` (introduced in commit `ffbb49a`). Re-pack with `--version 1.0.0` to restore consistency, or publish as a proper `1.1.0` entry.
-
-### BKL-005 · Commit skill-registry README and index.html
-**Priority:** Medium · **Effort:** XS
-
-`regenerate-readme.py` was run during the v0.2.0 assessment and produced correct changes (skills_count 8→9, new tester row, updated owners) that were not committed to the repository.
-
----
-
-## v0.4.0 — Registry Discovery
-
-### BKL-006 · `skills-forge search` command
-**Priority:** High · **Effort:** L
-
-Users cannot discover skills without manually browsing the registry website or cloning the index. A CLI search command closes this gap.
-
-```bash
-skills-forge search "api testing"
-skills-forge search --category evaluation
-skills-forge search --author "Fernando Souto"
-skills-forge search --tag agile
-```
-
-Acceptance criteria:
-- Searches the local index cache first; fetches remote if cache is stale (>24h)
-- Displays name, category, version, description excerpt, supported platforms
-- `--registry <url>` targets a specific registry; defaults to all configured registries
-- Results sorted by relevance (trigram match on name + description + tags)
+The goal of this milestone is to make skills-forge safe and ergonomic for teams
+with multiple registries, private repos, and CI environments.
 
 ### BKL-007 · Multi-registry config file
 **Priority:** High · **Effort:** M
 
-Today there is no way to register multiple registries. Users must pass the full URL on every command. A config file at `~/.skills-forge/config.toml` should persist named registries.
+A config file at `~/.skills-forge/config.toml` persists named registries so users
+never have to pass a full URL again.
 
 ```toml
 [registries]
 public   = "https://raw.githubusercontent.com/ficiverson/skill-registry/main"
 internal = "https://raw.githubusercontent.com/yourorg/skills/main"
-team-sre = "https://raw.githubusercontent.com/yourorg/sre-skills/main"
 
 [defaults]
-registry = "internal"
-target   = "agents"
+registry = "public"
+target   = "claude"
 ```
 
-Commands:
+New commands:
 ```bash
-skills-forge registry add internal https://raw.githubusercontent.com/yourorg/skills/main
+skills-forge registry add internal https://…
 skills-forge registry list
 skills-forge registry remove internal
 skills-forge registry set-default internal
 ```
 
-### BKL-008 · Improve `list-skills` output
-**Priority:** Low · **Effort:** S
+Acceptance criteria:
+- All commands that currently accept `-r <url>` or `-u <url>` read from config when
+  the flag is omitted
+- Config validated on load; clear errors for malformed TOML or unknown fields
+- `~/.skills-forge/config.toml` created with public registry pre-configured on first
+  `skills-forge init`
 
-Current output shows only name and token estimate. Extend to include version, category, installed targets (detected via symlink scan), and last-modified date.
+### BKL-010 · Private registry auth (first-class config)
+**Priority:** High · **Effort:** S
 
-```
-  ✔ development/python-tdd @ 1.2.0  (~180 tokens)  [claude, gemini]  2026-04-07
-  ✔ evaluation/ai-eng-evaluator @ 2.0.0  (~640 tokens)  [all]  2026-04-09
-```
-
-### BKL-009 · Registry index caching
-**Priority:** Medium · **Effort:** M
-
-Every `search` and `install-from-url` currently performs a live HTTP fetch. Add a local cache at `~/.skills-forge/cache/<registry-name>/index.json` with a configurable TTL (default 24h) and a `--refresh` flag to force a fetch.
-
----
-
-## v0.5.0 — Registry Governance
-
-### BKL-010 · Private registry authentication
-**Priority:** High · **Effort:** L
-
-Private GitHub repositories require a Personal Access Token. The `http_pack_fetcher.py` and registry publisher have no auth layer today.
+`GITHUB_TOKEN` env-var support already exists in `http_pack_fetcher.py`. This item
+promotes it to a first-class config option so teams can configure auth per-registry
+without exporting env vars in every shell.
 
 ```toml
 [registries.internal]
 url   = "https://raw.githubusercontent.com/yourorg/skills/main"
-token = "${SKILLS_FORGE_INTERNAL_TOKEN}"   # env var expansion supported
+token = "${SKILLS_FORGE_INTERNAL_TOKEN}"   # env-var expansion supported
 ```
 
 Acceptance criteria:
-- Token passed via config, environment variable, or `--token` flag
-- Token stored securely in OS keychain via `keyring` (optional dependency)
-- Auth failure produces a clear error distinguishing 401 from 404 from network error
+- Token read from config (with env-var expansion), then env var, then CLI flag
+- Token never written to log output, error messages, or stack traces
+- Auth failure distinguishes 401 from 404 from network error with actionable message
 
-### BKL-011 · Skill yank
-**Priority:** Medium · **Effort:** M
-
-A published version that contains a critical bug should be removable from discovery without destroying the binary (to preserve reproducible installs for existing users).
-
-```bash
-skills-forge yank my-skill@1.0.0 --registry internal --reason "Security: prompt injection vector"
-```
-
-Acceptance criteria:
-- Yanked versions are hidden from `search` results but the `.skillpack` file is retained
-- `install my-skill` skips yanked versions when resolving latest
-- `install my-skill@1.0.0` installs a yanked version with a visible warning
-- Registry index carries a `yanked: true` and `yank_reason` field per version entry
-
-### BKL-012 · Skill deprecation
-**Priority:** Low · **Effort:** S
-
-Soft deprecation for skills that are superseded but not harmful. Different from yank: deprecated skills still appear in search with a deprecation notice and a `replaced_by` pointer.
-
-```bash
-skills-forge deprecate my-skill@1.0.0 --replaced-by my-skill@2.0.0
-```
-
-### BKL-013 · Verify SHA256 on install-from-url
+### BKL-013 · SHA256 warning + E2E test for install-from-url
 **Priority:** High · **Effort:** S
 
-The `--sha256` flag on `install <https-url>` exists in the CLI but the verification logic in `http_pack_fetcher.py` needs an end-to-end test and a user-visible warning when the flag is omitted for a remote install.
+The `--sha256` flag exists and verification fires when provided. Two gaps remain:
 
+1. When `--sha256` is omitted for a remote install, the CLI silently proceeds.
+   A prominent warning should appear — remote installs without digest verification
+   are a supply-chain risk.
+2. No end-to-end test exercises the full fetch → verify → install path.
+
+Acceptance criteria:
+- `skills-forge install <https-url>` without `--sha256` prints a visible warning:
+  `⚠ Installing without SHA256 verification — supply the digest with --sha256 for
+  secure installs`
+- `--sha256 <wrong>` prints a clear mismatch error and exits non-zero
+- At least two E2E tests: correct digest succeeds, wrong digest fails
+
+### NEW-003 · `requires-forge` frontmatter field
+**Priority:** Medium · **Effort:** S
+
+Skills that use frontmatter fields introduced in a specific CLI version should declare
+a minimum version requirement. Without this, an old CLI silently ignores new fields.
+
+```yaml
 ---
-
-## v0.6.0 — Platform Expansion
-
-### BKL-014 · OpenAPI / Actions exporter
-**Priority:** High · **Effort:** XL
-
-The most-requested missing feature, referenced in the blog post as "upcoming." Skills contain `scripts/` — Python files with typed function signatures. The Actions exporter should:
-
-1. Inspect `scripts/*.py` and infer an OpenAPI 3.1 schema from type annotations
-2. Produce a self-hosted FastAPI server wrapping those scripts
-3. Emit the OpenAI Custom GPT `gpt-json` config with an `actions` block pointing to the server
-
-```bash
-skills-forge export ./evaluation-1.0.0.skillpack --format openapi -o ./exports/
-# Produces: evaluation-openapi.yaml + evaluation-actions-server.py
+name: my-skill
+requires-forge: ">=0.4.0"
+---
 ```
 
-This gives a Custom GPT or Bedrock Agent "hands" — it can physically call the skill's Python scripts without manual integration boilerplate.
-
-### BKL-015 · Mistral Agents export format
-**Priority:** Medium · **Effort:** M
-
-Mistral Agents use a `system` prompt + `tools` JSON array. The research document (`docs/universal-export-research.md`) has the full spec. Adds `--format mistral-json` to the export command.
-
-### BKL-016 · Vertex AI / Gemini API export format
-**Priority:** Medium · **Effort:** S
-
-Gemini API (Vertex AI) uses a `system_instruction` field. Straightforward adapter, adds `--format gemini-api`.
-
-### BKL-017 · OpenAI Assistants API export format
-**Priority:** Low · **Effort:** S
-
-The Assistants API uses an `instructions` parameter + optional vector store file upload. Adds `--format openai-assistants`. Supplement files are bundled as knowledge-base attachments.
-
-### BKL-018 · `allowed-tools` frontmatter support
-**Priority:** Medium · **Effort:** S
-
-The agentskills.io spec defines an `allowed-tools` frontmatter field that restricts which agent tools are active when a skill is loaded. The parser ignores it today. It should be stored in the domain model and written through to the installed `SKILL.md`.
+Acceptance criteria:
+- Parser stores the constraint in the domain model (`Skill.requires_forge: str | None`)
+- `install` checks the running CLI version and exits with a clear upgrade message if
+  the constraint is not satisfied
+- `lint` warns when `requires-forge` is absent on a skill that uses fields added after
+  v0.3.0 (`depends_on`, `allowed-tools`)
 
 ---
 
-## v0.7.0 — Operational Tooling
+## v0.5.0 — Developer Experience
+
+The commands that developers run every day: checking what's installed, keeping skills
+up-to-date, diagnosing problems.
 
 ### BKL-019 · `skills-forge update` command
 **Priority:** High · **Effort:** L
 
-Users have no way to update installed skills to their latest version without manually re-running `install`.
-
 ```bash
-skills-forge update                    # Update all installed skills
-skills-forge update python-tdd         # Update a specific skill
-skills-forge update --dry-run          # Show what would be updated
-skills-forge update --registry internal # Update from a specific registry
+skills-forge update                        # update all installed skills
+skills-forge update python-tdd             # update one skill
+skills-forge update --dry-run              # show what would change
+skills-forge update --registry internal    # target a specific registry
 ```
 
 Acceptance criteria:
-- Compares installed version against registry latest
-- Respects yanked and deprecated versions
+- Compares installed version against registry latest using semantic versioning
+- Skips yanked and deprecated versions
 - `--pin <version>` prevents a skill from being auto-updated
-- Prints a diff of changed fields (description, version, platforms) before updating
-
-### BKL-020 · Pre/post install hooks
-**Priority:** Medium · **Effort:** M
-
-Allow skill authors to ship shell scripts that run before/after installation. Hooks live in the `scripts/` directory with reserved names:
-
-```
-scripts/pre-install.sh
-scripts/post-install.sh
-scripts/pre-uninstall.sh
-```
-
-Acceptance criteria:
-- Hooks are opt-in: skills without hook scripts are unaffected
-- Hooks run in a sandboxed subprocess with no network access by default
-- User is shown hook script content and prompted for confirmation before execution
-- `--no-hooks` flag skips all hooks
+- Prints what changed (description, version, platforms) before updating, then prompts
+  for confirmation unless `--yes` is passed
+- Respects `requires-forge` constraints on the candidate version
 
 ### BKL-021 · `skills-forge doctor` command
 **Priority:** Medium · **Effort:** M
 
-Diagnoses the local skills environment: broken symlinks, version mismatches between installed skills and registry, dependency resolution issues, missing tool installations.
-
 ```bash
 skills-forge doctor
-# ✔ claude target: 4 skills installed, 0 broken symlinks
-# ⚠ python-tdd@1.0.0 — registry has 1.2.0 available
+# ✔ claude target:  4 skills installed, 0 broken symlinks
+# ✔ agents target:  4 skills installed, 0 broken symlinks
+# ⚠ python-tdd@1.0.0 — registry has 1.2.0 available (run: skills-forge update python-tdd)
 # ✘ ai-eng-evaluator: dependency 'pdf-tools@1.0.0' not installed
+# ✘ .claude/skills/broken-skill → target does not exist (dangling symlink)
 ```
+
+Acceptance criteria:
+- Scans all target directories for broken symlinks
+- Checks `depends_on` resolution for every installed skill
+- Compares installed versions against registry and flags available updates
+- Exits non-zero if any ✘ items found (useful as a CI health check)
+
+### NEW-001 · `skills-forge info <skill-name>` command
+**Priority:** Medium · **Effort:** S
+
+Show full details for a single installed or registry skill without parsing the entire
+index.
+
+```bash
+skills-forge info ai-eng-evaluator
+#   name:        ai-eng-evaluator
+#   version:     1.0.0  (latest)
+#   category:    evaluation
+#   installed:   claude (global), agents (global)
+#   depends_on:  (none)
+#   platforms:   claude, gemini, codex, vscode, agents
+#   description: Evaluates AI engineering submissions …
+#   registry:    public
+```
+
+Acceptance criteria:
+- Works for installed skills (reads from symlink target) and registry skills (reads
+  from `index.json`)
+- Shows installed targets detected by symlink scan
+- Flags when installed version differs from registry latest
+
+### BKL-008 · Improve `list` output + `--filter` flag
+**Priority:** Low · **Effort:** S
+
+Current output: name + token estimate. Extended output:
+
+```
+  ✔ evaluation/ai-eng-evaluator  @ 1.0.0  (~640 tokens)  [claude, agents]  2026-04-09
+  ✔ development/python-tdd       @ 1.2.0  (~180 tokens)  [claude]          2026-04-07
+```
+
+New filter flag:
+```bash
+skills-forge list --filter "api"       # name or description contains "api"
+skills-forge list --tag testing        # skills with this tag
+skills-forge list --category dev       # skills in this category
+```
+
+Replaces the removed registry-search use case for the installed-skills workflow.
 
 ### BKL-022 · `skills-forge init` improvements
 **Priority:** Low · **Effort:** S
 
-The current `init` command creates a bare workspace. Extend it to:
-- Detect existing tool installations (Claude Code, Gemini CLI) and configure targets automatically
-- Write a starter `~/.skills-forge/config.toml` with the public registry pre-configured
-- Offer to install a starter skill from the public registry
+- Detect installed tools (Claude Code, Gemini CLI) and pre-configure default targets
+- Write a starter `~/.skills-forge/config.toml` with the public registry
+- Offer to install a starter skill from the public registry as a "hello world"
+
+---
+
+## v0.6.0 — Universal Platform Support
+
+Complete the export matrix and honour the full agentskills.io spec.
+
+### BKL-015 · Mistral Agents export format
+**Priority:** Medium · **Effort:** M
+
+Mistral Agents use a `system` prompt + `tools` JSON array. Adds `--format mistral-json`
+to the export command. Reference: `docs/universal-export-research.md`.
+
+### BKL-016 · Vertex AI / Gemini API export format
+**Priority:** Medium · **Effort:** S
+
+Gemini API uses a `system_instruction` field. Adds `--format gemini-api`.
+
+### BKL-017 · OpenAI Assistants API export format
+**Priority:** Low · **Effort:** S
+
+The Assistants API uses an `instructions` parameter + optional knowledge-base file
+upload. Adds `--format openai-assistants`.
+
+### BKL-018 · `allowed-tools` frontmatter support
+**Priority:** Medium · **Effort:** S
+
+The agentskills.io spec defines `allowed-tools` to restrict which agent tools are
+active when a skill is loaded. Parser currently ignores it. Store in domain model,
+write through to installed `SKILL.md`, and include in all export formats that support
+a tool-restriction concept.
+
+### NEW-004 · `skills-forge diff <skill-name>` command
+**Priority:** Low · **Effort:** S
+
+```bash
+skills-forge diff python-tdd
+# python-tdd: installed 1.0.0 → registry 1.2.0
+# --- description (1.0.0)
+# +++ description (1.2.0)
+#  Use for TDD with Python.
+# +Triggers: pytest, test-first, red-green-refactor, coverage.
+```
+
+Shows a human-readable diff of SKILL.md frontmatter and description between the
+installed version and the registry latest. Pairs with `update` to let developers
+review changes before accepting them.
+
+---
+
+## v0.7.0 — Registry Governance
+
+Tools for registry maintainers to manage the health of the published skill catalogue.
+
+### BKL-011 · Skill yank
+**Priority:** Medium · **Effort:** M
+
+A published version containing a critical bug should be removable from discovery
+without destroying the binary (to preserve reproducible installs).
+
+```bash
+skills-forge yank my-skill@1.0.0 \
+  --registry internal \
+  --reason "Security: prompt injection vector"
+```
+
+Acceptance criteria:
+- Yanked versions hidden from `list --remote` and `update` resolution
+- `install my-skill` skips yanked versions when resolving latest
+- `install my-skill@1.0.0` installs a yanked version with a prominent warning
+- `index.json` carries `yanked: true` and `yank_reason` per version entry
+- `doctor` flags installed skills that are yanked
+
+### BKL-012 · Skill deprecation
+**Priority:** Low · **Effort:** S
+
+Soft deprecation for skills that are superseded but not harmful. Deprecated skills
+still appear in listings with a notice and a `replaced_by` pointer.
+
+```bash
+skills-forge deprecate my-skill@1.x \
+  --replaced-by my-skill@2.0.0 \
+  --message "Replaced by my-skill v2 which supports all platforms"
+```
 
 ---
 
 ## v0.8.0 — Production Hardening
 
+The quality bar that justifies a stable `v1.0.0` label.
+
 ### BKL-023 · Reach 95% test coverage
 **Priority:** High · **Effort:** L
 
-Current coverage: 92% (147 missed statements across 1906). Identify uncovered paths — primarily error branches, edge cases in the codec, and the `http_pack_fetcher.py` network layer. Write targeted tests to close the gap.
+Current coverage: 92%. Key modules below target:
+- `export_skill.py` — error branches
+- `install_skill.py` — URL install path
+- `http_pack_fetcher.py` — network error handling
+- `registry_index_codec.py` — codec edge cases and error paths
+- `lint_service.py` — audit whether it is exercised or delete it *(folds BKL-027)*
 
-Key modules below 95% to audit:
-- `export_skill.py` (95% — close)
-- `install_skill.py`
-- `http_pack_fetcher.py`
-- `registry_index_codec.py` error paths
+Acceptance criteria:
+- `pytest --cov=skill_forge --cov-fail-under=95` passes in CI
+- All new code added in v0.4–v0.7 covered to the same bar
 
 ### BKL-024 · End-to-end integration test suite
 **Priority:** High · **Effort:** L
 
-The current suite is unit-only. Add an integration layer that exercises the full pipeline against a real filesystem and a local mock registry (no network):
+The current suite is unit-only with stub adapters. Add an integration layer that
+exercises the full pipeline against a real filesystem and a local mock HTTP registry
+(no network):
 
-1. `create` → `lint` → `pack` → `publish` to temp registry → `search` → `install` → `export` → `uninstall`
-2. Install from URL (mock HTTP server)
-3. Dependency resolution with a multi-skill dependency graph
-4. Yank + update interactions
+1. `create → lint → pack → publish` to temp registry → `info` → `install` → `export`
+   (all formats) → `uninstall`
+2. `install-from-url` with correct SHA256 passes; wrong SHA256 fails
+3. Dependency resolution with a two-skill dependency graph
+4. `update` detects newer version, updates, `diff` shows the change
+5. `yank` hides a version; `update` skips it
 
 ### BKL-025 · Error message quality audit
 **Priority:** Medium · **Effort:** M
 
-Conduct a systematic review of all `ValueError`, `FileNotFoundError`, and `typer.Exit` calls. Every user-facing error should:
-- State what went wrong in plain English (no tracebacks for user errors)
+Systematically review all `ValueError`, `FileNotFoundError`, and `typer.Exit` call
+sites. Every user-facing error must:
+- State what went wrong in plain English (no raw tracebacks for user errors)
 - Say what the user should do next
-- Include the relevant path/version/flag in the message
-- Have a consistent format across the CLI
+- Include the relevant path, version, or flag in the message
+- Follow a consistent format: `✘ <what went wrong> — <how to fix it>`
 
 ### BKL-026 · Documentation site
 **Priority:** High · **Effort:** L
 
-The `docs/` directory has three guides (`getting-started.md`, `clean-principles-for-skills.md`, `sharing-via-github.md`, `universal-export-research.md`) but no published site. Publish to GitHub Pages using MkDocs Material or Docusaurus.
-
-Required pages:
-- Getting started (quickstart in <5 minutes)
-- CLI reference (all commands, flags, examples)
-- SKILL.md format reference
+Publish `docs/` to GitHub Pages (MkDocs Material). Required pages:
+- Getting started (working in < 5 minutes)
+- CLI reference (all commands, flags, exit codes, examples)
+- `SKILL.md` format reference (all frontmatter fields, their types, defaults)
 - Registry setup guide (public + private)
-- Export formats guide (all 5 + upcoming OpenAPI)
+- Export formats guide (all formats, when to use each)
 - Migration guide (v0.x → v1.0)
 - Contributing guide
-
-### BKL-027 · `lint_service.py` audit
-**Priority:** Low · **Effort:** S
-
-A `lint_service.py` file was noted during the v0.2.0 assessment as needing either proper test coverage or removal. Determine whether it is used, tested, and correct — or delete it.
 
 ### BKL-028 · GitHub Actions CI pipeline hardening
 **Priority:** Medium · **Effort:** M
 
-The CI pipeline exists (PyPI publishing was done in the v0.1.x history). Extend it to:
-- Run ruff + mypy + pytest on every PR
+- Run ruff + mypy + pytest on every PR against Python 3.10, 3.11, and 3.12
 - Enforce 95% coverage as a required check
-- Build and test on Python 3.10, 3.11, and 3.12
-- Run the integration test suite against a mock registry
-- Auto-publish to PyPI on tagged releases via OIDC (revert the API token workaround from v0.1.x)
+- Run integration test suite against a mock registry (no network access)
+- Auto-publish to PyPI on tagged releases via OIDC trusted publishing
+- Release preflight skill runs as a pre-release gate check
 
 ---
 
@@ -350,25 +392,50 @@ The CI pipeline exists (PyPI publishing was done in the v0.1.x history). Extend 
 ### BKL-029 · Stable public API contract
 **Priority:** High · **Effort:** M
 
-Define and document the public Python API surface (use cases, domain model, ports). Mark internal implementation details with `_` prefixes. Commit to semantic versioning from this point forward: no breaking changes without a major version bump.
+Define and document the public Python API surface: use cases, domain model, port
+interfaces. Mark internal implementation details with `_` prefixes. Commit to
+semantic versioning from this point: no breaking changes without a major bump.
+
+The public surface is:
+- All classes in `skill_forge/domain/model.py`
+- All use case request/response dataclasses
+- All port interfaces in `skill_forge/domain/ports.py`
+- The `skills-forge` CLI (all commands and flags documented here)
 
 ### BKL-030 · CHANGELOG.md
 **Priority:** Medium · **Effort:** S
 
-Compile a full changelog covering all versions from v0.1.0 through v1.0.0, following the [Keep a Changelog](https://keepachangelog.com) format. Link from README and docs site.
+Full changelog from v0.1.0 through v1.0.0 following the
+[Keep a Changelog](https://keepachangelog.com) format. Linked from README and docs.
 
 ### BKL-031 · v0.x → v1.0 migration guide
 **Priority:** Medium · **Effort:** S
 
-Document every breaking change introduced across v0.2 through v0.9 with before/after examples and automated migration hints where possible. Key breaking changes to document:
-- `export` now requires `.skillpack` input (introduced v0.2.0)
+Document every breaking change from v0.2 through v0.9 with before/after examples.
+Key changes to document:
+- `export` now requires `.skillpack` input (v0.2.0)
 - Multi-registry config replaces bare URL flags (v0.4.0)
-- Hook execution model (v0.7.0)
+- `requires-forge` constraint enforcement (v0.4.0)
 
 ### BKL-032 · PyPI release and announcement
 **Priority:** High · **Effort:** S
 
-Tag `v1.0.0`, publish to PyPI via OIDC, post release notes to GitHub Releases, and publish the LinkedIn + blog post campaign.
+Tag `v1.0.0`, publish to PyPI via OIDC trusted publishing, post release notes to
+GitHub Releases, publish the LinkedIn + blog post campaign.
+
+---
+
+## Post-v1.0 Parking Lot
+
+Items deferred because they represent significant scope expansion or require design
+work not appropriate for a GA release:
+
+| Item | Why deferred |
+|------|-------------|
+| OpenAPI/Actions exporter | Turns skills-forge into a deployment platform; different product surface |
+| Pre/post install hooks | Arbitrary script execution requires a sandboxing model to be designed first |
+| Registry search CLI | Discovery belongs to website/clients; the static registry model is intentional |
+| Registry index caching | Was only meaningful as search infrastructure |
 
 ---
 
@@ -376,37 +443,32 @@ Tag `v1.0.0`, publish to PyPI via OIDC, post release notes to GitHub Releases, a
 
 | ID | Title | Milestone | Priority | Effort |
 |----|-------|-----------|----------|--------|
-| BKL-001 | Enforce `depends_on` during install | v0.3.0 | High | M |
-| BKL-002 | Complete `uninstall` use case | v0.3.0 | High | S |
-| BKL-003 | `list` alias for `list-skills` | v0.3.0 | Low | XS |
-| BKL-004 | Fix full-featured-tester version mismatch | v0.3.0 | High | XS |
-| BKL-005 | Commit skill-registry README and index.html | v0.3.0 | Medium | XS |
-| BKL-006 | `skills-forge search` command | v0.4.0 | High | L |
 | BKL-007 | Multi-registry config file | v0.4.0 | High | M |
-| BKL-008 | Improve `list-skills` output | v0.4.0 | Low | S |
-| BKL-009 | Registry index caching | v0.4.0 | Medium | M |
-| BKL-010 | Private registry authentication | v0.5.0 | High | L |
-| BKL-011 | Skill yank | v0.5.0 | Medium | M |
-| BKL-012 | Skill deprecation | v0.5.0 | Low | S |
-| BKL-013 | Verify SHA256 on install-from-url | v0.5.0 | High | S |
-| BKL-014 | OpenAPI / Actions exporter | v0.6.0 | High | XL |
+| BKL-010 | Private registry auth (config first-class) | v0.4.0 | High | S |
+| BKL-013 | SHA256 warning + E2E test | v0.4.0 | High | S |
+| NEW-003 | `requires-forge` frontmatter field | v0.4.0 | Medium | S |
+| BKL-019 | `skills-forge update` command | v0.5.0 | High | L |
+| BKL-021 | `skills-forge doctor` command | v0.5.0 | Medium | M |
+| NEW-001 | `skills-forge info` command | v0.5.0 | Medium | S |
+| BKL-008 | Improve `list` output + `--filter` | v0.5.0 | Low | S |
+| BKL-022 | `skills-forge init` improvements | v0.5.0 | Low | S |
 | BKL-015 | Mistral Agents export format | v0.6.0 | Medium | M |
 | BKL-016 | Vertex AI / Gemini API export format | v0.6.0 | Medium | S |
 | BKL-017 | OpenAI Assistants API export format | v0.6.0 | Low | S |
 | BKL-018 | `allowed-tools` frontmatter support | v0.6.0 | Medium | S |
-| BKL-019 | `skills-forge update` command | v0.7.0 | High | L |
-| BKL-020 | Pre/post install hooks | v0.7.0 | Medium | M |
-| BKL-021 | `skills-forge doctor` command | v0.7.0 | Medium | M |
-| BKL-022 | `skills-forge init` improvements | v0.7.0 | Low | S |
-| BKL-023 | Reach 95% test coverage | v0.8.0 | High | L |
+| NEW-004 | `skills-forge diff` command | v0.6.0 | Low | S |
+| BKL-011 | Skill yank | v0.7.0 | Medium | M |
+| BKL-012 | Skill deprecation | v0.7.0 | Low | S |
+| BKL-023 | Reach 95% test coverage (incl. lint_service audit) | v0.8.0 | High | L |
 | BKL-024 | End-to-end integration test suite | v0.8.0 | High | L |
 | BKL-025 | Error message quality audit | v0.8.0 | Medium | M |
 | BKL-026 | Documentation site | v0.8.0 | High | L |
-| BKL-027 | `lint_service.py` audit | v0.8.0 | Low | S |
 | BKL-028 | GitHub Actions CI pipeline hardening | v0.8.0 | Medium | M |
 | BKL-029 | Stable public API contract | v1.0.0 | High | M |
 | BKL-030 | CHANGELOG.md | v1.0.0 | Medium | S |
 | BKL-031 | v0.x → v1.0 migration guide | v1.0.0 | Medium | S |
 | BKL-032 | PyPI release and announcement | v1.0.0 | High | S |
 
-**Effort key:** XS = hours · S = 1–2 days · M = 3–5 days · L = 1–2 weeks · XL = 2–4 weeks
+**Total in scope:** 25 items across 6 milestones  
+**Deferred to post-v1.0:** 4 items  
+**Effort key:** S = 1–2 days · M = 3–5 days · L = 1–2 weeks
