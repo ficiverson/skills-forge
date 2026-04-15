@@ -48,11 +48,13 @@ class TestLintReport:
 
     def test_report_with_error_is_not_clean(self):
         report = LintReport(skill_name="test")
-        report.add(LintIssue(
-            rule="test-rule",
-            message="something wrong",
-            severity=Severity.ERROR,
-        ))
+        report.add(
+            LintIssue(
+                rule="test-rule",
+                message="something wrong",
+                severity=Severity.ERROR,
+            )
+        )
         assert not report.is_clean
         assert report.has_errors
         assert report.error_count == 1

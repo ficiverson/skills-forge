@@ -80,6 +80,10 @@ class RegistryIndexCodec:
             out["owner"] = owner_payload
         if s.deprecated:
             out["deprecated"] = True
+        if s.replaced_by:
+            out["replaced_by"] = s.replaced_by
+        if s.deprecation_message:
+            out["deprecation_message"] = s.deprecation_message
         out["versions"] = [self._encode_version(v) for v in s.versions]
         return out
 
@@ -97,6 +101,8 @@ class RegistryIndexCodec:
             out["release_notes"] = v.release_notes
         if v.yanked:
             out["yanked"] = True
+        if v.yank_reason:
+            out["yank_reason"] = v.yank_reason
         if v.export_formats:
             out["export_formats"] = list(v.export_formats)
         return out
@@ -125,6 +131,8 @@ class RegistryIndexCodec:
             platforms=tuple(str(p) for p in platforms_raw),
             owner=owner,
             deprecated=bool(s.get("deprecated", False)),
+            replaced_by=str(s.get("replaced_by", "")),
+            deprecation_message=str(s.get("deprecation_message", "")),
         )
 
     def _decode_version(self, v: dict[str, Any]) -> IndexedVersion:
@@ -137,5 +145,6 @@ class RegistryIndexCodec:
             size_bytes=int(v.get("size_bytes", 0) or 0),
             release_notes=str(v.get("release_notes", "")),
             yanked=bool(v.get("yanked", False)),
+            yank_reason=str(v.get("yank_reason", "")),
             export_formats=tuple(str(f) for f in export_formats_raw),
         )

@@ -27,8 +27,8 @@ def minimal_skill() -> Skill:
         identity=SkillIdentity(name="python-tdd", category="development"),
         description=Description(
             text="Use this skill when writing Python code with TDD. "
-                 "Triggers on: test-first, red-green-refactor, pytest, "
-                 "unit testing .py files."
+            "Triggers on: test-first, red-green-refactor, pytest, "
+            "unit testing .py files."
         ),
         starter_character=StarterCharacter(emoji="🔴"),
         content=SkillContent(
@@ -50,8 +50,8 @@ def bloated_skill() -> Skill:
         identity=SkillIdentity(name="do-everything", category="misc"),
         description=Description(
             text="This skill helps with any task and handles everything "
-                 "related to various things in any situation. It manages "
-                 "stuff and assists with all tasks whenever needed. " * 5
+            "related to various things in any situation. It manages "
+            "stuff and assists with all tasks whenever needed. " * 5
         ),
         content=SkillContent(
             principles=[],
@@ -74,8 +74,8 @@ def skill_with_references() -> Skill:
         identity=SkillIdentity(name="api-reviewer", category="development"),
         description=Description(
             text="Review REST API designs for consistency, naming conventions, "
-                 "and HTTP semantics. Triggers on: API review, endpoint design, "
-                 "REST conventions, OpenAPI .yaml .json."
+            "and HTTP semantics. Triggers on: API review, endpoint design, "
+            "REST conventions, OpenAPI .yaml .json."
         ),
         starter_character=StarterCharacter(emoji="🔍"),
         content=SkillContent(
@@ -107,8 +107,8 @@ def full_featured_skill() -> Skill:
         identity=SkillIdentity(name="eval-runner", category="evaluation"),
         description=Description(
             text="Evaluate code challenge submissions and generate PDF reports. "
-                 "Triggers on: evaluate, score candidate, grade challenge, "
-                 "review submission, competency matrix."
+            "Triggers on: evaluate, score candidate, grade challenge, "
+            "review submission, competency matrix."
         ),
         starter_character=StarterCharacter(emoji="⚖️"),
         content=SkillContent(
@@ -119,7 +119,7 @@ def full_featured_skill() -> Skill:
             instructions="Score competencies, audit practices, generate report.",
             constraints=["Do not hallucinate evidence"],
             hints="If the repo has no tests, score code_quality <= 4.\n"
-                  "If AI workflow tooling is detected, apply inflation rules.",
+            "If AI workflow tooling is detected, apply inflation rules.",
         ),
         references=[
             Reference(

@@ -17,7 +17,8 @@ class TestLintWithFilesystem:
         skill_dir = tmp_path / "test-skill"
         skill_dir.mkdir()
         skill_md = skill_dir / "SKILL.md"
-        skill_md.write_text("""\
+        skill_md.write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -33,7 +34,9 @@ STARTER_CHARACTER = 🧪
 ## References
 
 - [Missing guide](references/guide.md)
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         lint = LintSkill(parser=MarkdownSkillParser())
         request = LintSkillRequest(path=skill_md)
@@ -50,7 +53,8 @@ STARTER_CHARACTER = 🧪
         (skill_dir / "references" / "guide.md").write_text("# Guide\n")
 
         skill_md = skill_dir / "SKILL.md"
-        skill_md.write_text("""\
+        skill_md.write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -66,7 +70,9 @@ STARTER_CHARACTER = 🧪
 ## References
 
 - [Guide](references/guide.md)
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         lint = LintSkill(parser=MarkdownSkillParser())
         request = LintSkillRequest(path=skill_md)
@@ -79,7 +85,8 @@ STARTER_CHARACTER = 🧪
         skill_dir = tmp_path / "test-skill"
         skill_dir.mkdir()
         skill_md = skill_dir / "SKILL.md"
-        skill_md.write_text("""\
+        skill_md.write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -93,7 +100,9 @@ description: |
 ## Examples
 
 - [Sample output](examples/output.json)
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         lint = LintSkill(parser=MarkdownSkillParser())
         request = LintSkillRequest(path=skill_md)
@@ -103,7 +112,9 @@ description: |
         assert len(broken) == 1
 
     def test_full_featured_skill_roundtrip_lint(
-        self, tmp_path: Path, full_featured_skill: Skill,
+        self,
+        tmp_path: Path,
+        full_featured_skill: Skill,
     ):
         """Render a full-featured skill, write to disk, create all files, lint clean."""
         renderer = MarkdownSkillRenderer()
@@ -129,8 +140,5 @@ description: |
         response = lint.execute(request)
 
         # No broken links
-        broken = [
-            i for i in response.report.issues
-            if i.rule.startswith("broken-")
-        ]
+        broken = [i for i in response.report.issues if i.rule.startswith("broken-")]
         assert len(broken) == 0, f"Broken links found: {broken}"

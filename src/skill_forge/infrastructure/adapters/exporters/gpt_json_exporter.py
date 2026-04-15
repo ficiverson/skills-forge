@@ -48,9 +48,7 @@ class GptJsonExporter(SkillExporter):
             "name": skill.identity.name,
             "description": skill.description.text.strip(),
             "instructions": instructions,
-            "knowledge_files": [
-                str(ref.path) for ref in skill.references
-            ],
+            "knowledge_files": [str(ref.path) for ref in skill.references],
             "capabilities": {
                 "code_interpreter": False,
                 "browsing": False,

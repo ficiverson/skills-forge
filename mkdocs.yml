@@ -1,0 +1,83 @@
+site_name: skills-forge
+site_description: A clean-architecture toolkit for crafting, linting, packing, and sharing Claude Code skills
+site_author: Fernando Souto
+site_url: https://ficiverson.github.io/skills-forge/
+repo_url: https://github.com/ficiverson/skills-forge
+repo_name: ficiverson/skills-forge
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.annotate
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+    - Commands: guide/commands.md
+    - Skill Anatomy: guide/skill-anatomy.md
+    - Export Formats: guide/export-formats.md
+    - Registry & Publishing: guide/registry-publishing.md
+    - Install Targets: guide/install-targets.md
+  - Design:
+    - Clean Architecture: design/clean-principles.md
+    - Universal Export: design/universal-export.md
+  - Sharing Skills: sharing-via-github.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ficiverson/skills-forge
+
+copyright: Copyright &copy; 2024-2026 Fernando Souto

@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "model": "gemini-2.0-flash",
+  "system_instruction": {
+    "parts": [
+      {
+        "text": "You are a specialist assistant for test-skill.\nUse this skill when testing test-skill. Triggers on: test, validate, quality.\n\n---\n\nSTARTER_CHARACTER = 🧪\n\n## Instructions\n\nRun the tests for test-skill.\n\n## Constraints\n\n- Always verify results."
+      }
+    ]
+  },
+  "generation_config": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "max_output_tokens": 8192
+  },
+  "metadata": {
+    "source": "skills-forge",
+    "version": "0.1.0",
+    "category": "test-skill",
+    "name": "test-skill",
+    "description": "Use this skill when testing test-skill. Triggers on: test, validate, quality."
+  }
+}

@@ -274,9 +274,7 @@ class TestReadManifest:
                         "author": "",
                         "created_at": "",
                         "description": "",
-                        "skills": [
-                            {"category": "dev", "name": "x", "version": "0.1.0"}
-                        ],
+                        "skills": [{"category": "dev", "name": "x", "version": "0.1.0"}],
                     }
                 ),
             )

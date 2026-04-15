@@ -13,35 +13,57 @@ runner = CliRunner()
 
 class TestCreateCommand:
     def test_create_new_skill(self, tmp_path: Path):
-        result = runner.invoke(app, [
-            "create",
-            "--name", "test-skill",
-            "--category", "testing",
-            "--description", "A test skill for testing. Triggers on: test, validate.",
-            "--emoji", "🧪",
-            "--output", str(tmp_path),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "create",
+                "--name",
+                "test-skill",
+                "--category",
+                "testing",
+                "--description",
+                "A test skill for testing. Triggers on: test, validate.",
+                "--emoji",
+                "🧪",
+                "--output",
+                str(tmp_path),
+            ],
+        )
         assert result.exit_code == 0
         assert "Created skill" in result.stdout
         assert (tmp_path / "testing" / "test-skill" / "SKILL.md").exists()
 
     def test_create_duplicate_fails(self, tmp_path: Path):
         # First create
-        runner.invoke(app, [
-            "create",
-            "--name", "test-skill",
-            "--category", "testing",
-            "--description", "A test skill. Triggers on: test.",
-            "--output", str(tmp_path),
-        ])
+        runner.invoke(
+            app,
+            [
+                "create",
+                "--name",
+                "test-skill",
+                "--category",
+                "testing",
+                "--description",
+                "A test skill. Triggers on: test.",
+                "--output",
+                str(tmp_path),
+            ],
+        )
         # Second create should fail
-        result = runner.invoke(app, [
-            "create",
-            "--name", "test-skill",
-            "--category", "testing",
-            "--description", "A test skill. Triggers on: test.",
-            "--output", str(tmp_path),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "create",
+                "--name",
+                "test-skill",
+                "--category",
+                "testing",
+                "--description",
+                "A test skill. Triggers on: test.",
+                "--output",
+                str(tmp_path),
+            ],
+        )
         assert result.exit_code == 1
         assert "already exists" in result.stdout
 
@@ -50,7 +72,8 @@ class TestLintCommand:
     def test_lint_clean_skill(self, tmp_path: Path):
         skill_dir = tmp_path / "testing" / "test-skill"
         skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text("""\
+        (skill_dir / "SKILL.md").write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -73,7 +96,9 @@ Run the test suite.
 ## Constraints
 
 - Never skip tests
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         result = runner.invoke(app, ["lint", str(skill_dir / "SKILL.md")])
         assert result.exit_code == 0
@@ -82,7 +107,8 @@ Run the test suite.
     def test_lint_with_broken_reference(self, tmp_path: Path):
         skill_dir = tmp_path / "test-skill"
         skill_dir.mkdir()
-        (skill_dir / "SKILL.md").write_text("""\
+        (skill_dir / "SKILL.md").write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -96,7 +122,9 @@ description: |
 ## References
 
 - [Missing file](references/missing.md)
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         result = runner.invoke(app, ["lint", str(skill_dir / "SKILL.md")])
         assert result.exit_code == 1
@@ -106,7 +134,8 @@ description: |
         for name in ["skill-a", "skill-b"]:
             d = tmp_path / name
             d.mkdir()
-            (d / "SKILL.md").write_text(f"""\
+            (d / "SKILL.md").write_text(
+                f"""\
 ---
 name: {name}
 description: |
@@ -116,7 +145,9 @@ description: |
 ## Principles
 
 - Be thorough
-""", encoding="utf-8")
+""",
+                encoding="utf-8",
+            )
 
         result = runner.invoke(app, ["lint", str(tmp_path)])
         assert result.exit_code == 0
@@ -138,7 +169,8 @@ class TestListCommand:
     def test_list_skills(self, tmp_path: Path):
         skill_dir = tmp_path / "testing" / "test-skill"
         skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text("""\
+        (skill_dir / "SKILL.md").write_text(
+            """\
 ---
 name: test-skill
 description: |
@@ -148,7 +180,9 @@ description: |
 ## Principles
 
 - Be thorough
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
 
         result = runner.invoke(app, ["list-skills", str(tmp_path)])
         assert result.exit_code == 0
@@ -171,9 +205,15 @@ class TestInstallUninstallCommand:
         # Test that the command at least accepts the arguments.
         # In sandboxed environments symlink creation may be blocked,
         # so we accept either success or a PermissionError.
-        result = runner.invoke(app, [
-            "install", str(skill_dir), "--scope", "project",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(skill_dir),
+                "--scope",
+                "project",
+            ],
+        )
         if result.exit_code == 0:
             assert "Installed" in result.stdout
         else:
@@ -181,21 +221,34 @@ class TestInstallUninstallCommand:
             assert result.exception is not None
 
     def test_uninstall_missing_skill(self, tmp_path: Path):
-        result = runner.invoke(app, [
-            "uninstall", "nonexistent-skill", "--scope", "project",
-        ])
-        assert result.exit_code == 1
-        assert "was not installed" in result.stdout
+        result = runner.invoke(
+            app,
+            [
+                "uninstall",
+                "nonexistent-skill",
+                "--scope",
+                "project",
+            ],
+        )
+        # Idempotent — not an error if the skill was never installed
+        assert result.exit_code == 0
+        assert "nothing to remove" in result.stdout
 
     def test_install_target_agents(self, tmp_path: Path):
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
-        result = runner.invoke(app, [
-            "install", str(skill_dir),
-            "--scope", "project",
-            "--target", "agents",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(skill_dir),
+                "--scope",
+                "project",
+                "--target",
+                "agents",
+            ],
+        )
         if result.exit_code == 0:
             assert "agents" in result.stdout
             assert ".agents/skills" in result.stdout
@@ -206,9 +259,15 @@ class TestInstallUninstallCommand:
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
-        result = runner.invoke(app, [
-            "install", str(skill_dir), "--target", "nonexistent",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(skill_dir),
+                "--target",
+                "nonexistent",
+            ],
+        )
         assert result.exit_code == 1
         assert "Unknown target" in result.stdout
 
@@ -216,11 +275,17 @@ class TestInstallUninstallCommand:
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\n")
-        result = runner.invoke(app, [
-            "install", str(skill_dir),
-            "--scope", "global",
-            "--target", "vscode",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(skill_dir),
+                "--scope",
+                "global",
+                "--target",
+                "vscode",
+            ],
+        )
         assert result.exit_code == 1
         assert "VS Code" in result.stdout
 
@@ -240,13 +305,19 @@ class TestPackUnpackCommands:
         out_dir = tmp_path / "packs"
         out_dir.mkdir()
 
-        result = runner.invoke(app, [
-            "pack",
-            str(skill_dir),
-            "--output", str(out_dir),
-            "--version", "0.2.0",
-            "--author", "fer",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "pack",
+                str(skill_dir),
+                "--output",
+                str(out_dir),
+                "--version",
+                "0.2.0",
+                "--author",
+                "fer",
+            ],
+        )
         assert result.exit_code == 0, result.stdout
         assert "Packed 1 skill" in result.stdout
         pack_file = out_dir / "python-tdd-0.2.0.skillpack"
@@ -256,23 +327,32 @@ class TestPackUnpackCommands:
         skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
         target = tmp_path / "my-pack.skillpack"
 
-        result = runner.invoke(app, [
-            "pack",
-            str(skill_dir),
-            "--output", str(target),
-            "--name", "my-pack",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "pack",
+                str(skill_dir),
+                "--output",
+                str(target),
+                "--name",
+                "my-pack",
+            ],
+        )
         assert result.exit_code == 0
         assert target.exists()
 
     def test_pack_rejects_non_skill_dir(self, tmp_path: Path):
         broken = tmp_path / "broken"
         broken.mkdir()
-        result = runner.invoke(app, [
-            "pack",
-            str(broken),
-            "--output", str(tmp_path / "out"),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "pack",
+                str(broken),
+                "--output",
+                str(tmp_path / "out"),
+            ],
+        )
         assert result.exit_code == 1
         assert "Not a skill directory" in result.stdout
 
@@ -282,19 +362,28 @@ class TestPackUnpackCommands:
         out_dir.mkdir()
 
         # First pack
-        runner.invoke(app, [
-            "pack", str(skill_dir),
-            "--output", str(out_dir),
-        ])
+        runner.invoke(
+            app,
+            [
+                "pack",
+                str(skill_dir),
+                "--output",
+                str(out_dir),
+            ],
+        )
         pack_file = next(out_dir.glob("*.skillpack"))
 
         # Then unpack
         dest = tmp_path / "extracted"
-        result = runner.invoke(app, [
-            "unpack",
-            str(pack_file),
-            "--output", str(dest),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "unpack",
+                str(pack_file),
+                "--output",
+                str(dest),
+            ],
+        )
         assert result.exit_code == 0, result.stdout
         assert "Unpacked 1 skill" in result.stdout
         assert (dest / "dev" / "python-tdd" / "SKILL.md").exists()
@@ -304,19 +393,31 @@ class TestPackUnpackCommands:
         b = self._make_skill(tmp_path / "src", "ops", "skill-b")
         target = tmp_path / "bundle.skillpack"
 
-        result = runner.invoke(app, [
-            "pack",
-            str(a), str(b),
-            "--output", str(target),
-            "--name", "bundle",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "pack",
+                str(a),
+                str(b),
+                "--output",
+                str(target),
+                "--name",
+                "bundle",
+            ],
+        )
         assert result.exit_code == 0, result.stdout
         assert "Packed 2 skill" in result.stdout
 
         dest = tmp_path / "extracted"
-        result = runner.invoke(app, [
-            "unpack", str(target), "--output", str(dest),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "unpack",
+                str(target),
+                "--output",
+                str(dest),
+            ],
+        )
         assert result.exit_code == 0
         assert (dest / "dev" / "skill-a" / "SKILL.md").exists()
         assert (dest / "ops" / "skill-b" / "SKILL.md").exists()
@@ -356,13 +457,23 @@ class TestPublishCommand:
         skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
         out_dir = tmp_path / "packs"
         out_dir.mkdir()
-        runner.invoke(app, [
-            "pack", str(skill_dir), "--output", str(out_dir),
-            "--description", "A TDD skill for Python",
-            "--tag", "tdd",
-            "--owner-name", "Test Author",
-            "--owner-email", "author@test.example",
-        ])
+        runner.invoke(
+            app,
+            [
+                "pack",
+                str(skill_dir),
+                "--output",
+                str(out_dir),
+                "--description",
+                "A TDD skill for Python",
+                "--tag",
+                "tdd",
+                "--owner-name",
+                "Test Author",
+                "--owner-email",
+                "author@test.example",
+            ],
+        )
         pack_file = next(out_dir.glob("*.skillpack"))
 
         registry = tmp_path / "registry"
@@ -384,9 +495,7 @@ class TestPublishCommand:
         assert result.exit_code == 0, result.stdout
         assert "Published python-tdd v0.3.0" in result.stdout
         assert "raw.githubusercontent.com" in result.stdout
-        assert (
-            registry / "packs" / "dev" / "python-tdd-0.3.0.skillpack"
-        ).exists()
+        assert (registry / "packs" / "dev" / "python-tdd-0.3.0.skillpack").exists()
         assert (registry / "index.json").exists()
 
     def test_publish_records_rich_metadata(self, tmp_path: Path):
@@ -395,10 +504,17 @@ class TestPublishCommand:
         skill_dir = self._make_skill(tmp_path / "src", "dev", "python-tdd")
         out_dir = tmp_path / "packs"
         out_dir.mkdir()
-        runner.invoke(app, [
-            "pack", str(skill_dir), "--output", str(out_dir),
-            "--description", "A TDD skill for Python",
-        ])
+        runner.invoke(
+            app,
+            [
+                "pack",
+                str(skill_dir),
+                "--output",
+                str(out_dir),
+                "--description",
+                "A TDD skill for Python",
+            ],
+        )
         pack_file = next(out_dir.glob("*.skillpack"))
 
         registry = tmp_path / "registry"
@@ -438,9 +554,7 @@ class TestPublishCommand:
 
 
 class TestInstallFromUrlCommand:
-    def test_install_url_fetches_unpacks_and_installs(
-        self, tmp_path: Path, monkeypatch
-    ):
+    def test_install_url_fetches_unpacks_and_installs(self, tmp_path: Path, monkeypatch):
         # Build a real .skillpack we can serve via a fake fetcher.
         skill_dir = tmp_path / "src" / "dev" / "python-tdd"
         skill_dir.mkdir(parents=True)
@@ -474,8 +588,8 @@ class TestInstallFromUrlCommand:
             def install(self, skill_path, scope, target=None):  # type: ignore[no-untyped-def]
                 return [Path(f"/fake/{skill_path.name}")]
 
-            def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
-                return False
+            def uninstall(self, skill_name, scope, target=None):  # type: ignore[no-untyped-def]
+                return []
 
             def is_installed(self, skill_name, scope):  # type: ignore[no-untyped-def]
                 return False
@@ -483,7 +597,12 @@ class TestInstallFromUrlCommand:
             def list_installed(self, scope):  # type: ignore[no-untyped-def]
                 return []
 
-        monkeypatch.setattr(factory, "build_fetcher", lambda: _LocalFetcher())
+            def scan_all_targets(self, scope):  # type: ignore[no-untyped-def]
+                from skill_forge.domain.model import InstallTarget
+
+                return {InstallTarget.CLAUDE: []}
+
+        monkeypatch.setattr(factory, "build_fetcher", lambda url="": _LocalFetcher())
         monkeypatch.setattr(factory, "build_installer", lambda: _NoopInstaller())
 
         dest = tmp_path / "extracted"
@@ -609,9 +728,7 @@ class TestExportCommand:
         runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
 
         out = tmp_path / "out"
-        result = runner.invoke(
-            app, ["export", str(pack_path), "-f", "gpt-json", "-o", str(out)]
-        )
+        result = runner.invoke(app, ["export", str(pack_path), "-f", "gpt-json", "-o", str(out)])
         assert result.exit_code == 0, result.stdout
         assert (out / "test" / "sprint-grooming.gpt.json").exists()
 
@@ -620,9 +737,7 @@ class TestExportCommand:
         pack_path = tmp_path / "test.skillpack"
         runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
 
-        result = runner.invoke(
-            app, ["export", str(pack_path), "--format", "mcp-server"]
-        )
+        result = runner.invoke(app, ["export", str(pack_path), "--format", "mcp-server"])
         assert result.exit_code == 0, result.stdout
         assert "mcp run" in result.stdout
 
@@ -632,9 +747,7 @@ class TestExportCommand:
         runner.invoke(app, ["pack", str(skill_dir), "-o", str(pack_path)])
 
         out = tmp_path / "out"
-        result = runner.invoke(
-            app, ["export", str(pack_path), "--only-skill", "-o", str(out)]
-        )
+        result = runner.invoke(app, ["export", str(pack_path), "--only-skill", "-o", str(out)])
         assert result.exit_code == 0, result.stdout
 
         output_file = out / "test" / "sprint-grooming.system-prompt.md"

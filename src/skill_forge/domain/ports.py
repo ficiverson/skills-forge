@@ -64,8 +64,13 @@ class SkillInstaller(ABC):
         """Install a skill and return all installation paths created."""
 
     @abstractmethod
-    def uninstall(self, skill_name: str, scope: SkillScope) -> bool:
-        """Uninstall a skill. Returns True if it was installed."""
+    def uninstall(
+        self,
+        skill_name: str,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.ALL,
+    ) -> list[Path]:
+        """Uninstall a skill. Returns the list of paths that were removed."""
 
     @abstractmethod
     def is_installed(self, skill_name: str, scope: SkillScope) -> bool:
@@ -74,6 +79,15 @@ class SkillInstaller(ABC):
     @abstractmethod
     def list_installed(self, scope: SkillScope) -> list[Path]:
         """List all installed skill paths for a given scope."""
+
+    @abstractmethod
+    def scan_all_targets(self, scope: SkillScope) -> dict[InstallTarget, list[Path]]:
+        """Scan every target directory for the given scope.
+
+        Returns a dict mapping each supported target to the list of installed
+        skill directories/symlinks found there. Empty targets are included with
+        an empty list. VSCODE is excluded at global scope (it has no global dir).
+        """
 
 
 class SkillRenderer(ABC):
@@ -158,6 +172,21 @@ class PackPublisher(ABC):
     def read_index(self) -> RegistryIndex:
         """Return the current index of the registry."""
 
+    @abstractmethod
+    def update_index(
+        self,
+        index: RegistryIndex,
+        message: str,
+        push: bool,
+    ) -> bool:
+        """Write an updated ``index`` to the registry.
+
+        Commits and optionally pushes when the registry is a git repo and the
+        index actually changed on disk.  Returns ``True`` when a commit was made.
+        Callers typically read the index via ``read_index()``, apply a mutation
+        (yank, deprecate, etc.), then hand the result back here.
+        """
+
 
 class SkillExporter(ABC):
     """Port: render a skill into a platform-native export format.
@@ -186,3 +215,15 @@ class PackFetcher(ABC):
     @abstractmethod
     def fetch_index(self, url: str) -> RegistryIndex:
         """Download a registry ``index.json`` and parse it."""
+
+
+class ClaudeRunner(ABC):
+    """Port: send a prompt to Claude and return the text response.
+
+    The concrete implementation in production shells out to ``claude -p``.
+    Tests inject a stub that returns canned strings without any subprocess.
+    """
+
+    @abstractmethod
+    def run(self, prompt: str, timeout: int = 120) -> str:
+        """Send *prompt* to Claude and return the response text."""

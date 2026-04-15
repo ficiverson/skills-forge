@@ -87,6 +87,9 @@ class _StubPublisher(PackPublisher):
             skills=(),
         )
 
+    def update_index(self, index, message, push):  # type: ignore[no-untyped-def]
+        return False
+
 
 class _StubFetcher(PackFetcher):
     def __init__(self, payload: bytes) -> None:
@@ -109,14 +112,19 @@ class _StubInstaller(SkillInstaller):
         self.installed.append(skill_path)
         return [Path(f"/fake/install/{skill_path.name}")]
 
-    def uninstall(self, skill_name, scope):  # type: ignore[no-untyped-def]
-        return False
+    def uninstall(self, skill_name, scope, target=None):  # type: ignore[no-untyped-def]
+        return []
 
     def is_installed(self, skill_name, scope):  # type: ignore[no-untyped-def]
         return False
 
     def list_installed(self, scope):  # type: ignore[no-untyped-def]
         return []
+
+    def scan_all_targets(self, scope):  # type: ignore[no-untyped-def]
+        from skill_forge.domain.model import InstallTarget
+
+        return {InstallTarget.CLAUDE: []}
 
 
 def _rich_manifest(**overrides: object) -> SkillPackManifest:
@@ -153,9 +161,7 @@ class TestPublishPack:
         publisher = _StubPublisher()
         use_case = PublishPack(publisher=publisher, packer=_RichStubPacker())
 
-        response = use_case.execute(
-            PublishPackRequest(pack_path=pack, message="ship", push=False)
-        )
+        response = use_case.execute(PublishPackRequest(pack_path=pack, message="ship", push=False))
 
         assert response.result.pack_name == "python-tdd"
         assert response.result.version == "0.2.0"
@@ -260,9 +266,7 @@ class TestPublishPack:
     def test_missing_pack_errors(self, tmp_path: Path) -> None:
         use_case = PublishPack(publisher=_StubPublisher(), packer=_StubPacker())
         with pytest.raises(FileNotFoundError):
-            use_case.execute(
-                PublishPackRequest(pack_path=tmp_path / "missing.skillpack")
-            )
+            use_case.execute(PublishPackRequest(pack_path=tmp_path / "missing.skillpack"))
 
     # ------------------------------------------------------------------ validation
 

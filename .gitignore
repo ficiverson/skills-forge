@@ -15,3 +15,9 @@ htmlcov/
 venv/
 .env
 .DS_Store
+
+# mutmut
+mutants/
+.mutmut-cache
+.claude/
+.agents/

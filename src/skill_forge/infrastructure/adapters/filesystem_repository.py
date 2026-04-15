@@ -33,6 +33,31 @@ class FilesystemSkillRepository(SkillRepository):
         self._renderer = renderer
         self._parser = parser
 
+    # Template eval case scaffolded for every new skill
+    _EVALS_TEMPLATE = """\
+[
+  {
+    "id": 1,
+    "prompt": "Describe what this skill does in one sentence.",
+    "expected_output": "A concise one-sentence description of the skill's purpose.",
+    "assertions": [
+      {
+        "id": "response-not-empty",
+        "text": "The response is not empty",
+        "type": "not-contains",
+        "expected": ""
+      },
+      {
+        "id": "quality-check",
+        "text": "The response is a coherent, complete sentence describing the skill",
+        "type": "llm-judge"
+      }
+    ],
+    "files": []
+  }
+]
+"""
+
     def save(self, skill: Skill) -> Path:
         skill_dir = self._skill_dir(skill)
         skill_dir.mkdir(parents=True, exist_ok=True)
@@ -52,6 +77,14 @@ class FilesystemSkillRepository(SkillRepository):
 
         if skill.examples:
             (skill_dir / "examples").mkdir(exist_ok=True)
+
+        # Always scaffold evals/ with a starter eval case
+        evals_dir = skill_dir / "evals"
+        evals_dir.mkdir(exist_ok=True)
+        (evals_dir / "fixtures").mkdir(exist_ok=True)
+        evals_json = evals_dir / "evals.json"
+        if not evals_json.exists():
+            evals_json.write_text(self._EVALS_TEMPLATE, encoding="utf-8")
 
         return skill_dir
 
@@ -76,6 +109,7 @@ class FilesystemSkillRepository(SkillRepository):
                 skills.append(skill)
             except Exception as exc:
                 import sys
+
                 print(
                     f"Warning: failed to load {skill_md}: {exc}",
                     file=sys.stderr,

@@ -1,6 +1,6 @@
 ---
 name: user-story-test-cases
-version: 0.1.0
+version: 1.0.0
 description: |
   Use this skill when deriving structured test cases from a user story. Triggers on: acceptance criteria, edge cases, happy path, negative tests, BDD.
 ---

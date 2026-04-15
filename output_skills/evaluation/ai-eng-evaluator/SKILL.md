@@ -1,6 +1,6 @@
 ---
 name: ai-eng-evaluator
-version: 0.2.0
+version: 1.1.0
 description: |
   Evaluates AI engineering code challenge submissions (GitHub repos, zip files, or local folders)
   against a structured competency matrix and produces a professional PDF report.
@@ -8,6 +8,7 @@ description: |
   competency levels (Junior/Medior/Senior), growth framework, engineering rubric.
   Works for any language or stack, not just Python/LangChain.
 depends_on: pdf (PDF generation for the final evaluation report)
+requires-forge: ">=0.4.0"
 ---
 
 STARTER_CHARACTER = ⚖️

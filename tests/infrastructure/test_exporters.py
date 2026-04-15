@@ -153,9 +153,7 @@ class TestGemTxtExporter:
         content = out.read_text()
         assert "Activation:" in content
 
-    def test_plain_text_no_leading_frontmatter(
-        self, minimal_skill: Skill, tmp_path: Path
-    ) -> None:
+    def test_plain_text_no_leading_frontmatter(self, minimal_skill: Skill, tmp_path: Path) -> None:
         out = self.exporter.export(minimal_skill, _BODY, tmp_path)
         content = out.read_text()
         assert not content.startswith("---")

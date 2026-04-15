@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "prompt": "I think we're ready to cut the v0.4.0 release. The skills-forge repo is at /sessions/zen-funny-mccarthy/mnt/skills-forge and the skill-registry is at /sessions/zen-funny-mccarthy/mnt/skill-registry. Run the full release preflight and tell me if we're good to go.",
+    "expected_output": "Runs all 5 phases (pytest, ruff, mypy, pack consistency, schema alignment, CLI UAT, hygiene), produces a summary table with per-phase status, and gives a clear overall verdict (green/yellow/red).",
+    "assertions": [
+      {
+        "id": "a1",
+        "text": "Response mentions all five phases",
+        "type": "contains",
+        "expected": "Phase 1"
+      },
+      {
+        "id": "a2",
+        "text": "Response includes a summary table or verdict",
+        "type": "regex",
+        "expected": "(Overall|✅|❌|⚠️)"
+      }
+    ],
+    "files": []
+  },
+  {
+    "id": 2,
+    "prompt": "Before I tag this as 1.0.0, can you verify that all the packs in the registry at /sessions/zen-funny-mccarthy/mnt/skill-registry are consistent — sha256, sizes, manifest versions all matching? Also check that the schema hasn't drifted in the skills-forge code at /sessions/zen-funny-mccarthy/mnt/skills-forge.",
+    "expected_output": "Runs Phase 2 (pack consistency) and Phase 3 (schema alignment), reports per-pack pass/fail and schema alignment result.",
+    "assertions": [
+      {
+        "id": "a3",
+        "text": "Response mentions sha256 or pack consistency check",
+        "type": "regex",
+        "expected": "(sha256|pack|consistency)"
+      }
+    ],
+    "files": []
+  },
+  {
+    "id": 3,
+    "prompt": "Run UAT for skills-forge at /sessions/zen-funny-mccarthy/mnt/skills-forge — I want to make sure every CLI command still works correctly before we publish to PyPI.",
+    "expected_output": "Runs Phase 4 CLI sandbox UAT using the uat_sandbox.py script, reports pass/fail for each command, gives a summary count.",
+    "assertions": [
+      {
+        "id": "a4",
+        "text": "Response mentions UAT or CLI commands",
+        "type": "regex",
+        "expected": "(UAT|uat_sandbox|CLI)"
+      }
+    ],
+    "files": []
+  }
+]

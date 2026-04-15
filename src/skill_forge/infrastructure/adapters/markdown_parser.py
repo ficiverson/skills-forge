@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path, PurePosixPath
 
@@ -10,6 +11,8 @@ from skill_forge.domain.model import (
     Asset,
     Dependency,
     Description,
+    EvalAssertion,
+    EvalCase,
     Example,
     Reference,
     Script,
@@ -42,6 +45,9 @@ class MarkdownSkillParser(SkillParser):
         examples = self._parse_link_section(body, "Examples")
         assets = self._parse_link_section(body, "Assets")
         depends_on = self._parse_dependencies(frontmatter)
+        evals = self._parse_evals(base_path)
+        requires_forge = frontmatter.get("requires-forge", "").strip() or None
+        allowed_tools = self._parse_allowed_tools(frontmatter)
 
         return Skill(
             identity=identity,
@@ -49,20 +55,14 @@ class MarkdownSkillParser(SkillParser):
             starter_character=starter,
             content=skill_content,
             references=references,
-            scripts=[
-                Script(path=PurePosixPath(p), description=d)
-                for p, d in scripts_raw
-            ],
-            examples=[
-                Example(path=PurePosixPath(p), description=d)
-                for p, d in examples
-            ],
-            assets=[
-                Asset(path=PurePosixPath(p), description=d)
-                for p, d in assets
-            ],
+            scripts=[Script(path=PurePosixPath(p), description=d) for p, d in scripts_raw],
+            examples=[Example(path=PurePosixPath(p), description=d) for p, d in examples],
+            assets=[Asset(path=PurePosixPath(p), description=d) for p, d in assets],
             depends_on=depends_on,
+            evals=evals,
+            requires_forge=requires_forge,
             version=version,
+            allowed_tools=allowed_tools,
         )
 
     def _parse_frontmatter(self, content: str) -> dict[str, str]:
@@ -76,12 +76,15 @@ class MarkdownSkillParser(SkillParser):
 
         for line in match.group(1).splitlines():
             # Key-value pair
-            kv_match = re.match(r"^(\w+):\s*(.*)", line)
+            kv_match = re.match(r"^([\w-]+):\s*(.*)", line)
             if kv_match:
                 if current_key:
                     frontmatter[current_key] = "\n".join(current_value_lines)
                 current_key = kv_match.group(1)
                 value = kv_match.group(2).strip()
+                # Strip surrounding YAML quotes (single or double)
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
                 current_value_lines = [value] if value and value != "|" else []
             elif current_key and line.startswith("  "):
                 current_value_lines.append(line.strip())
@@ -94,7 +97,7 @@ class MarkdownSkillParser(SkillParser):
     def _strip_frontmatter(self, content: str) -> str:
         match = re.match(r"^---\s*\n.*?\n---\s*\n?", content, re.DOTALL)
         if match:
-            return content[match.end():]
+            return content[match.end() :]
         return content
 
     def _infer_category(self, base_path: Path | None) -> str:
@@ -141,10 +144,12 @@ class MarkdownSkillParser(SkillParser):
             if in_references:
                 match = ref_pattern.search(line)
                 if match:
-                    references.append(Reference(
-                        path=PurePosixPath(match.group(2)),
-                        purpose=match.group(1),
-                    ))
+                    references.append(
+                        Reference(
+                            path=PurePosixPath(match.group(2)),
+                            purpose=match.group(1),
+                        )
+                    )
 
         return references
 
@@ -175,7 +180,9 @@ class MarkdownSkillParser(SkillParser):
         return "\n".join(lines).strip()
 
     def _parse_link_section(
-        self, body: str, heading: str,
+        self,
+        body: str,
+        heading: str,
     ) -> list[tuple[str, str]]:
         """Parse a section containing markdown links into (path, description) pairs."""
         items: list[tuple[str, str]] = []
@@ -195,6 +202,75 @@ class MarkdownSkillParser(SkillParser):
 
         return items
 
+    def _parse_evals(self, base_path: Path | None) -> list[EvalCase]:
+        """Load ``evals/evals.json`` from the skill directory, if present.
+
+        Returns an empty list when:
+        - ``base_path`` is ``None`` (string-only parse, no directory context)
+        - ``evals/evals.json`` does not exist
+        - the JSON is malformed (parse errors are silently swallowed here;
+          the linter surfaces them as actionable issues)
+        """
+        if base_path is None:
+            return []
+        evals_path = base_path / "evals" / "evals.json"
+        if not evals_path.exists():
+            return []
+        try:
+            raw = json.loads(evals_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+
+        cases: list[EvalCase] = []
+        for item in raw if isinstance(raw, list) else []:
+            try:
+                assertions = tuple(
+                    EvalAssertion(
+                        id=str(a.get("id", "")),
+                        text=str(a.get("text", "")),
+                        type=str(a.get("type", "")),
+                        expected=str(a.get("expected", "")),
+                    )
+                    for a in (item.get("assertions") or [])
+                )
+                files = tuple(str(f) for f in (item.get("files") or []))
+                cases.append(
+                    EvalCase(
+                        id=int(item.get("id", 0)),
+                        prompt=str(item.get("prompt", "")),
+                        expected_output=str(item.get("expected_output", "")),
+                        assertions=assertions,
+                        files=files,
+                    )
+                )
+            except (ValueError, TypeError):
+                # Malformed entry — linter will catch it; skip here
+                continue
+        return cases
+
+    def _parse_allowed_tools(self, frontmatter: dict[str, str]) -> list[str]:
+        """Parse allowed-tools from frontmatter.
+
+        Supports inline YAML list:  ``allowed-tools: [Bash, Read, Write]``
+        and multi-line block list (each item on its own line in ``raw``).
+        """
+        raw = frontmatter.get("allowed-tools", "").strip()
+        if not raw:
+            return []
+
+        # Inline YAML list: [Bash, Read, Write]
+        if raw.startswith("[") and raw.endswith("]"):
+            inner = raw[1:-1]
+            return [t.strip() for t in inner.split(",") if t.strip()]
+
+        # Block / newline-separated (parser stores multi-line values joined by \n)
+        tools: list[str] = []
+        for item in raw.replace(",", "\n").splitlines():
+            item = item.strip().lstrip("-").strip()
+            if item:
+                tools.append(item)
+        return tools
+
     def _parse_dependencies(self, frontmatter: dict[str, str]) -> list[Dependency]:
         """Parse depends_on from frontmatter (comma-separated or multi-line)."""
         raw = frontmatter.get("depends_on", "").strip()
@@ -209,8 +285,10 @@ class MarkdownSkillParser(SkillParser):
             # Format: "skill-name (reason)" or just "skill-name"
             dep_match = re.match(r"^([\w-]+)\s*(?:\(([^)]+)\))?$", line)
             if dep_match:
-                deps.append(Dependency(
-                    skill_name=dep_match.group(1),
-                    reason=dep_match.group(2) or "",
-                ))
+                deps.append(
+                    Dependency(
+                        skill_name=dep_match.group(1),
+                        reason=dep_match.group(2) or "",
+                    )
+                )
         return deps

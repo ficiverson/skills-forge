@@ -95,9 +95,7 @@ class _StubPacker(SkillPacker):
             skill_dir.mkdir(parents=True, exist_ok=True)
             (skill_dir / "SKILL.md").write_text(_FULL_SKILL_MD, encoding="utf-8")
 
-        refs = [
-            SkillRef(category="dev", name=f"skill-{i}") for i in range(len(self.skill_mds))
-        ]
+        refs = [SkillRef(category="dev", name=f"skill-{i}") for i in range(len(self.skill_mds))]
         return SkillPackManifest(
             name="test-pack",
             version="1.0.0",

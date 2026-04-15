@@ -20,6 +20,7 @@ docs/                 # Guides: getting-started, clean-principles, universal-exp
 ## Commands
 
 ```bash
+skills-forge init                                 # Initialize workspace + config.toml
 skills-forge create -n <name> -c <category> -d "<description>" -e <emoji> [-v 0.1.0]
 skills-forge lint <path>                          # Validate a skill or directory
 skills-forge install <path>                       # Symlink into ~/.claude/skills/ (global)
@@ -30,16 +31,29 @@ skills-forge install <path> -t codex              # ~/.codex/skills/ (OpenAI Cod
 skills-forge install <path> -t vscode -s project  # .github/skills/ (VS Code Copilot)
 skills-forge install <path> -t all                # Every supported tool at once
 skills-forge install <https-url> [--sha256 …]     # Fetch a remote .skillpack and install it
+skills-forge uninstall <name> [-t <target>]       # Remove installed skill symlinks
+skills-forge info <name> [--registry <url>]       # Show install locations, version, deps
+skills-forge list [directory]                     # List skills with token estimates
+skills-forge list --category <cat>                # Filter by category
+skills-forge list --filter <substr>               # Filter by name/description substring
+skills-forge doctor [--no-registry]              # Health sweep: broken links, outdated versions
+skills-forge test <path>                          # Run skill evals against Claude
+skills-forge pack <skill-dir...> [-o out]         # Bundle skill(s) into a .skillpack archive
+skills-forge unpack <pack> [-o dest]              # Extract a .skillpack into a directory
 skills-forge export <path>                        # Export as system-prompt (default)
 skills-forge export <path> -f gpt-json            # OpenAI Custom GPT JSON config
 skills-forge export <path> -f gem-txt             # Google Gemini Gem instructions
 skills-forge export <path> -f bedrock-xml         # AWS Bedrock agent prompt XML
 skills-forge export <path> -f mcp-server [-o dir] # Self-contained Python MCP server
-skills-forge list [directory]                     # List skills with token estimates
-skills-forge pack <skill-dir...> [-o out]         # Bundle skill(s) into a .skillpack archive
-skills-forge unpack <pack> [-o dest]              # Extract a .skillpack into a directory
+skills-forge export <path> -f mistral-json        # Mistral Agents API JSON
+skills-forge export <path> -f gemini-api          # Vertex AI / Gemini Developer API JSON
+skills-forge export <path> -f openai-assistants   # OpenAI Assistants API JSON
 skills-forge publish <pack> -r <registry-clone> -u <base-url> [--push]
-skills-forge init                                 # Initialize a new workspace
+skills-forge update [name] [--dry-run] [--yes]    # Upgrade installed skills from registry
+skills-forge diff <name> --registry <url>         # Unified diff vs registry latest
+skills-forge yank <name>@<version> -r <registry> --reason <msg>
+skills-forge deprecate <name> -r <registry> [--replaced-by <name>]
+skills-forge registry list|add|remove|set-default # Manage named registry configs
 ```
 
 ### `--target` / `-t` values
@@ -59,9 +73,10 @@ skills-forge init                                 # Initialize a new workspace
 
 ```bash
 pip install -e ".[dev]"
-pytest                           # 257 tests
+pytest --cov=skill_forge --cov-fail-under=95   # 826 tests, 97% coverage
 ruff check src/ tests/           # Linting
-mypy src/                        # Type checking
+ruff format --check src/ tests/  # Format check (same as CI)
+mypy src/                        # Type checking (strict)
 ```
 
 ## Key conventions

@@ -47,8 +47,7 @@ class GemTxtExporter(SkillExporter):
                 f"Role: You are {gem_name}, a specialist assistant "
                 f"for {skill.identity.category} workflows.",
                 "",
-                "Activation: "
-                + skill.description.text.strip().replace("\n", " "),
+                "Activation: " + skill.description.text.strip().replace("\n", " "),
                 "",
                 "---",
                 "",

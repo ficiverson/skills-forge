@@ -17,9 +17,7 @@ from skill_forge.infrastructure.adapters.http_pack_fetcher import (
 class _FakeResponse:
     def __init__(self, payload: bytes, content_length: int | None = None) -> None:
         self._buf = io.BytesIO(payload)
-        self._content_length = (
-            content_length if content_length is not None else len(payload)
-        )
+        self._content_length = content_length if content_length is not None else len(payload)
 
     def read(self, n: int = -1) -> bytes:
         return self._buf.read(n)
@@ -71,7 +69,8 @@ class TestFetch:
         payload = b"x" * 200
         response = _FakeResponse(payload, content_length=None)
         fetcher = HttpPackFetcher(
-            max_bytes=100, opener=_FakeOpener(response)  # type: ignore[arg-type]
+            max_bytes=100,
+            opener=_FakeOpener(response),  # type: ignore[arg-type]
         )
         with pytest.raises(FetchTooLargeError):
             fetcher.fetch("https://example.com/big", tmp_path / "x.skillpack")

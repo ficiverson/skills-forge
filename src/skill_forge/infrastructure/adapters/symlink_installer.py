@@ -29,20 +29,20 @@ from skill_forge.domain.ports import SkillInstaller
 
 # Targets that have a meaningful global (home-dir) path.
 _GLOBAL_TARGETS: dict[InstallTarget, str] = {
-    InstallTarget.CLAUDE:  ".claude/skills",
-    InstallTarget.GEMINI:  ".gemini/skills",
-    InstallTarget.CODEX:   ".codex/skills",
-    InstallTarget.AGENTS:  ".agents/skills",
+    InstallTarget.CLAUDE: ".claude/skills",
+    InstallTarget.GEMINI: ".gemini/skills",
+    InstallTarget.CODEX: ".codex/skills",
+    InstallTarget.AGENTS: ".agents/skills",
     # VSCODE intentionally omitted — no global skills dir
 }
 
 # Targets that have a project-relative path.
 _PROJECT_TARGETS: dict[InstallTarget, str] = {
-    InstallTarget.CLAUDE:  ".claude/skills",
-    InstallTarget.GEMINI:  ".gemini/skills",
-    InstallTarget.CODEX:   ".codex/skills",
-    InstallTarget.VSCODE:  ".github/skills",
-    InstallTarget.AGENTS:  ".agents/skills",
+    InstallTarget.CLAUDE: ".claude/skills",
+    InstallTarget.GEMINI: ".gemini/skills",
+    InstallTarget.CODEX: ".codex/skills",
+    InstallTarget.VSCODE: ".github/skills",
+    InstallTarget.AGENTS: ".agents/skills",
 }
 
 
@@ -80,14 +80,25 @@ class SymlinkSkillInstaller(SkillInstaller):
             installed.append(link_path)
         return installed
 
-    def uninstall(self, skill_name: str, scope: SkillScope) -> bool:
-        """Remove from the default (CLAUDE) target for the given scope."""
-        target_dir = self._resolve_dirs(scope, InstallTarget.CLAUDE)[0]
-        link_path = target_dir / skill_name
-        if link_path.exists() or link_path.is_symlink():
-            link_path.unlink()
-            return True
-        return False
+    def uninstall(
+        self,
+        skill_name: str,
+        scope: SkillScope,
+        target: InstallTarget = InstallTarget.ALL,
+    ) -> list[Path]:
+        """Remove symlinks for skill_name from every resolved target directory.
+
+        Returns the list of paths that were actually removed. Paths that did
+        not exist are silently skipped (idempotent behaviour).
+        """
+        dirs = self._resolve_dirs(scope, target)
+        removed: list[Path] = []
+        for target_dir in dirs:
+            link_path = target_dir / skill_name
+            if link_path.exists() or link_path.is_symlink():
+                link_path.unlink()
+                removed.append(link_path)
+        return removed
 
     def is_installed(self, skill_name: str, scope: SkillScope) -> bool:
         target_dir = self._resolve_dirs(scope, InstallTarget.CLAUDE)[0]
@@ -100,6 +111,23 @@ class SymlinkSkillInstaller(SkillInstaller):
             return []
         return [p for p in target_dir.iterdir() if p.is_dir() or p.is_symlink()]
 
+    def scan_all_targets(self, scope: SkillScope) -> dict[InstallTarget, list[Path]]:
+        """Scan every supported target directory for the given scope.
+
+        Returns a dict keyed by InstallTarget. VSCODE is excluded at global
+        scope (it has no global skills directory). Empty target dirs produce
+        an empty list rather than being omitted entirely.
+        """
+        mapping = _GLOBAL_TARGETS if scope == SkillScope.GLOBAL else _PROJECT_TARGETS
+        result: dict[InstallTarget, list[Path]] = {}
+        for target, rel in mapping.items():
+            target_dir = self._make_path(scope, rel)
+            if target_dir.exists():
+                result[target] = [p for p in target_dir.iterdir() if p.is_dir() or p.is_symlink()]
+            else:
+                result[target] = []
+        return result
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -107,9 +135,7 @@ class SymlinkSkillInstaller(SkillInstaller):
     def _resolve_dirs(self, scope: SkillScope, target: InstallTarget) -> list[Path]:
         """Return the concrete filesystem directories for (scope, target)."""
         if target == InstallTarget.ALL:
-            mapping = (
-                _GLOBAL_TARGETS if scope == SkillScope.GLOBAL else _PROJECT_TARGETS
-            )
+            mapping = _GLOBAL_TARGETS if scope == SkillScope.GLOBAL else _PROJECT_TARGETS
             return [self._make_path(scope, rel) for rel in mapping.values()]
 
         if target == InstallTarget.VSCODE and scope == SkillScope.GLOBAL:
@@ -121,7 +147,11 @@ class SymlinkSkillInstaller(SkillInstaller):
         if scope == SkillScope.GLOBAL:
             rel = _GLOBAL_TARGETS.get(target)
             if rel is None:
-                raise ValueError(f"Target '{target.value}' is not valid at global scope.")
+                valid = ", ".join(sorted(t.value for t in _GLOBAL_TARGETS))
+                raise ValueError(
+                    f"Target '{target.value}' is not valid at global scope. "
+                    f"Valid global targets: {valid}."
+                )
             # Honour the legacy override for claude so tests that pass a custom
             # global_skills_dir continue to work unchanged.
             if target == InstallTarget.CLAUDE and self._legacy_global_dir != (
@@ -133,7 +163,11 @@ class SymlinkSkillInstaller(SkillInstaller):
         # PROJECT scope
         rel = _PROJECT_TARGETS.get(target)
         if rel is None:
-            raise ValueError(f"Target '{target.value}' is not valid at project scope.")
+            valid = ", ".join(sorted(t.value for t in _PROJECT_TARGETS))
+            raise ValueError(
+                f"Target '{target.value}' is not valid at project scope. "
+                f"Valid project targets: {valid}."
+            )
         return [self._project_root / rel]
 
     def _make_path(self, scope: SkillScope, rel: str) -> Path:
