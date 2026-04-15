@@ -81,6 +81,10 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 
+[[tool.mypy.overrides]]
+module = "tomli"
+ignore_missing_imports = true
+
 [tool.mutmut]
 paths_to_mutate = ["src/skill_forge/"]
 pytest_add_cli_args_test_selection = ["tests/"]
