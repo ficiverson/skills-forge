@@ -162,11 +162,11 @@ class TestSerializeManifestAllFields:
             name="test", version="1", author="", created_at="", description="",
             skills=(SkillRef(category="c", name="n"),),
         )
-        with pytest.raises(ValueError, match="^Cannot pack zero skills$"):
+        with pytest.raises(ValueError, match=r"^Cannot pack zero skills$"):
             ZipSkillPacker().pack([], manifest, tmp_path / "out.zip")
 
     def test_pack_file_instead_of_dir_raises(self, tmp_path: Path) -> None:
-        """Verify that a file path in skill_dirs raises FileNotFoundError (kills is_dir() mutation)."""
+        """Verify that a file raises FileNotFoundError (kills is_dir() mutation)."""
         fake_dir = tmp_path / "not-a-dir.txt"
         fake_dir.write_text("mostly-harmless")
         manifest = SkillPackManifest(
@@ -235,7 +235,7 @@ class TestReadManifestAllFields:
 
     def test_owner_email_defaults_to_empty_string(self, tmp_path: Path) -> None:
         """Verify that missing email defaults to empty string, not None."""
-        skill_dir = _make_skill_dir(tmp_path / "src", "dev", "s")
+        _make_skill_dir(tmp_path / "src", "dev", "s")
         # Manually create a zip with a manifest missing email key
         out = tmp_path / "missing_email.zip"
         with zipfile.ZipFile(out, "w") as zf:
@@ -249,7 +249,7 @@ class TestReadManifestAllFields:
         assert read.owner.email is not None
 
     def test_unpack_missing_pack_exact_message(self, tmp_path: Path) -> None:
-        with pytest.raises(FileNotFoundError, match="^Pack not found:"):
+        with pytest.raises(FileNotFoundError, match=r"^Pack not found:"):
             ZipSkillPacker().unpack(tmp_path / "missing.zip", tmp_path / "dest")
 
     def test_unpack_nested_destination_creation(self, tmp_path: Path) -> None:
@@ -270,7 +270,7 @@ class TestReadManifestAllFields:
             zf.writestr("root.txt", "should-be-ignored")
             zf.writestr("skills/dev/s/SKILL.md", "---\nname: s\n---")
             zf.writestr("other.txt", "should-also-be-ignored")
-        
+
         dest = tmp_path / "output"
         ZipSkillPacker().unpack(pack, dest)
         assert (dest / "dev" / "s" / "SKILL.md").exists()

@@ -7,15 +7,12 @@ which the original tests omit — the most common cause of surviving mutants.
 from __future__ import annotations
 
 import json
-from pathlib import Path, PurePosixPath
-
-import pytest
+from pathlib import Path
 
 from skill_forge.domain.model import (
     Dependency,
     Description,
     EvalCase,
-    Reference,
     Severity,
     Skill,
     SkillContent,
@@ -31,7 +28,6 @@ from skill_forge.domain.validators import (
     validate_has_evals,
     validate_requires_forge,
 )
-
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -66,7 +62,7 @@ class TestValidateHasEvalsMessages:
         issues = validate_has_evals(_skill())
         assert len(issues) == 1
         assert "evals/evals.json" in issues[0].message
-        assert "evals/evals.json" == issues[0].location
+        assert issues[0].location == "evals/evals.json"
 
     def test_missing_evals_message_not_none(self) -> None:
         issues = validate_has_evals(_skill())
@@ -184,7 +180,7 @@ class TestEvalsSchemaMessages:
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         missing_prompt = [i for i in issues if i.rule == "evals-missing-prompt"]
         assert len(missing_prompt) == 1
-        assert "evals/evals.json[0]" == missing_prompt[0].location
+        assert missing_prompt[0].location == "evals/evals.json[0]"
         assert missing_prompt[0].message is not None
 
     def test_non_object_case_location_contains_index(self, tmp_path: Path) -> None:
@@ -349,7 +345,7 @@ class TestContextBudgetBoundaries:
         from skill_forge.domain.model import SkillContent
         # Create a skill with very long content
         # estimated_tokens = (1001 principles * 1 word each) * 2 = 2002
-        content = SkillContent(principles=["principle"] * 1001) 
+        content = SkillContent(principles=["principle"] * 1001)
         skill = Skill(
             identity=SkillIdentity(name="s", category="c"),
             description=Description(text="brief description"),

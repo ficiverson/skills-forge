@@ -9,8 +9,6 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from unittest.mock import MagicMock
 
-import pytest
-
 from skill_forge.application.use_cases.create_skill import CreateSkill, CreateSkillRequest
 from skill_forge.domain.model import DEFAULT_SKILL_VERSION
 

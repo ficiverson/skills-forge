@@ -257,8 +257,15 @@ class TestParseEvalsFromFile:
         evals_dir = skill_dir / "evals"
         evals_dir.mkdir()
         (evals_dir / "evals.json").write_text(json.dumps([
-            {"id": 1, "prompt": "Write a test", "expected_output": "def test_",
-             "assertions": [{"id": "a1", "text": "Has test", "type": "contains", "expected": "def test_"}]},
+            {
+                "id": 1, "prompt": "Write a test", "expected_output": "def test_",
+                "assertions": [
+                    {
+                        "id": "a1", "text": "Has test", "type": "contains",
+                        "expected": "def test_"
+                    }
+                ]
+            },
         ]), encoding="utf-8")
 
         skill = PARSER.parse(FULL_SKILL_MD, base_path=skill_dir)
@@ -273,8 +280,12 @@ class TestParseEvalsFromFile:
         evals_dir = skill_dir / "evals"
         evals_dir.mkdir()
         (evals_dir / "evals.json").write_text(json.dumps([
-            {"id": 2, "prompt": "p", "expected_output": "o",
-             "assertions": [{"id": "x1", "text": "Has output", "type": "llm-judge", "expected": ""}]},
+            {
+                "id": 2, "prompt": "p", "expected_output": "o",
+                "assertions": [
+                    {"id": "x1", "text": "Has output", "type": "llm-judge", "expected": ""}
+                ]
+            },
         ]), encoding="utf-8")
         skill = PARSER.parse(FULL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals[0].assertions) == 1
@@ -317,7 +328,7 @@ class TestInferCategory:
 
 class TestStripFrontmatter:
     def test_strip_handles_no_match_gracefully(self) -> None:
-        """Verify that _strip_frontmatter returns full content if no match (kills match=None mutation)."""
+        """Verify that _strip_frontmatter returns full content if no match."""
         content = "## No Frontmatter\nJust content."
         stripped = PARSER._strip_frontmatter(content)
         assert stripped == content

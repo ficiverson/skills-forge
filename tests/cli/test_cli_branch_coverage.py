@@ -493,8 +493,8 @@ class TestTestSkillEvalDisplay:
         """A passing eval case should display ✅ and assertion counts."""
         from skill_forge.application.use_cases.test_skill import (
             AssertionResult,
-            EvalCaseResult,
             AssessSkillResponse,
+            EvalCaseResult,
         )
         from skill_forge.domain.model import EvalAssertion, EvalCase
 
@@ -534,8 +534,8 @@ class TestTestSkillEvalDisplay:
         """A failing assertion should display ✘ with a reason."""
         from skill_forge.application.use_cases.test_skill import (
             AssertionResult,
-            EvalCaseResult,
             AssessSkillResponse,
+            EvalCaseResult,
         )
         from skill_forge.domain.model import EvalAssertion, EvalCase
 
