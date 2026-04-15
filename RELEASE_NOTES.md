@@ -2,6 +2,59 @@
 
 ---
 
+## v1.0.0 — 2026-04-15
+
+**First stable release. Production/Stable on PyPI.**
+
+This release promotes skills-forge from Beta to Production/Stable. It closes all
+remaining test coverage gaps identified by an independent assessment, bumps all
+bundled skills to v1.0.0, and verifies the full registry is consistent before the
+PyPI launch.
+
+### What's new
+
+**Test coverage closure**
+
+An independent testing assessment identified three gaps in v0.8.0. All three are
+now resolved:
+
+- `lint_service.py` — 0% → 100% (shipped in v0.8.0, assessment ran against older state)
+- `cli/main.py` — 43% → 96% — 25 new targeted tests covering every previously-uncovered
+  branch: empty list, export FileNotFoundError, uninstall invalid target/not-found, init
+  config creation + tool detection hints (single/multi/none), info registry fallback /
+  depends_on / requires_forge / up-to-date / deprecated, doctor registry fallback, update
+  no-registry error + confirm abort, diff no-registry actionable error, test command eval
+  display (pass / fail / error / no-evals skip)
+- `cli/factory.py` — 71% → 99% — `build_fetcher` per-registry token resolution tested
+
+Overall: **665 tests at 97% coverage** (up from 640 tests / 95% in v0.8.0).
+
+**Skills bumped to v1.0.0**
+
+- `release-preflight@1.0.0` — published to registry
+- `user-story-test-cases@1.0.0` — published to registry
+- `ai-eng-evaluator` already at v1.1.0 — no change needed
+
+**Registry verified**
+
+All 17 packs in the skill registry pass the full consistency check:
+SHA256, size, manifest version, export formats, and platform coverage.
+
+**PyPI metadata**
+
+- `Development Status :: 4 - Beta` → `Development Status :: 5 - Production/Stable`
+- `version = "0.8.0"` → `version = "1.0.0"`
+
+### Upgrade
+
+```bash
+pip install --upgrade skills-forge
+# or from source:
+pip install -e ".[dev]"
+```
+
+---
+
 ## v0.8.0 — 2026-04-11
 
 This release is the **production readiness** milestone: 95%+ test coverage, an

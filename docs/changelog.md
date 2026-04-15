@@ -4,6 +4,30 @@ All notable changes to skills-forge are documented here.
 
 ---
 
+## [1.0.0] — 2026-04-15
+
+First stable release — **Production/Stable** on PyPI.
+
+### Added
+- **Branch-coverage test suite** — 25 new targeted tests for all remaining CLI edge cases
+  (empty list, export error paths, uninstall branches, init tool detection, info registry
+  fallback, doctor registry fallback, update no-registry/confirm-abort, eval display paths)
+- **97% overall coverage** (665 tests, up from 95% / 640 in v0.8.0)
+- `cli/main.py` coverage: 89% → 96%; `cli/factory.py`: 97% → 99%; `lint_service.py`: 100%
+
+### Changed
+- PyPI classifier: `Development Status :: 4 - Beta` → `Development Status :: 5 - Production/Stable`
+- All output skills bumped to v1.0.0 (`release-preflight`, `user-story-test-cases`)
+- `check_packs.py` updated to accept extended export formats (mistral-json, gemini-api,
+  openai-assistants) in addition to the 5 core formats — uses `issubset` check
+
+### Registry
+- `release-preflight@1.0.0` published
+- `user-story-test-cases@1.0.0` published
+- Registry now contains 17 packs — all passing consistency check
+
+---
+
 ## [0.8.0] — 2026-04-11
 
 ### Added

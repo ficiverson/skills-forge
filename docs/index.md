@@ -58,12 +58,12 @@ Dependencies flow strictly inward: **cli → application → domain ← infrastr
 
 ## Status
 
-skills-forge is in active development. The v0.8.0 release focuses on production readiness:
+**skills-forge 1.0.0 is production-ready and available on PyPI.**
 
-- ✅ 95%+ test coverage (640 tests)
-- ✅ End-to-end integration test suite
-- ✅ Error messages with actionable guidance
-- ✅ GitHub Actions CI with multi-Python matrix
-- ✅ MkDocs documentation site (this site)
+- ✅ 97% test coverage (665 tests across unit, integration, and E2E suites)
+- ✅ End-to-end integration test suite (19 scenarios)
+- ✅ Actionable error messages with "how to fix" guidance
+- ✅ GitHub Actions CI — Python 3.10 / 3.11 / 3.12 matrix, 95% coverage gate
+- ✅ PyPI classifier: Production/Stable
 
 See the [changelog](changelog.md) for the full history.
