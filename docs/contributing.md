@@ -40,14 +40,19 @@ pytest tests/e2e/
 # Lint with ruff
 ruff check src/ tests/
 
+# Format check (what CI verifies — use without --check to auto-fix)
+ruff format --check src/ tests/
+ruff format src/ tests/
+
 # Type check with mypy
 mypy src/
-
-# Format
-ruff format src/ tests/
 ```
 
-The CI pipeline runs all of these automatically.
+The CI `Lint & Type Check` job runs `ruff check`, `ruff format --check`, and `mypy` in that order. Use `check_pipeline.py` to run all three locally in one shot:
+
+```bash
+python output_skills/distribution/release-preflight/scripts/check_pipeline.py
+```
 
 ---
 
@@ -98,8 +103,7 @@ docs: update install targets table
 ## Pull request checklist
 
 - [ ] Tests pass: `pytest --cov=skill_forge --cov-fail-under=95`
-- [ ] Linting passes: `ruff check src/ tests/`
-- [ ] Type checking passes: `mypy src/`
+- [ ] Pipeline gate passes: `python output_skills/distribution/release-preflight/scripts/check_pipeline.py` (ruff check + format check + mypy)
 - [ ] New code has tests
 - [ ] Docs updated if behaviour changed
 - [ ] RELEASE_NOTES.md updated for user-visible changes

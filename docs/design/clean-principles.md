@@ -125,4 +125,4 @@ The clean architecture enables a fast, reliable test pyramid:
 | CLI | Integration | `typer.testing.CliRunner` |
 | Full stack | E2E | `CliRunner` with real temp directories |
 
-The result: **640 tests in ~2.5 seconds**, 95%+ coverage.
+The result: **826 tests in ~4 seconds**, 97% coverage.
