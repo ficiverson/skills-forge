@@ -22,7 +22,10 @@ from skill_forge.domain.model import (
     SkillIdentity,
 )
 from skill_forge.domain.validators import (
+    validate_context_budget,
     validate_dependency_exists,
+    validate_description_length,
+    validate_description_precision,
     validate_eval_fixture_files,
     validate_evals_schema,
     validate_has_evals,
@@ -227,10 +230,22 @@ class TestEvalsSchemaMessages:
         """Mutation: evals_path = skill_dir / 'EVALS' / 'evals.json' must be killed."""
         _write_evals(tmp_path, [{"id": 1, "prompt": "p", "expected_output": "o"}])
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
-        # If path is 'EVALS' instead of 'evals', the file won't be found => []
-        # The test passes only when the path is 'evals' (lowercase)
         prompt_issues = [i for i in issues if i.rule == "evals-missing-prompt"]
-        assert len(prompt_issues) == 0  # prompt is present, so no missing-prompt issue
+        assert len(prompt_issues) == 0
+
+    def test_evals_invalid_json(self, tmp_path: Path) -> None:
+        evals_dir = tmp_path / "evals"
+        evals_dir.mkdir()
+        (evals_dir / "evals.json").write_text("{invalid json", encoding="utf-8")
+        issues = validate_evals_schema(_skill(), tmp_path)
+        assert any(i.rule == "evals-invalid-json" for i in issues)
+        assert any("is not valid JSON" in i.message for i in issues)
+
+    def test_evals_missing_assertions(self, tmp_path: Path) -> None:
+        _write_evals(tmp_path, [{"prompt": "p", "assertions": ["not-an-object"]}])
+        issues = validate_evals_schema(_skill(), tmp_path)
+        assert any(i.rule == "evals-invalid-assertion" for i in issues)
+        assert any("must be an object" in i.message for i in issues)
 
 
 # ── validate_eval_fixture_files ───────────────────────────────────────────────
@@ -268,3 +283,93 @@ class TestEvalFixtureFilesMessages:
         skill = _skill(evals=[case])
         issues = validate_eval_fixture_files(skill, skill_dir=tmp_path)
         assert issues == []
+
+class TestDescriptionLengthBoundaries:
+    def test_description_exactly_30_tokens_passes(self) -> None:
+        # 15 words * 2 = 30 tokens
+        text = "word " * 15
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text=text),
+        )
+        issues = validate_description_length(skill)
+        assert issues == []
+
+    def test_description_28_tokens_warns(self) -> None:
+        # 14 words * 2 = 28 tokens
+        text = "word " * 14
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text=text),
+        )
+        issues = validate_description_length(skill)
+        assert len(issues) == 1
+        assert issues[0].rule == "description-too-short"
+        assert issues[0].location == "frontmatter.description"
+        assert "is ~28 tokens" in issues[0].message
+
+    def test_description_exactly_150_tokens_passes(self) -> None:
+        # 75 words * 2 = 150 tokens
+        text = "word " * 75
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text=text),
+        )
+        issues = validate_description_length(skill)
+        assert issues == []
+
+    def test_description_152_tokens_errors(self) -> None:
+        # 76 words * 2 = 152 tokens
+        text = "word " * 76
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text=text),
+        )
+        issues = validate_description_length(skill)
+        assert len(issues) == 1
+        assert issues[0].rule == "description-too-long"
+        assert issues[0].location == "frontmatter.description"
+        assert issues[0].severity == Severity.ERROR
+        assert "is ~152 tokens" in issues[0].message
+
+class TestDescriptionPrecisionMessages:
+    def test_vague_word_exact_message(self) -> None:
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text="This skill is for stuff."),
+        )
+        issues = validate_description_precision(skill)
+        vague = [i for i in issues if i.rule == "description-vague-language"]
+        assert len(vague) > 0
+        assert 'Avoid vague word "stuff"' in vague[0].message
+        assert vague[0].location == "frontmatter.description"
+
+class TestContextBudgetBoundaries:
+    def test_budget_error_exact_message(self) -> None:
+        from skill_forge.domain.model import SkillContent
+        # Create a skill with very long content
+        # estimated_tokens = (1001 principles * 1 word each) * 2 = 2002
+        content = SkillContent(principles=["principle"] * 1001) 
+        skill = Skill(
+            identity=SkillIdentity(name="s", category="c"),
+            description=Description(text="brief description"),
+            content=content,
+        )
+        issues = validate_context_budget(skill)
+        assert len(issues) == 1
+        assert issues[0].rule == "context-budget-exceeded"
+        assert issues[0].location == "SKILL.md"
+        assert "Over 2000 tokens" in issues[0].message
+
+class TestSkillNameFormat:
+    def test_skill_name_invalid_format_error(self) -> None:
+        from skill_forge.domain.validators import validate_skill_name_format
+        skill = Skill(
+            identity=SkillIdentity(name="Invalid Name!", category="c"),
+            description=Description(text="valid"),
+        )
+        issues = validate_skill_name_format(skill)
+        assert len(issues) == 1
+        assert issues[0].rule == "invalid-skill-name"
+        assert issues[0].location == "frontmatter.name"
+        assert "should be lowercase kebab-case" in issues[0].message

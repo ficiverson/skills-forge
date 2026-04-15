@@ -298,6 +298,13 @@ class TestInferCategory:
         skill = PARSER.parse(FULL_SKILL_MD, base_path=base)
         assert skill.identity.category == "backend"
 
+    def test_category_from_output_skills_path_shallow(self, tmp_path: Path) -> None:
+        """Verify index logic in _infer_category with a shallow path."""
+        base = Path("output_skills") / "frontend" / "s"
+        # We don't need actual directory creation if we just pass the Path object
+        skill = PARSER.parse(FULL_SKILL_MD, base_path=base)
+        assert skill.identity.category == "frontend"
+
     def test_category_falls_back_to_dir_name(self, tmp_path: Path) -> None:
         base = tmp_path / "my-category"
         base.mkdir()
@@ -307,3 +314,20 @@ class TestInferCategory:
     def test_uncategorized_when_no_path(self) -> None:
         skill = PARSER.parse(FULL_SKILL_MD)
         assert skill.identity.category == "uncategorized"
+
+class TestStripFrontmatter:
+    def test_strip_handles_no_match_gracefully(self) -> None:
+        """Verify that _strip_frontmatter returns full content if no match (kills match=None mutation)."""
+        content = "## No Frontmatter\nJust content."
+        stripped = PARSER._strip_frontmatter(content)
+        assert stripped == content
+
+    def test_strip_handles_empty_content(self) -> None:
+        assert PARSER._strip_frontmatter("") == ""
+
+class TestParseFrontmatterLogic:
+    def test_parse_empty_content_returns_empty_dict(self) -> None:
+        assert PARSER._parse_frontmatter("") == {}
+
+    def test_parse_invalid_frontmatter_returns_empty_dict(self) -> None:
+        assert PARSER._parse_frontmatter("not---frontmatter") == {}

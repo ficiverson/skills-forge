@@ -85,4 +85,5 @@ warn_unused_configs = true
 paths_to_mutate = ["src/skill_forge/"]
 pytest_add_cli_args_test_selection = ["tests/"]
 also_copy = ["src/"]
+runner = "python3 -m pytest -p no:cov"
 

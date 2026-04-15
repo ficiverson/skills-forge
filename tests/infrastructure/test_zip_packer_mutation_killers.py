@@ -148,6 +148,34 @@ class TestSerializeManifestAllFields:
             data = json.loads(zf.read("manifest.json"))
         assert "deprecated" not in data
 
+    def test_serialization_indentation(self, tmp_path: Path) -> None:
+        """Verify that manifest.json is indented (kills indent=None mutation)."""
+        _, out = _pack_one(tmp_path)
+        with zipfile.ZipFile(out) as zf:
+            raw = zf.read("manifest.json").decode("utf-8")
+        # If indented, it should contain a newline and spaces
+        assert "\n  " in raw
+
+    def test_pack_zero_skills_exact_message(self, tmp_path: Path) -> None:
+        """Verify exact error message for empty skill_dirs."""
+        manifest = SkillPackManifest(
+            name="test", version="1", author="", created_at="", description="",
+            skills=(SkillRef(category="c", name="n"),),
+        )
+        with pytest.raises(ValueError, match="^Cannot pack zero skills$"):
+            ZipSkillPacker().pack([], manifest, tmp_path / "out.zip")
+
+    def test_pack_file_instead_of_dir_raises(self, tmp_path: Path) -> None:
+        """Verify that a file path in skill_dirs raises FileNotFoundError (kills is_dir() mutation)."""
+        fake_dir = tmp_path / "not-a-dir.txt"
+        fake_dir.write_text("mostly-harmless")
+        manifest = SkillPackManifest(
+            name="test", version="1", author="", created_at="", description="",
+            skills=(SkillRef(category="c", name="n"),),
+        )
+        with pytest.raises(FileNotFoundError, match="Skill directory not found"):
+            ZipSkillPacker().pack([fake_dir], manifest, tmp_path / "out.zip")
+
 
 class TestReadManifestAllFields:
     """Round-trip: every field must survive the serialize → deserialize cycle."""
@@ -204,6 +232,50 @@ class TestReadManifestAllFields:
         owner = Owner(name="Eve", email="eve@test.com")
         packer, out = _pack_one(tmp_path, owner=owner)
         assert packer.read_manifest(out).owner.email == "eve@test.com"
+
+    def test_owner_email_defaults_to_empty_string(self, tmp_path: Path) -> None:
+        """Verify that missing email defaults to empty string, not None."""
+        skill_dir = _make_skill_dir(tmp_path / "src", "dev", "s")
+        # Manually create a zip with a manifest missing email key
+        out = tmp_path / "missing_email.zip"
+        with zipfile.ZipFile(out, "w") as zf:
+            zf.writestr("manifest.json", json.dumps({
+                "format_version": "1", "name": "x", "version": "1", "author": "",
+                "created_at": "", "skills": [{"category": "dev", "name": "s"}],
+                "owner": {"name": "Bob"}
+            }))
+        read = ZipSkillPacker().read_manifest(out)
+        assert read.owner.email == ""
+        assert read.owner.email is not None
+
+    def test_unpack_missing_pack_exact_message(self, tmp_path: Path) -> None:
+        with pytest.raises(FileNotFoundError, match="^Pack not found:"):
+            ZipSkillPacker().unpack(tmp_path / "missing.zip", tmp_path / "dest")
+
+    def test_unpack_nested_destination_creation(self, tmp_path: Path) -> None:
+        """Verify mkdir(parents=True) works by unpacking to a deep path."""
+        _, out = _pack_one(tmp_path)
+        dest = tmp_path / "very" / "deep" / "path"
+        ZipSkillPacker().unpack(out, dest)
+        assert (dest / "dev" / "my-skill" / "SKILL.md").exists()
+
+    def test_unpack_skips_non_skill_files_properly(self, tmp_path: Path) -> None:
+        """Verify that files outside skills/ are skipped (kills continue vs break mutation)."""
+        pack = tmp_path / "mixed.zip"
+        with zipfile.ZipFile(pack, "w") as zf:
+            zf.writestr("manifest.json", json.dumps({
+                "format_version": "1", "name": "x", "version": "1", "author": "",
+                "created_at": "", "skills": [{"category": "dev", "name": "s"}]
+            }))
+            zf.writestr("root.txt", "should-be-ignored")
+            zf.writestr("skills/dev/s/SKILL.md", "---\nname: s\n---")
+            zf.writestr("other.txt", "should-also-be-ignored")
+        
+        dest = tmp_path / "output"
+        ZipSkillPacker().unpack(pack, dest)
+        assert (dest / "dev" / "s" / "SKILL.md").exists()
+        assert not (dest / "root.txt").exists()
+        assert not (dest / "other.txt").exists()
 
     def test_deprecated_true_survives_roundtrip(self, tmp_path: Path) -> None:
         packer, out = _pack_one(tmp_path, deprecated=True)

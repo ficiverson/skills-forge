@@ -494,7 +494,7 @@ class TestTestSkillEvalDisplay:
         from skill_forge.application.use_cases.test_skill import (
             AssertionResult,
             EvalCaseResult,
-            TestSkillResponse,
+            AssessSkillResponse,
         )
         from skill_forge.domain.model import EvalAssertion, EvalCase
 
@@ -511,7 +511,7 @@ class TestTestSkillEvalDisplay:
         case_result = EvalCaseResult(
             case=case, response="hello world", assertion_results=[a_result]
         )
-        test_response = TestSkillResponse(
+        test_response = AssessSkillResponse(
             skill_name="eval-skill", case_results=[case_result]
         )
 
@@ -535,7 +535,7 @@ class TestTestSkillEvalDisplay:
         from skill_forge.application.use_cases.test_skill import (
             AssertionResult,
             EvalCaseResult,
-            TestSkillResponse,
+            AssessSkillResponse,
         )
         from skill_forge.domain.model import EvalAssertion, EvalCase
 
@@ -554,7 +554,7 @@ class TestTestSkillEvalDisplay:
         case_result = EvalCaseResult(
             case=case, response="nothing here", assertion_results=[a_result]
         )
-        test_response = TestSkillResponse(
+        test_response = AssessSkillResponse(
             skill_name="eval-skill", case_results=[case_result]
         )
 
@@ -578,8 +578,8 @@ class TestTestSkillEvalDisplay:
     ) -> None:
         """When an eval case hits an error, it should be displayed with ERROR."""
         from skill_forge.application.use_cases.test_skill import (
+            AssessSkillResponse,
             EvalCaseResult,
-            TestSkillResponse,
         )
         from skill_forge.domain.model import EvalCase
 
@@ -590,7 +590,7 @@ class TestTestSkillEvalDisplay:
             assertion_results=[],
             error="Claude returned empty response",
         )
-        test_response = TestSkillResponse(
+        test_response = AssessSkillResponse(
             skill_name="eval-skill", case_results=[case_result]
         )
 

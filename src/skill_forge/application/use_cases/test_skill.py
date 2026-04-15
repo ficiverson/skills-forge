@@ -54,7 +54,7 @@ class EvalCaseResult:
 
 
 @dataclass
-class TestSkillResponse:
+class AssessSkillResponse:
     skill_name: str
     case_results: list[EvalCaseResult] = field(default_factory=list)
 
@@ -85,7 +85,7 @@ class TestSkillResponse:
 
 
 @dataclass
-class TestSkillRequest:
+class AssessSkillRequest:
     skill_path: str  # path to skill directory
     filter_ids: list[int] = field(default_factory=list)  # run only these case IDs
     timeout: int = 120  # seconds per eval call
@@ -94,19 +94,19 @@ class TestSkillRequest:
 # ── use case ──────────────────────────────────────────────────────────────────
 
 
-class TestSkill:
+class AssessSkill:
     """Run evals for a skill and grade every assertion."""
 
     def __init__(self, parser: SkillParser, runner: ClaudeRunner) -> None:
         self._parser = parser
         self._runner = runner
 
-    def execute(self, request: TestSkillRequest, skill: Skill) -> TestSkillResponse:
+    def execute(self, request: AssessSkillRequest, skill: Skill) -> AssessSkillResponse:
         cases = skill.evals
         if request.filter_ids:
             cases = [c for c in cases if c.id in request.filter_ids]
 
-        response = TestSkillResponse(skill_name=skill.identity.name)
+        response = AssessSkillResponse(skill_name=skill.identity.name)
 
         for case in cases:
             case_result = self._run_case(case, skill, request.timeout)

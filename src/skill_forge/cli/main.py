@@ -1666,7 +1666,7 @@ def test_skill(
       # Run evals for every skill in a category
       skills-forge test output_skills/evaluation/
     """
-    from skill_forge.application.use_cases.test_skill import TestSkillRequest
+    from skill_forge.application.use_cases.test_skill import AssessSkillRequest
 
     skill_paths = _collect_skill_paths(path)
     if not skill_paths:
@@ -1675,7 +1675,7 @@ def test_skill(
 
     parser = build_parser()
     use_case = build_test_use_case()
-    request = TestSkillRequest(
+    request = AssessSkillRequest(
         skill_path=str(path),
         filter_ids=list(filter_ids),
         timeout=timeout,

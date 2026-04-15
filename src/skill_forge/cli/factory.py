@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from skill_forge.application.use_cases.diff_skill import DiffSkill
     from skill_forge.application.use_cases.doctor_skill import DoctorSkill
     from skill_forge.application.use_cases.info_skill import GetSkillInfo
-    from skill_forge.application.use_cases.test_skill import TestSkill
+    from skill_forge.application.use_cases.test_skill import AssessSkill
     from skill_forge.application.use_cases.update_skill import UpdateSkill
     from skill_forge.application.use_cases.yank_skill import YankSkill
     from skill_forge.domain.config_model import ForgeConfig
@@ -202,10 +202,10 @@ def build_exporter(fmt: ExportFormat) -> SkillExporter:
     return exporter_cls()
 
 
-def build_test_use_case() -> TestSkill:
-    from skill_forge.application.use_cases.test_skill import TestSkill as _TestSkill
+def build_test_use_case() -> AssessSkill:
+    from skill_forge.application.use_cases.test_skill import AssessSkill as _AssessSkill
 
-    return _TestSkill(
+    return _AssessSkill(
         parser=build_parser(),
         runner=SubprocessClaudeRunner(),
     )
