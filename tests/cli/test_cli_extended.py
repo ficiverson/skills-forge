@@ -1344,7 +1344,12 @@ class TestGitRegistryPublisherExtended:
             skills=(skill,),
         )
 
-        publisher.update_index(index=index, message="first commit", push=False)
-        second = publisher.update_index(index=index, message="no changes", push=False)
+        with patch(
+            "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
+            return_value="2026-04-11T00:00:00+00:00"
+        ):
+            publisher.update_index(index=index, message="first commit", push=False)
+            second = publisher.update_index(index=index, message="no changes", push=False)
+
         # No new staged changes → second commit returns False
         assert second is False

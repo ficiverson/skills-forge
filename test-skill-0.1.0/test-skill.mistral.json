@@ -1,0 +1,12 @@
+{
+  "schema_version": "v1",
+  "name": "test-skill",
+  "model": "mistral-medium-latest",
+  "system": "You are a specialist assistant for test-skill.\nUse this skill when testing test-skill. Triggers on: test, validate, quality.\n\n---\n\nSTARTER_CHARACTER = 🧪\n\n## Instructions\n\nRun the tests for test-skill.\n\n## Constraints\n\n- Always verify results.",
+  "metadata": {
+    "source": "skills-forge",
+    "version": "0.1.0",
+    "category": "test-skill",
+    "description": "Use this skill when testing test-skill. Triggers on: test, validate, quality."
+  }
+}
