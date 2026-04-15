@@ -1,6 +1,6 @@
 ---
 name: release-preflight
-version: 0.6.0
+version: 1.0.0
 description: >
   Five-phase pre-release check for skills-forge: pytest/ruff/mypy (95%+ coverage gate),
   pack consistency (sha256/size/manifest), schema alignment (FORMAT_VERSION), CLI sandbox
