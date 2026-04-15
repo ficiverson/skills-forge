@@ -55,9 +55,7 @@ def _stub_skill(name: str = "s", version: str = "1.0.0", deps: list[str] | None 
     skill = MagicMock(spec=Skill)
     skill.identity = SkillIdentity(name=name, category="cat")
     skill.version = version
-    skill.depends_on = [
-        Dependency(skill_name=d, reason="needs it") for d in (deps or [])
-    ]
+    skill.depends_on = [Dependency(skill_name=d, reason="needs it") for d in (deps or [])]
     skill.has_dependencies = bool(deps)
     return skill
 
@@ -197,9 +195,7 @@ class TestDoctorParseError:
 
 
 class TestDoctorStaleVersions:
-    def _make_registry_index(
-        self, skill_name: str, latest: str
-    ) -> RegistryIndex:
+    def _make_registry_index(self, skill_name: str, latest: str) -> RegistryIndex:
         iv = IndexedVersion(
             version=latest,
             path=f"packs/cat/{skill_name}-{latest}.skillpack",

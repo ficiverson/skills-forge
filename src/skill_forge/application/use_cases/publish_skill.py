@@ -87,16 +87,11 @@ class PublishPack:
 
         # Defaults flow from the manifest (baked in at pack time);
         # CLI flags on the request override.
-        description = (
-            manifest.description
-            or self._read_description(request.pack_path, manifest)
-        )
+        description = manifest.description or self._read_description(request.pack_path, manifest)
         tags = tuple(request.tags) if request.tags else manifest.tags
         platforms = tuple(request.platforms) if request.platforms else manifest.platforms
         export_formats = (
-            tuple(request.export_formats)
-            if request.export_formats
-            else manifest.export_formats
+            tuple(request.export_formats) if request.export_formats else manifest.export_formats
         )
         if request.owner_name:
             owner: Owner | None = Owner(
@@ -112,13 +107,11 @@ class PublishPack:
         _errors: list[str] = []
         if not description:
             _errors.append(
-                "description is required — bake it in with "
-                '`skills-forge pack --description "..."`'
+                'description is required — bake it in with `skills-forge pack --description "..."`'
             )
         if not tags:
             _errors.append(
-                "at least one tag is required — bake it in with "
-                "`skills-forge pack --tag <tag>`"
+                "at least one tag is required — bake it in with `skills-forge pack --tag <tag>`"
             )
         if owner is None or not owner.name or not owner.email:
             _errors.append(
@@ -152,9 +145,7 @@ class PublishPack:
         )
         return PublishPackResponse(result=result, manifest=manifest)
 
-    def _read_description(
-        self, pack_path: Path, manifest: SkillPackManifest
-    ) -> str:
+    def _read_description(self, pack_path: Path, manifest: SkillPackManifest) -> str:
         """Pull the SKILL.md description out of the pack via a temp unpack.
 
         Returns ``""`` if anything goes wrong — the upsert preserves the
@@ -237,9 +228,7 @@ class InstallFromUrl:
             installed: list[Path] = []
             if request.install:
                 for path in unpack_response.extracted_paths:
-                    installed.extend(
-                        self._installer.install(path, request.scope, request.target)
-                    )
+                    installed.extend(self._installer.install(path, request.scope, request.target))
 
             return InstallFromUrlResponse(
                 manifest=unpack_response.manifest,

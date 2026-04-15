@@ -61,8 +61,7 @@ class LintSkill:
             return self._parser.parse(content, base_path=request.path.parent)
 
         raise ValueError(
-            "LintSkillRequest requires either a Skill object or a path "
-            "with a configured parser."
+            "LintSkillRequest requires either a Skill object or a path with a configured parser."
         )
 
     def _resolve_skill_dir(self, request: LintSkillRequest) -> Path | None:

@@ -31,19 +31,15 @@ class SubprocessClaudeRunner(ClaudeRunner):
             )
         except FileNotFoundError as exc:
             raise RuntimeError(
-                "Claude CLI not found. Install it with: "
-                "npm install -g @anthropic-ai/claude-code"
+                "Claude CLI not found. Install it with: npm install -g @anthropic-ai/claude-code"
             ) from exc
         except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(
-                f"Claude CLI timed out after {timeout}s"
-            ) from exc
+            raise RuntimeError(f"Claude CLI timed out after {timeout}s") from exc
 
         if result.returncode != 0:
             stderr = result.stderr.strip()
             raise RuntimeError(
-                f"Claude CLI exited {result.returncode}"
-                + (f": {stderr}" if stderr else "")
+                f"Claude CLI exited {result.returncode}" + (f": {stderr}" if stderr else "")
             )
 
         return result.stdout

@@ -20,31 +20,23 @@ class TestFilesystemSkillRepository:
             parser=MarkdownSkillParser(),
         )
 
-    def test_save_creates_directory_and_file(
-        self, tmp_path: Path, minimal_skill: Skill
-    ):
+    def test_save_creates_directory_and_file(self, tmp_path: Path, minimal_skill: Skill):
         repo = self._build_repo(tmp_path)
         path = repo.save(minimal_skill)
 
         assert path.exists()
         assert (path / "SKILL.md").exists()
 
-    def test_exists_returns_false_for_new_skill(
-        self, tmp_path: Path, minimal_skill: Skill
-    ):
+    def test_exists_returns_false_for_new_skill(self, tmp_path: Path, minimal_skill: Skill):
         repo = self._build_repo(tmp_path)
         assert not repo.exists(minimal_skill)
 
-    def test_exists_returns_true_after_save(
-        self, tmp_path: Path, minimal_skill: Skill
-    ):
+    def test_exists_returns_true_after_save(self, tmp_path: Path, minimal_skill: Skill):
         repo = self._build_repo(tmp_path)
         repo.save(minimal_skill)
         assert repo.exists(minimal_skill)
 
-    def test_load_roundtrips_name(
-        self, tmp_path: Path, minimal_skill: Skill
-    ):
+    def test_load_roundtrips_name(self, tmp_path: Path, minimal_skill: Skill):
         repo = self._build_repo(tmp_path)
         path = repo.save(minimal_skill)
         loaded = repo.load(path)

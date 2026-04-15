@@ -133,9 +133,7 @@ class TestUnpackSkillUseCase:
 
         dest = tmp_path / "extracted"
         unpack_response = _build_unpack_use_case().execute(
-            UnpackSkillRequest(
-                pack_path=pack_response.pack_path, dest_dir=dest
-            )
+            UnpackSkillRequest(pack_path=pack_response.pack_path, dest_dir=dest)
         )
 
         assert unpack_response.manifest.name == "python-tdd"
@@ -157,9 +155,7 @@ class TestUnpackSkillUseCase:
 
         dest = tmp_path / "extracted"
         unpack_response = _build_unpack_use_case().execute(
-            UnpackSkillRequest(
-                pack_path=pack_response.pack_path, dest_dir=dest
-            )
+            UnpackSkillRequest(pack_path=pack_response.pack_path, dest_dir=dest)
         )
 
         assert unpack_response.manifest.skill_count == 2

@@ -62,23 +62,26 @@ class TestEvalsParserValid:
     def _write_evals(self, skill_dir: Path, data: object) -> None:
         evals_dir = skill_dir / "evals"
         evals_dir.mkdir(exist_ok=True)
-        (evals_dir / "evals.json").write_text(
-            json.dumps(data), encoding="utf-8"
-        )
+        (evals_dir / "evals.json").write_text(json.dumps(data), encoding="utf-8")
 
-    def test_empty_array(
-        self, parser: MarkdownSkillParser, skill_dir: Path
-    ) -> None:
+    def test_empty_array(self, parser: MarkdownSkillParser, skill_dir: Path) -> None:
         self._write_evals(skill_dir, [])
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert skill.evals == []
 
-    def test_single_case_no_assertions(
-        self, parser: MarkdownSkillParser, skill_dir: Path
-    ) -> None:
-        self._write_evals(skill_dir, [
-            {"id": 1, "prompt": "Hello", "expected_output": "World", "assertions": [], "files": []}
-        ])
+    def test_single_case_no_assertions(self, parser: MarkdownSkillParser, skill_dir: Path) -> None:
+        self._write_evals(
+            skill_dir,
+            [
+                {
+                    "id": 1,
+                    "prompt": "Hello",
+                    "expected_output": "World",
+                    "assertions": [],
+                    "files": [],
+                }
+            ],
+        )
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals) == 1
         case = skill.evals[0]
@@ -91,17 +94,24 @@ class TestEvalsParserValid:
     def test_case_with_contains_assertion(
         self, parser: MarkdownSkillParser, skill_dir: Path
     ) -> None:
-        self._write_evals(skill_dir, [{
-            "id": 1,
-            "prompt": "What is 2+2?",
-            "expected_output": "4",
-            "assertions": [{
-                "id": "has-answer",
-                "text": "Response contains 4",
-                "type": "contains",
-                "expected": "4",
-            }],
-        }])
+        self._write_evals(
+            skill_dir,
+            [
+                {
+                    "id": 1,
+                    "prompt": "What is 2+2?",
+                    "expected_output": "4",
+                    "assertions": [
+                        {
+                            "id": "has-answer",
+                            "text": "Response contains 4",
+                            "type": "contains",
+                            "expected": "4",
+                        }
+                    ],
+                }
+            ],
+        )
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals) == 1
         assertion = skill.evals[0].assertions[0]
@@ -109,25 +119,29 @@ class TestEvalsParserValid:
         assert assertion.type == "contains"
         assert assertion.expected == "4"
 
-    def test_case_with_files(
-        self, parser: MarkdownSkillParser, skill_dir: Path
-    ) -> None:
-        self._write_evals(skill_dir, [{
-            "id": 1,
-            "prompt": "Analyse",
-            "expected_output": "...",
-            "files": ["fixtures/sample.py"],
-        }])
+    def test_case_with_files(self, parser: MarkdownSkillParser, skill_dir: Path) -> None:
+        self._write_evals(
+            skill_dir,
+            [
+                {
+                    "id": 1,
+                    "prompt": "Analyse",
+                    "expected_output": "...",
+                    "files": ["fixtures/sample.py"],
+                }
+            ],
+        )
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert skill.evals[0].files == ("fixtures/sample.py",)
 
-    def test_multiple_cases(
-        self, parser: MarkdownSkillParser, skill_dir: Path
-    ) -> None:
-        self._write_evals(skill_dir, [
-            {"id": 1, "prompt": "p1", "expected_output": "o1"},
-            {"id": 2, "prompt": "p2", "expected_output": "o2"},
-        ])
+    def test_multiple_cases(self, parser: MarkdownSkillParser, skill_dir: Path) -> None:
+        self._write_evals(
+            skill_dir,
+            [
+                {"id": 1, "prompt": "p1", "expected_output": "o1"},
+                {"id": 2, "prompt": "p2", "expected_output": "o2"},
+            ],
+        )
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals) == 2
 
@@ -146,9 +160,7 @@ class TestEvalsParserMalformed:
         # Parser swallows parse errors; linter catches them
         assert skill.evals == []
 
-    def test_non_array_returns_empty(
-        self, parser: MarkdownSkillParser, skill_dir: Path
-    ) -> None:
+    def test_non_array_returns_empty(self, parser: MarkdownSkillParser, skill_dir: Path) -> None:
         self._write_evals(skill_dir, '{"key": "value"}')
         skill = parser.parse(MINIMAL_SKILL_MD, base_path=skill_dir)
         assert skill.evals == []
@@ -173,7 +185,7 @@ class TestFrontmatterHyphenatedKeys:
 
     def test_requires_forge_double_quoted(self, parser: MarkdownSkillParser) -> None:
         md = (
-            '---\nname: my-skill\ndescription: |\n  A skill.\n'
+            "---\nname: my-skill\ndescription: |\n  A skill.\n"
             'requires-forge: ">=0.4.0"\n---\n## Principles\n- p\n'
         )
         skill = parser.parse(md, base_path=None)

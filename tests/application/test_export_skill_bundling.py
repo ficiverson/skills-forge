@@ -25,6 +25,7 @@ description: test
 - [Sample](examples/sample.json)
 """
 
+
 def _make_skill_structure(root: Path):
     root.mkdir(parents=True, exist_ok=True)
     (root / "SKILL.md").write_text(_SKILL_MD, encoding="utf-8")
@@ -39,10 +40,13 @@ def _make_skill_structure(root: Path):
 
     return root
 
+
 class _RecordingExporter(SkillExporter):
     format = ExportFormat.SYSTEM_PROMPT
+
     def __init__(self) -> None:
         self.recorded_body: str | None = None
+
     def export(self, skill: Skill, body: str, output_dir: Path) -> Path:
         self.recorded_body = body
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -50,23 +54,33 @@ class _RecordingExporter(SkillExporter):
         out.write_text(body, encoding="utf-8")
         return out
 
+
 class _StubPacker(SkillPacker):
     def __init__(self, skill_root: Path) -> None:
         self.skill_root = skill_root
+
     def pack(self, skill_dirs: list[Path], manifest: SkillPackManifest, output: Path) -> Path:
         return output
+
     def unpack(self, pack_path: Path, dest_dir: Path) -> SkillPackManifest:
         # Simulate unpacking our prepared skill root into dest_dir
         import shutil
+
         shutil.copytree(self.skill_root, dest_dir, dirs_exist_ok=True)
         return SkillPackManifest(
-            name="test", version="1.0.0", author="me", created_at="2024",
-            skills=(SkillRef(category="test", name="bundle-test"),)
+            name="test",
+            version="1.0.0",
+            author="me",
+            created_at="2024",
+            skills=(SkillRef(category="test", name="bundle-test"),),
         )
+
     def read_manifest(self, pack_path: Path) -> SkillPackManifest:
         raise NotImplementedError()
 
+
 # ── Tests ──────────────────────────────────────────────────────────────────────
+
 
 class TestExportSkillBundling:
     def test_bundles_references_and_examples(self, tmp_path: Path):
@@ -76,17 +90,11 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
-                skill_path=pack_path,
-                format=ExportFormat.SYSTEM_PROMPT,
-                output=tmp_path / "out"
+                skill_path=pack_path, format=ExportFormat.SYSTEM_PROMPT, output=tmp_path / "out"
             )
         )
 
@@ -111,17 +119,11 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
-                skill_path=pack_path,
-                format=ExportFormat.SYSTEM_PROMPT,
-                output=tmp_path / "out"
+                skill_path=pack_path, format=ExportFormat.SYSTEM_PROMPT, output=tmp_path / "out"
             )
         )
 
@@ -149,17 +151,11 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
-                skill_path=pack_path,
-                format=ExportFormat.SYSTEM_PROMPT,
-                output=tmp_path / "out"
+                skill_path=pack_path, format=ExportFormat.SYSTEM_PROMPT, output=tmp_path / "out"
             )
         )
 
@@ -176,18 +172,14 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
                 skill_path=pack_path,
                 format=ExportFormat.SYSTEM_PROMPT,
                 output=tmp_path / "out",
-                bundle=False
+                bundle=False,
             )
         )
 
@@ -213,17 +205,11 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
-                skill_path=pack_path,
-                format=ExportFormat.SYSTEM_PROMPT,
-                output=tmp_path / "out"
+                skill_path=pack_path, format=ExportFormat.SYSTEM_PROMPT, output=tmp_path / "out"
             )
         )
 
@@ -249,17 +235,11 @@ class TestExportSkillBundling:
 
         exporter = _RecordingExporter()
         packer = _StubPacker(skill_root)
-        use_case = ExportSkill(
-            parser=MarkdownSkillParser(),
-            exporter=exporter,
-            packer=packer
-        )
+        use_case = ExportSkill(parser=MarkdownSkillParser(), exporter=exporter, packer=packer)
 
         use_case.execute(
             ExportSkillRequest(
-                skill_path=pack_path,
-                format=ExportFormat.SYSTEM_PROMPT,
-                output=tmp_path / "out"
+                skill_path=pack_path, format=ExportFormat.SYSTEM_PROMPT, output=tmp_path / "out"
             )
         )
 

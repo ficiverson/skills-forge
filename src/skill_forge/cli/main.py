@@ -50,7 +50,8 @@ def create(
     ),
     output: Path = typer.Option(
         Path("output_skills"),
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Base directory for generated skills",
     ),
 ) -> None:
@@ -139,14 +140,15 @@ def _do_list_skills(
         # Here we do a lightweight filter on skill name/description containing the tag.
         tag_lower = tag.lower()
         skills = [
-            s for s in skills
-            if tag_lower in s.identity.name.lower()
-            or tag_lower in s.description.text.lower()
+            s
+            for s in skills
+            if tag_lower in s.identity.name.lower() or tag_lower in s.description.text.lower()
         ]
     if filter_str:
         f_lower = filter_str.lower()
         skills = [
-            s for s in skills
+            s
+            for s in skills
             if f_lower in s.identity.name.lower()
             or f_lower in s.identity.category.lower()
             or f_lower in s.description.text.lower()
@@ -245,11 +247,15 @@ def install(
         ),
     ),
     scope: str = typer.Option(
-        "global", "--scope", "-s",
+        "global",
+        "--scope",
+        "-s",
         help="Installation scope: global (user home) or project (current directory)",
     ),
     target: str = typer.Option(
-        "claude", "--target", "-t",
+        "claude",
+        "--target",
+        "-t",
         help=(
             "Agent tool to install into: claude, gemini, codex, vscode, agents, all. "
             "'agents' writes to .agents/skills/ — the universal cross-vendor path "
@@ -401,10 +407,7 @@ def export(
         None,
         "--output",
         "-o",
-        help=(
-            "Directory to write the exported artifact into. "
-            "Defaults to the skill directory."
-        ),
+        help=("Directory to write the exported artifact into. Defaults to the skill directory."),
     ),
     only_skill: bool = typer.Option(
         False,
@@ -495,10 +498,8 @@ def export(
     elif export_fmt == ExportFormat.MCP_SERVER:
         for path in response.output_paths:
             typer.echo(f"  Run with: python {path}")
-            typer.echo(f"  Or: uvx --from \"mcp[cli]\" mcp run {path}")
-        typer.echo(
-            "  Or add to your MCP host config -- see the file header for details."
-        )
+            typer.echo(f'  Or: uvx --from "mcp[cli]" mcp run {path}')
+        typer.echo("  Or add to your MCP host config -- see the file header for details.")
     elif export_fmt == ExportFormat.MISTRAL_JSON:
         typer.echo(
             "  POST https://api.mistral.ai/v1/agents with the JSON body "
@@ -520,11 +521,15 @@ def export(
 def uninstall(
     skill_name: str = typer.Argument(..., help="Name of the skill to uninstall"),
     scope: str = typer.Option(
-        "global", "--scope", "-s",
+        "global",
+        "--scope",
+        "-s",
         help="Installation scope: global or project",
     ),
     target: str = typer.Option(
-        "all", "--target", "-t",
+        "all",
+        "--target",
+        "-t",
         help=(
             "Which tool target(s) to remove from: "
             "claude, gemini, codex, vscode, agents, all (default: all)"
@@ -670,9 +675,7 @@ def pack(
     )
     response = use_case.execute(request)
 
-    typer.echo(
-        f"✔ Packed {response.manifest.skill_count} skill(s) into {response.pack_path}"
-    )
+    typer.echo(f"✔ Packed {response.manifest.skill_count} skill(s) into {response.pack_path}")
     typer.echo(f"  name:    {response.manifest.name}")
     typer.echo(f"  version: {response.manifest.version}")
     if response.manifest.author:
@@ -683,9 +686,7 @@ def pack(
 
 @app.command()
 def unpack(
-    pack_path: Path = typer.Argument(
-        ..., help="Path to a .skillpack file", exists=True
-    ),
+    pack_path: Path = typer.Argument(..., help="Path to a .skillpack file", exists=True),
     output: Path = typer.Option(
         Path("output_skills"),
         "--output",
@@ -704,9 +705,7 @@ def unpack(
         f"✔ Unpacked {response.manifest.skill_count} skill(s) "
         f"from '{response.manifest.name}' v{response.manifest.version}"
     )
-    for ref, path in zip(
-        response.manifest.skills, response.extracted_paths, strict=True
-    ):
+    for ref, path in zip(response.manifest.skills, response.extracted_paths, strict=True):
         typer.echo(f"  → {path}  (v{ref.version})")
     typer.echo(
         "\nNext: lint the unpacked skills with `skills-forge lint`, then install "
@@ -742,9 +741,7 @@ def publish(
         "-N",
         help="Display name for the registry (defaults to the repo dir name)",
     ),
-    message: str = typer.Option(
-        "", "--message", "-m", help="Git commit message"
-    ),
+    message: str = typer.Option("", "--message", "-m", help="Git commit message"),
     push: bool = typer.Option(
         False,
         "--push/--no-push",
@@ -905,6 +902,7 @@ def init(
     cfg_repo = build_config_repo()
     if not cfg_repo.path.exists():
         from skill_forge.domain.config_model import ForgeConfig
+
         cfg_repo.save(ForgeConfig.with_public_registry())
         typer.echo(f"  Config created at {cfg_repo.path}")
 
@@ -962,9 +960,7 @@ def info(
     # Fall back to configured default registry URL when --registry is omitted
     if not registry:
         cfg = load_config()
-        default_reg = next(
-            (r for r in cfg.registries if r.name == cfg.default_registry), None
-        )
+        default_reg = next((r for r in cfg.registries if r.name == cfg.default_registry), None)
         if default_reg:
             registry = default_reg.url
 
@@ -1059,9 +1055,7 @@ def doctor(
             registry_url = registry
         else:
             cfg = load_config()
-            default_reg = next(
-                (r for r in cfg.registries if r.name == cfg.default_registry), None
-            )
+            default_reg = next((r for r in cfg.registries if r.name == cfg.default_registry), None)
             if default_reg:
                 registry_url = default_reg.url
 
@@ -1069,9 +1063,7 @@ def doctor(
     response = use_case.execute(scope=skill_scope, registry_url=registry_url)
 
     if response.checked_count == 0:
-        typer.echo(
-            f"No skills installed at {skill_scope.value} scope — nothing to check."
-        )
+        typer.echo(f"No skills installed at {skill_scope.value} scope — nothing to check.")
         return
 
     typer.echo(f"\n  Checked {response.checked_count} skill(s):")
@@ -1084,10 +1076,7 @@ def doctor(
         icon = "✘" if issue.severity == Severity.ERROR else "⚠"
         typer.echo(f"  {icon} {issue}")
 
-    typer.echo(
-        f"\n  {response.failure_count} error(s), "
-        f"{response.warning_count} warning(s)."
-    )
+    typer.echo(f"\n  {response.failure_count} error(s), {response.warning_count} warning(s).")
 
     if response.failure_count:
         raise typer.Exit(code=1)
@@ -1171,9 +1160,7 @@ def update(
     registry_url = registry
     if not registry_url:
         cfg = load_config()
-        default_reg = next(
-            (r for r in cfg.registries if r.name == cfg.default_registry), None
-        )
+        default_reg = next((r for r in cfg.registries if r.name == cfg.default_registry), None)
         if default_reg:
             registry_url = default_reg.url
 
@@ -1231,14 +1218,9 @@ def update(
 
     for r in response.records:
         if r.updated:
-            typer.echo(
-                f"  ✔ Updated {r.skill_name} "
-                f"v{r.old_version} → v{r.new_version}"
-            )
+            typer.echo(f"  ✔ Updated {r.skill_name} v{r.old_version} → v{r.new_version}")
 
-    typer.echo(
-        f"\n  ✔ Updated {response.updated_count}/{len(available)} skill(s)."
-    )
+    typer.echo(f"\n  ✔ Updated {response.updated_count}/{len(available)} skill(s).")
 
 
 # ── registry subcommand group ─────────────────────────────────────────────────
@@ -1257,9 +1239,7 @@ def registry_list() -> None:
     cfg = load_config()
     if not cfg.registries:
         typer.echo("No registries configured.")
-        typer.echo(
-            "  Add one with: skills-forge registry add <name> <url>"
-        )
+        typer.echo("  Add one with: skills-forge registry add <name> <url>")
         return
     for reg in cfg.registries:
         default_tag = " (default)" if reg.name == cfg.default_registry else ""
@@ -1347,7 +1327,8 @@ def yank(
     ),
     registry: Path = typer.Option(
         ...,
-        "--registry", "-r",
+        "--registry",
+        "-r",
         help="Path to local clone of the registry repo",
         exists=True,
         file_okay=False,
@@ -1355,7 +1336,8 @@ def yank(
     ),
     base_url: str = typer.Option(
         ...,
-        "--url", "-u",
+        "--url",
+        "-u",
         help="Base URL of the registry (e.g. https://raw.githubusercontent.com/org/registry/main)",
     ),
     reason: str = typer.Option(
@@ -1370,7 +1352,8 @@ def yank(
     ),
     registry_name: str = typer.Option(
         "registry",
-        "--name", "-n",
+        "--name",
+        "-n",
         help="Registry name (used in index metadata)",
     ),
 ) -> None:
@@ -1393,9 +1376,7 @@ def yank(
 
     # Parse "name@version"
     if "@" not in skill_ref:
-        typer.echo(
-            f"⚠ skill_ref must be in '<name>@<version>' format, got: {skill_ref!r}"
-        )
+        typer.echo(f"⚠ skill_ref must be in '<name>@<version>' format, got: {skill_ref!r}")
         raise typer.Exit(code=1)
     skill_name, version = skill_ref.rsplit("@", 1)
 
@@ -1418,14 +1399,10 @@ def yank(
         raise typer.Exit(code=1) from exc
 
     if response.was_already_yanked:
-        typer.echo(
-            f"⚠ {response.skill_name}@{response.version} was already yanked."
-        )
+        typer.echo(f"⚠ {response.skill_name}@{response.version} was already yanked.")
     else:
         reason_note = f" — {response.yank_reason}" if response.yank_reason else ""
-        typer.echo(
-            f"✔ Yanked {response.skill_name}@{response.version}{reason_note}"
-        )
+        typer.echo(f"✔ Yanked {response.skill_name}@{response.version}{reason_note}")
     if response.committed:
         typer.echo("  ✔ Committed to registry")
         if push:
@@ -1440,7 +1417,8 @@ def deprecate(
     skill_name: str = typer.Argument(..., help="Name of the skill to deprecate"),
     registry: Path = typer.Option(
         ...,
-        "--registry", "-r",
+        "--registry",
+        "-r",
         help="Path to local clone of the registry repo",
         exists=True,
         file_okay=False,
@@ -1448,7 +1426,8 @@ def deprecate(
     ),
     base_url: str = typer.Option(
         ...,
-        "--url", "-u",
+        "--url",
+        "-u",
         help="Base URL of the registry",
     ),
     replaced_by: str = typer.Option(
@@ -1458,7 +1437,8 @@ def deprecate(
     ),
     message: str = typer.Option(
         "",
-        "--message", "-m",
+        "--message",
+        "-m",
         help="Human-readable migration note shown to users",
     ),
     push: bool = typer.Option(
@@ -1468,7 +1448,8 @@ def deprecate(
     ),
     registry_name: str = typer.Option(
         "registry",
-        "--name", "-n",
+        "--name",
+        "-n",
         help="Registry name (used in index metadata)",
     ),
 ) -> None:
@@ -1524,17 +1505,20 @@ def deprecate(
 
 # ── diff command ──────────────────────────────────────────────────────────────
 
+
 @app.command(name="diff")
 def diff(
     skill_name: str = typer.Argument(..., help="Name of the installed skill to diff"),
     scope: str = typer.Option(
         "global",
-        "--scope", "-s",
+        "--scope",
+        "-s",
         help="Installation scope: global or project",
     ),
     registry_url: str = typer.Option(
         "",
-        "--registry", "-r",
+        "--registry",
+        "-r",
         help=(
             "Base URL of a registry to diff against "
             "(e.g. https://raw.githubusercontent.com/org/registry/main). "
@@ -1543,7 +1527,8 @@ def diff(
     ),
     context_lines: int = typer.Option(
         3,
-        "--context", "-C",
+        "--context",
+        "-C",
         help="Number of context lines in the unified diff (default: 3)",
     ),
 ) -> None:
@@ -1630,6 +1615,7 @@ def diff(
 
 # ── test command ──────────────────────────────────────────────────────────────
 
+
 @app.command(name="test")
 def test_skill(
     path: Path = typer.Argument(
@@ -1697,21 +1683,16 @@ def test_skill(
         for cr in response.case_results:
             status_icon = "✅" if cr.passed else "❌"
             if cr.error:
-                typer.echo(
-                    f"  {status_icon} eval-{cr.case.id}  ERROR: {cr.error}"
-                )
+                typer.echo(f"  {status_icon} eval-{cr.case.id}  ERROR: {cr.error}")
                 overall_exit = 1
                 continue
 
             typer.echo(
-                f"  {status_icon} eval-{cr.case.id}  "
-                f"{cr.pass_count}/{cr.total_count} assertions"
+                f"  {status_icon} eval-{cr.case.id}  {cr.pass_count}/{cr.total_count} assertions"
             )
             for ar in cr.assertion_results:
                 if not ar.passed:
-                    typer.echo(
-                        f"       ✘ {ar.assertion.id}: {ar.reason}"
-                    )
+                    typer.echo(f"       ✘ {ar.assertion.id}: {ar.reason}")
 
         pct = int(response.pass_rate * 100)
         typer.echo(

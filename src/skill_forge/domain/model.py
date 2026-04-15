@@ -59,12 +59,12 @@ class InstallTarget(Enum):
     has its own home-directory path, so ALL is provided for that case.
     """
 
-    CLAUDE = "claude"    # ~/.claude/skills/  |  .claude/skills/
-    GEMINI = "gemini"    # ~/.gemini/skills/  |  .gemini/skills/
-    CODEX = "codex"      # ~/.codex/skills/   |  .codex/skills/
-    VSCODE = "vscode"    # project-only       |  .github/skills/
-    AGENTS = "agents"    # ~/.agents/skills/  |  .agents/skills/  (universal)
-    ALL = "all"          # every applicable target for the chosen scope
+    CLAUDE = "claude"  # ~/.claude/skills/  |  .claude/skills/
+    GEMINI = "gemini"  # ~/.gemini/skills/  |  .gemini/skills/
+    CODEX = "codex"  # ~/.codex/skills/   |  .codex/skills/
+    VSCODE = "vscode"  # project-only       |  .github/skills/
+    AGENTS = "agents"  # ~/.agents/skills/  |  .agents/skills/  (universal)
+    ALL = "all"  # every applicable target for the chosen scope
 
 
 @dataclass(frozen=True)
@@ -165,8 +165,7 @@ class Dependency:
             raise ValueError("Dependency skill_name cannot be empty")
         if " " in self.skill_name.strip():
             raise ValueError(
-                f"Dependency skill_name '{self.skill_name}' must be "
-                f"kebab-case (no spaces)"
+                f"Dependency skill_name '{self.skill_name}' must be kebab-case (no spaces)"
             )
 
 
@@ -190,8 +189,8 @@ class EvalAssertion:
     """
 
     id: str
-    text: str       # human-readable criterion (required for llm-judge, useful docs for all)
-    type: str       # "contains" | "not-contains" | "regex" | "llm-judge"
+    text: str  # human-readable criterion (required for llm-judge, useful docs for all)
+    type: str  # "contains" | "not-contains" | "regex" | "llm-judge"
     expected: str = ""  # pattern / substring for contains / not-contains / regex
 
     def __post_init__(self) -> None:
@@ -438,9 +437,7 @@ class IndexedSkill:
             raise ValueError("IndexedSkill must have at least one version")
         known = {v.version for v in self.versions}
         if self.latest not in known:
-            raise ValueError(
-                f"IndexedSkill latest '{self.latest}' must be one of {sorted(known)}"
-            )
+            raise ValueError(f"IndexedSkill latest '{self.latest}' must be one of {sorted(known)}")
 
     def find(self, version: str) -> IndexedVersion | None:
         for v in self.versions:
@@ -509,9 +506,7 @@ class RegistryIndex:
                     for v in s.versions
                 )
                 if not any(v.version == version for v in s.versions):
-                    raise ValueError(
-                        f"Version '{version}' not found for skill '{name}'"
-                    )
+                    raise ValueError(f"Version '{version}' not found for skill '{name}'")
                 non_yanked = [v for v in new_versions if not v.yanked]
                 latest = (non_yanked[-1] if non_yanked else new_versions[-1]).version
                 new_skills.append(
@@ -569,9 +564,7 @@ class RegistryIndex:
                         platforms=s.platforms,
                         owner=s.owner,
                         deprecated=deprecated if deprecated is not None else s.deprecated,
-                        replaced_by=(
-                            replaced_by if replaced_by is not None else s.replaced_by
-                        ),
+                        replaced_by=(replaced_by if replaced_by is not None else s.replaced_by),
                         deprecation_message=(
                             deprecation_message
                             if deprecation_message is not None
@@ -629,15 +622,11 @@ class RegistryIndex:
                         name=name,
                         latest=latest,
                         versions=ordered,
-                        description=(
-                            description if description is not None else s.description
-                        ),
+                        description=(description if description is not None else s.description),
                         tags=tags if tags is not None else s.tags,
                         platforms=platforms if platforms is not None else s.platforms,
                         owner=owner if owner is not None else s.owner,
-                        deprecated=(
-                            deprecated if deprecated is not None else s.deprecated
-                        ),
+                        deprecated=(deprecated if deprecated is not None else s.deprecated),
                         replaced_by=s.replaced_by,
                         deprecation_message=s.deprecation_message,
                     )

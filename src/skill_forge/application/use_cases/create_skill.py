@@ -82,11 +82,7 @@ class CreateSkill:
             category=request.category,
         )
         description = Description(text=request.description)
-        starter = (
-            StarterCharacter(emoji=request.starter_emoji)
-            if request.starter_emoji
-            else None
-        )
+        starter = StarterCharacter(emoji=request.starter_emoji) if request.starter_emoji else None
         content = SkillContent(
             principles=request.principles or [],
             instructions=request.instructions,

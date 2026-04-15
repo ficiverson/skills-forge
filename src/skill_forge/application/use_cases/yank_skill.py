@@ -61,15 +61,12 @@ class YankSkill:
                 break
 
         if indexed_skill is None:
-            raise ValueError(
-                f"Skill '{request.skill_name}' not found in registry index"
-            )
+            raise ValueError(f"Skill '{request.skill_name}' not found in registry index")
 
         indexed_version = indexed_skill.find(request.version)
         if indexed_version is None:
             raise ValueError(
-                f"Version '{request.version}' not found for skill "
-                f"'{request.skill_name}'"
+                f"Version '{request.version}' not found for skill '{request.skill_name}'"
             )
 
         was_already_yanked = indexed_version.yanked
@@ -81,9 +78,7 @@ class YankSkill:
             reason=request.reason,
         )
 
-        message = request.commit_message or (
-            f"Yank {request.skill_name}@{request.version}"
-        )
+        message = request.commit_message or (f"Yank {request.skill_name}@{request.version}")
         committed = self._publisher.update_index(updated_index, message, request.push)
 
         return YankResponse(

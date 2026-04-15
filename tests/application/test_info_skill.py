@@ -35,10 +35,7 @@ class _StubInstaller(SkillInstaller):
         return []
 
     def is_installed(self, skill_name, scope):
-        return any(
-            any(p.name == skill_name for p in paths)
-            for paths in self._targets.values()
-        )
+        return any(any(p.name == skill_name for p in paths) for paths in self._targets.values())
 
     def list_installed(self, scope):
         return []
@@ -98,13 +95,9 @@ class TestGetSkillInfoInstalled:
     def test_finds_skill_in_claude_target(self, tmp_path: Path) -> None:
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
-        (skill_dir / "SKILL.md").write_text(
-            "---\nname: my-skill\ncategory: testing\n---\n"
-        )
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\ncategory: testing\n---\n")
         expected_skill = _make_skill("my-skill", "1.2.3")
-        installer = _StubInstaller(
-            targets={InstallTarget.CLAUDE: [skill_dir]}
-        )
+        installer = _StubInstaller(targets={InstallTarget.CLAUDE: [skill_dir]})
         parser = _StubParser(skill=expected_skill)
         use_case = GetSkillInfo(installer=installer, parser=parser)
 

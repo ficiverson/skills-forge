@@ -103,12 +103,14 @@ class TestYankVersion:
 
     def test_raises_when_skill_not_found(self) -> None:
         import pytest
+
         index = _make_index()
         with pytest.raises(ValueError, match="not found in registry"):
             index.yank_version("nonexistent", "1.0.0")
 
     def test_raises_when_version_not_found(self) -> None:
         import pytest
+
         index = _make_index(versions=("1.0.0",))
         with pytest.raises(ValueError, match="not found for skill"):
             index.yank_version("python-tdd", "9.9.9")
@@ -152,14 +154,13 @@ class TestYankSkill:
         publisher = _StubPublisher(index)
         use_case = YankSkill(publisher=publisher)
 
-        response = use_case.execute(
-            YankRequest(skill_name="python-tdd", version="1.0.0")
-        )
+        response = use_case.execute(YankRequest(skill_name="python-tdd", version="1.0.0"))
 
         assert response.was_already_yanked is True
 
     def test_raises_when_skill_not_found(self) -> None:
         import pytest
+
         index = _make_index()
         publisher = _StubPublisher(index)
         use_case = YankSkill(publisher=publisher)
@@ -169,6 +170,7 @@ class TestYankSkill:
 
     def test_raises_when_version_not_found(self) -> None:
         import pytest
+
         index = _make_index(versions=("1.0.0",))
         publisher = _StubPublisher(index)
         use_case = YankSkill(publisher=publisher)

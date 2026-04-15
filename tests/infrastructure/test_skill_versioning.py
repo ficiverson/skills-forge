@@ -16,34 +16,17 @@ from skill_forge.infrastructure.adapters.markdown_renderer import MarkdownSkillR
 
 class TestParserVersion:
     def test_parses_explicit_version(self):
-        content = (
-            "---\n"
-            "name: my-skill\n"
-            "version: 1.2.3\n"
-            "description: Test description\n"
-            "---\n"
-        )
+        content = "---\nname: my-skill\nversion: 1.2.3\ndescription: Test description\n---\n"
         skill = MarkdownSkillParser().parse(content)
         assert skill.version == "1.2.3"
 
     def test_parses_missing_version_as_default(self):
-        content = (
-            "---\n"
-            "name: my-skill\n"
-            "description: Test description\n"
-            "---\n"
-        )
+        content = "---\nname: my-skill\ndescription: Test description\n---\n"
         skill = MarkdownSkillParser().parse(content)
         assert skill.version == DEFAULT_SKILL_VERSION
 
     def test_parses_blank_version_as_default(self):
-        content = (
-            "---\n"
-            "name: my-skill\n"
-            "version:\n"
-            "description: Test\n"
-            "---\n"
-        )
+        content = "---\nname: my-skill\nversion:\ndescription: Test\n---\n"
         skill = MarkdownSkillParser().parse(content)
         assert skill.version == DEFAULT_SKILL_VERSION
 

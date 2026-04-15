@@ -120,9 +120,7 @@ class TestGitRegistryPublisher:
         assert skill.latest == "0.2.0"
         assert {v.version for v in skill.versions} == {"0.1.0", "0.2.0"}
 
-    def test_publish_rejects_multi_skill_pack(
-        self, tmp_path: Path, git_registry: Path
-    ) -> None:
+    def test_publish_rejects_multi_skill_pack(self, tmp_path: Path, git_registry: Path) -> None:
         pack = _make_pack(tmp_path, "bundle", "0.1.0")
         manifest = SkillPackManifest(
             name="bundle",

@@ -134,6 +134,7 @@ class TestCodecRoundtrip:
     def test_yank_reason_omitted_when_empty(self) -> None:
         """Non-yanked versions must not emit 'yank_reason' key in JSON."""
         import json
+
         codec = RegistryIndexCodec()
         index = RegistryIndex(
             registry_name="t",
@@ -161,6 +162,7 @@ class TestCodecRoundtrip:
 
     def test_replaced_by_omitted_when_empty(self) -> None:
         import json
+
         codec = RegistryIndexCodec()
         index = RegistryIndex(
             registry_name="t",

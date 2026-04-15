@@ -79,13 +79,8 @@ class PackSkill:
         if not request.skill_dirs:
             raise ValueError("PackSkillRequest must include at least one skill")
 
-        skills_with_dirs = [
-            (self._load_skill(d), d) for d in request.skill_dirs
-        ]
-        refs = [
-            self._build_ref(skill, skill_dir)
-            for skill, skill_dir in skills_with_dirs
-        ]
+        skills_with_dirs = [(self._load_skill(d), d) for d in request.skill_dirs]
+        refs = [self._build_ref(skill, skill_dir) for skill, skill_dir in skills_with_dirs]
 
         pack_name = request.pack_name or refs[0].name
         pack_version = self._resolve_pack_version(request.version, refs)
@@ -104,9 +99,7 @@ class PackSkill:
         # This makes the registry index entries high-fidelity by default.
         platforms = tuple(request.platforms)
         if not platforms:
-            platforms = tuple(
-                t.value for t in InstallTarget if t != InstallTarget.ALL
-            )
+            platforms = tuple(t.value for t in InstallTarget if t != InstallTarget.ALL)
 
         export_formats = tuple(request.export_formats)
         if not export_formats:
@@ -136,12 +129,8 @@ class PackSkill:
     def _load_skill(self, skill_dir: Path) -> Skill:
         skill_md = skill_dir / "SKILL.md"
         if not skill_md.exists():
-            raise FileNotFoundError(
-                f"Directory is not a skill (no SKILL.md): {skill_dir}"
-            )
-        return self._parser.parse(
-            skill_md.read_text(encoding="utf-8"), base_path=skill_md
-        )
+            raise FileNotFoundError(f"Directory is not a skill (no SKILL.md): {skill_dir}")
+        return self._parser.parse(skill_md.read_text(encoding="utf-8"), base_path=skill_md)
 
     def _build_ref(self, skill: Skill, skill_dir: Path) -> SkillRef:
         # The convention everywhere is `<base>/<category>/<name>/SKILL.md`,
@@ -155,9 +144,7 @@ class PackSkill:
             version=skill.version,
         )
 
-    def _resolve_pack_version(
-        self, requested_version: str, refs: list[SkillRef]
-    ) -> str:
+    def _resolve_pack_version(self, requested_version: str, refs: list[SkillRef]) -> str:
         """Pick the version printed on the pack itself.
 
         Precedence:
@@ -182,7 +169,5 @@ class UnpackSkill:
 
     def execute(self, request: UnpackSkillRequest) -> UnpackSkillResponse:
         manifest = self._packer.unpack(request.pack_path, request.dest_dir)
-        extracted = [
-            request.dest_dir / ref.category / ref.name for ref in manifest.skills
-        ]
+        extracted = [request.dest_dir / ref.category / ref.name for ref in manifest.skills]
         return UnpackSkillResponse(manifest=manifest, extracted_paths=extracted)

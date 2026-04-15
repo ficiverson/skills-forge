@@ -52,18 +52,20 @@ class MistralJsonExporter(SkillExporter):
         tools: list[dict[str, object]] = []
         if skill.has_allowed_tools:
             for tool_name in skill.allowed_tools:
-                tools.append({
-                    "type": "function",
-                    "function": {
-                        "name": tool_name,
-                        "description": f"Tool: {tool_name}",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
+                tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "description": f"Tool: {tool_name}",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {},
+                                "required": [],
+                            },
                         },
-                    },
-                })
+                    }
+                )
 
         config: dict[str, object] = {
             "schema_version": "v1",

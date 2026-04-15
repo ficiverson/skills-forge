@@ -94,6 +94,7 @@ class _StubFetcher:
         if self._pack_path is None:
             raise RuntimeError("No pack configured in stub")
         import shutil
+
         shutil.copy2(self._pack_path, dest)
 
 
@@ -249,21 +250,15 @@ class TestDiffSkillMissingSkillMd:
 
 class TestDiffResponseProperties:
     def test_is_up_to_date_true_when_same_version(self) -> None:
-        r = DiffResponse(
-            skill_name="x", installed_version="1.2.0", registry_version="1.2.0"
-        )
+        r = DiffResponse(skill_name="x", installed_version="1.2.0", registry_version="1.2.0")
         assert r.is_up_to_date
 
     def test_is_up_to_date_true_when_ahead(self) -> None:
-        r = DiffResponse(
-            skill_name="x", installed_version="1.3.0", registry_version="1.2.0"
-        )
+        r = DiffResponse(skill_name="x", installed_version="1.3.0", registry_version="1.2.0")
         assert r.is_up_to_date
 
     def test_is_up_to_date_false_when_behind(self) -> None:
-        r = DiffResponse(
-            skill_name="x", installed_version="1.0.0", registry_version="1.1.0"
-        )
+        r = DiffResponse(skill_name="x", installed_version="1.0.0", registry_version="1.1.0")
         assert not r.is_up_to_date
 
     def test_is_up_to_date_true_when_no_registry_version(self) -> None:

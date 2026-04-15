@@ -18,9 +18,7 @@ DEFAULT_REGISTRY_NAME = "public"
 DEFAULT_TARGET = "claude"
 
 # The public registry shipped with skills-forge
-PUBLIC_REGISTRY_URL = (
-    "https://raw.githubusercontent.com/ficiverson/skill-registry/main"
-)
+PUBLIC_REGISTRY_URL = "https://raw.githubusercontent.com/ficiverson/skill-registry/main"
 
 
 @dataclass
@@ -114,6 +112,7 @@ def _expand_env(value: str) -> str:
 
     Unknown variables are left as-is to surface mis-configurations clearly.
     """
+
     def replacer(m: re.Match[str]) -> str:
         var = m.group(1) or m.group(2)
         return os.environ.get(var, m.group(0))

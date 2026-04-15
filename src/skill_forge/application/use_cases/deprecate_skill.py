@@ -21,10 +21,10 @@ class DeprecateRequest:
     """Parameters for the ``deprecate`` use case."""
 
     skill_name: str
-    replaced_by: str = ""           # name of the skill that supersedes this one
-    message: str = ""               # human-readable migration note
+    replaced_by: str = ""  # name of the skill that supersedes this one
+    message: str = ""  # human-readable migration note
     push: bool = False
-    commit_message: str = ""        # defaults to "Deprecate <name>" when empty
+    commit_message: str = ""  # defaults to "Deprecate <name>" when empty
 
 
 @dataclass(frozen=True)
@@ -60,9 +60,7 @@ class DeprecateSkill:
                 break
 
         if indexed_skill is None:
-            raise ValueError(
-                f"Skill '{request.skill_name}' not found in registry index"
-            )
+            raise ValueError(f"Skill '{request.skill_name}' not found in registry index")
 
         was_already_deprecated = indexed_skill.deprecated
 
@@ -84,9 +82,7 @@ class DeprecateSkill:
                 break
 
         replaced_by = final_skill.replaced_by if final_skill else request.replaced_by
-        dep_message = (
-            final_skill.deprecation_message if final_skill else request.message
-        )
+        dep_message = final_skill.deprecation_message if final_skill else request.message
 
         return DeprecateResponse(
             skill_name=request.skill_name,

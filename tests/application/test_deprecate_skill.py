@@ -141,9 +141,7 @@ class TestDeprecateSkill:
     def test_index_written_with_deprecated_true(self) -> None:
         index = _make_index()
         publisher = _StubPublisher(index)
-        DeprecateSkill(publisher=publisher).execute(
-            DeprecateRequest(skill_name="old-skill")
-        )
+        DeprecateSkill(publisher=publisher).execute(DeprecateRequest(skill_name="old-skill"))
         written = publisher.written_index
         assert written is not None
         skill = written.find("dev", "old-skill")
@@ -162,9 +160,7 @@ class TestDeprecateSkill:
         index = _make_index()
         publisher = _StubPublisher(index)
         with pytest.raises(ValueError, match="not found"):
-            DeprecateSkill(publisher=publisher).execute(
-                DeprecateRequest(skill_name="nonexistent")
-            )
+            DeprecateSkill(publisher=publisher).execute(DeprecateRequest(skill_name="nonexistent"))
 
     def test_default_commit_message(self) -> None:
         index = _make_index()
@@ -177,9 +173,7 @@ class TestDeprecateSkill:
             return _orig(idx, msg, push)
 
         publisher.update_index = _spy  # type: ignore[method-assign]
-        DeprecateSkill(publisher=publisher).execute(
-            DeprecateRequest(skill_name="old-skill")
-        )
+        DeprecateSkill(publisher=publisher).execute(DeprecateRequest(skill_name="old-skill"))
         assert messages == ["Deprecate old-skill"]
 
     def test_custom_commit_message(self) -> None:

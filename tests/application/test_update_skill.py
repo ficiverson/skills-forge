@@ -196,9 +196,7 @@ class TestUpdateSkillInstall:
             fetcher=fetcher,
             install_from_url=MagicMock(spec=InstallFromUrl),
         )
-        response = use_case.execute(
-            UpdateRequest(registry_url="https://reg.example.com")
-        )
+        response = use_case.execute(UpdateRequest(registry_url="https://reg.example.com"))
         assert response.records == []
 
     def test_specific_skill_name_filter(self, tmp_path: Path) -> None:
@@ -209,9 +207,7 @@ class TestUpdateSkillInstall:
         (skill_a / "SKILL.md").write_text("---\nname: skill-a\n---\n")
         (skill_b / "SKILL.md").write_text("---\nname: skill-b\n---\n")
 
-        installer = _StubInstaller(
-            targets={InstallTarget.CLAUDE: [skill_a, skill_b]}
-        )
+        installer = _StubInstaller(targets={InstallTarget.CLAUDE: [skill_a, skill_b]})
 
         iv_a = IndexedVersion(
             version="2.0.0",
@@ -354,4 +350,4 @@ class TestUpdateResponseProperties:
         ]
         resp = UpdateResponse(records=records)
         assert resp.available_count == 2  # a and c would update
-        assert resp.updated_count == 1   # only a was actually installed
+        assert resp.updated_count == 1  # only a was actually installed

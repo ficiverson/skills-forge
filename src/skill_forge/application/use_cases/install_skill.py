@@ -11,10 +11,12 @@ from skill_forge.domain.ports import SkillInstaller, SkillParser
 
 # ── version helpers ───────────────────────────────────────────────────────────
 
+
 def _forge_version() -> str:
     """Return the running skills-forge version, or '0.0.0' if undetectable."""
     try:
         from importlib.metadata import version
+
         return version("skills-forge")
     except Exception:  # pragma: no cover
         return "0.0.0"
@@ -121,9 +123,7 @@ class InstallSkill:
             if not request.skip_deps:
                 missing = self._check_dependencies(request.skill_path, request.scope)
 
-        paths = self._installer.install(
-            request.skill_path, request.scope, request.target
-        )
+        paths = self._installer.install(request.skill_path, request.scope, request.target)
         return InstallSkillResponse(
             installed_paths=paths,
             scope=request.scope,
@@ -154,9 +154,7 @@ class InstallSkill:
                 f"(running {running}). Upgrade with: pip install --upgrade skills-forge"
             )
 
-    def _check_dependencies(
-        self, skill_path: Path, scope: SkillScope
-    ) -> list[str]:
+    def _check_dependencies(self, skill_path: Path, scope: SkillScope) -> list[str]:
         """Return names of depends_on skills that are not currently installed."""
         skill_md = skill_path / "SKILL.md" if skill_path.is_dir() else skill_path
         if not skill_md.exists():
@@ -187,9 +185,7 @@ class UninstallSkill:
         self._installer = installer
 
     def execute(self, request: UninstallSkillRequest) -> UninstallSkillResponse:
-        removed = self._installer.uninstall(
-            request.skill_name, request.scope, request.target
-        )
+        removed = self._installer.uninstall(request.skill_name, request.scope, request.target)
         return UninstallSkillResponse(
             removed_paths=removed,
             scope=request.scope,

@@ -56,9 +56,7 @@ class ZipSkillPacker(SkillPacker):
             if not skill_dir.exists() or not skill_dir.is_dir():
                 raise FileNotFoundError(f"Skill directory not found: {skill_dir}")
             if not (skill_dir / "SKILL.md").exists():
-                raise FileNotFoundError(
-                    f"Directory is not a skill (no SKILL.md): {skill_dir}"
-                )
+                raise FileNotFoundError(f"Directory is not a skill (no SKILL.md): {skill_dir}")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -241,7 +239,5 @@ def _safe_join(base: Path, relative: str) -> Path:
     try:
         candidate.relative_to(base_resolved)
     except ValueError as exc:
-        raise ValueError(
-            f"Refusing to extract entry outside destination: {relative}"
-        ) from exc
+        raise ValueError(f"Refusing to extract entry outside destination: {relative}") from exc
     return candidate

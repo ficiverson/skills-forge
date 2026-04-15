@@ -39,7 +39,9 @@ class TestCreateSkillFullSkillFields:
     def test_description_text_is_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Exact description text here",
+            name="s",
+            category="c",
+            description="Exact description text here",
         )
         resp = uc.execute(req)
         assert resp.skill.description.text == "Exact description text here"
@@ -47,7 +49,10 @@ class TestCreateSkillFullSkillFields:
     def test_version_is_set_from_request(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="A skill for .py files", version="2.5.0",
+            name="s",
+            category="c",
+            description="A skill for .py files",
+            version="2.5.0",
         )
         resp = uc.execute(req)
         assert resp.skill.version == "2.5.0"
@@ -61,7 +66,10 @@ class TestCreateSkillFullSkillFields:
     def test_starter_character_is_set_when_provided(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files", starter_emoji="🦊",
+            name="s",
+            category="c",
+            description="Write .py files",
+            starter_emoji="🦊",
         )
         resp = uc.execute(req)
         assert resp.skill.starter_character is not None
@@ -76,7 +84,9 @@ class TestCreateSkillFullSkillFields:
     def test_principles_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             principles=["Be correct", "Be concise"],
         )
         resp = uc.execute(req)
@@ -91,7 +101,9 @@ class TestCreateSkillFullSkillFields:
     def test_instructions_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             instructions="Step one. Step two.",
         )
         resp = uc.execute(req)
@@ -100,7 +112,9 @@ class TestCreateSkillFullSkillFields:
     def test_constraints_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             constraints=["No global state", "Max 200 lines"],
         )
         resp = uc.execute(req)
@@ -109,7 +123,10 @@ class TestCreateSkillFullSkillFields:
     def test_hints_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files", hints="Check types first",
+            name="s",
+            category="c",
+            description="Write .py files",
+            hints="Check types first",
         )
         resp = uc.execute(req)
         assert resp.skill.content.hints == "Check types first"
@@ -117,7 +134,9 @@ class TestCreateSkillFullSkillFields:
     def test_references_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             references=[{"path": "references/guide.md", "purpose": "Style Guide"}],
         )
         resp = uc.execute(req)
@@ -128,7 +147,9 @@ class TestCreateSkillFullSkillFields:
     def test_scripts_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             scripts=[{"path": "scripts/run.py", "description": "Runs the skill"}],
         )
         resp = uc.execute(req)
@@ -139,7 +160,9 @@ class TestCreateSkillFullSkillFields:
     def test_assets_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             assets=[{"path": "assets/data.csv", "description": "Training data"}],
         )
         resp = uc.execute(req)
@@ -150,7 +173,9 @@ class TestCreateSkillFullSkillFields:
     def test_examples_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             examples=[{"path": "examples/out.json", "description": "Sample output"}],
         )
         resp = uc.execute(req)
@@ -161,7 +186,9 @@ class TestCreateSkillFullSkillFields:
     def test_depends_on_are_set(self) -> None:
         uc, _ = _make_use_case()
         req = CreateSkillRequest(
-            name="s", category="c", description="Write .py files",
+            name="s",
+            category="c",
+            description="Write .py files",
             depends_on=[{"skill_name": "pdf-export", "reason": "PDF generation"}],
         )
         resp = uc.execute(req)

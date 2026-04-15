@@ -10,20 +10,19 @@ import pytest
 
 # ── TomlConfigRepository: fallback parser (lines 44-57) ──────────────────────
 
+
 class TestTomlFallbackParserBranch:
     """Force the manual fallback by patching _TOMLLIB_AVAILABLE = False."""
 
     def _call_fallback(self, text: str) -> dict:  # type: ignore[type-arg]
         import skill_forge.infrastructure.adapters.toml_config_repository as mod
+
         with patch.object(mod, "_TOMLLIB_AVAILABLE", False):
             return mod._read_toml(text)
 
     def test_fallback_parses_simple_registry(self) -> None:
         result = self._call_fallback(
-            "[defaults]\n"
-            'registry = "public"\n'
-            "\n[registries]\n"
-            'public = "https://example.com"\n'
+            '[defaults]\nregistry = "public"\n\n[registries]\npublic = "https://example.com"\n'
         )
         assert result["defaults"]["registry"] == "public"  # type: ignore[index]
 
@@ -33,10 +32,7 @@ class TestTomlFallbackParserBranch:
 
     def test_fallback_skips_comments_and_blank_lines(self) -> None:
         result = self._call_fallback(
-            "# top comment\n\n"
-            "[section]\n"
-            "# inline comment\n"
-            "key = 'value'\n"
+            "# top comment\n\n[section]\n# inline comment\nkey = 'value'\n"
         )
         assert result["section"]["key"] == "value"  # type: ignore[index]
 
@@ -46,9 +42,7 @@ class TestTomlFallbackParserBranch:
 
     def test_fallback_repeated_section_header_merges(self) -> None:
         """Two [section] headers (malformed TOML) should not crash."""
-        result = self._call_fallback(
-            "[s]\nk1 = 'a'\n[s]\nk2 = 'b'\n"
-        )
+        result = self._call_fallback("[s]\nk1 = 'a'\n[s]\nk2 = 'b'\n")
         # Should not raise
         assert isinstance(result, dict)
 
@@ -88,7 +82,7 @@ class TestTomlFallbackParserBranch:
             "[defaults]\n"
             'registry = "public"\n'
             "\n[registries.broken]\n"
-            '# no url key\n'
+            "# no url key\n"
             'token = "tok"\n',
             encoding="utf-8",
         )
@@ -99,6 +93,7 @@ class TestTomlFallbackParserBranch:
 
 
 # ── ZipSkillPacker: error paths ───────────────────────────────────────────────
+
 
 class TestZipSkillPackerGaps:
     def test_pack_missing_skill_dir_raises(self, tmp_path: Path) -> None:
@@ -174,16 +169,14 @@ class TestZipSkillPackerGaps:
         # Build a zip with a path-traversal entry
         bad_zip = tmp_path / "evil.skillpack"
         with zipfile.ZipFile(bad_zip, "w") as zf:
-            zf.writestr(
-                '{"format_version": "1", "skills": []}',
-                "manifest.json"
-            )
+            zf.writestr('{"format_version": "1", "skills": []}', "manifest.json")
             zf.writestr("skills/../../evil.txt", "owned")
 
         dest = tmp_path / "dest"
         packer = ZipSkillPacker()
         # Should either raise or silently skip the traversal entry
         import contextlib
+
         with contextlib.suppress(ValueError, Exception):
             packer.unpack(bad_zip, dest)
         # The important thing: no file outside dest was written
@@ -214,6 +207,7 @@ class TestZipSkillPackerGaps:
 
 # ── FilesystemRepository: load / list_all error paths ────────────────────────
 
+
 class TestFilesystemRepositoryGaps:
     def _make_repo(self, base: Path) -> object:
         from skill_forge.infrastructure.adapters.filesystem_repository import (
@@ -238,7 +232,9 @@ class TestFilesystemRepositoryGaps:
             repo.load(tmp_path / "nonexistent-skill")  # type: ignore[union-attr]
 
     def test_list_all_skips_parse_errors(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture  # type: ignore[type-arg]
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture,  # type: ignore[type-arg]
     ) -> None:
         """list_all() prints a warning and skips skills that fail to parse."""
         bad = tmp_path / "dev" / "broken"
@@ -257,6 +253,7 @@ class TestFilesystemRepositoryGaps:
 
 # ── DiffSkill: fallback candidate and exception path ────────────────────────
 
+
 class TestDiffSkillGaps:
     def test_diff_fallback_candidates_when_name_not_in_path(self, tmp_path: Path) -> None:
         """When skill name not in zip path, fallback to any SKILL.md."""
@@ -267,15 +264,14 @@ class TestDiffSkillGaps:
         pack = tmp_path / "anon.skillpack"
         with zipfile.ZipFile(pack, "w") as zf:
             # SKILL.md that doesn't have skill name in its path
-            zf.writestr("skills/dev/other-name/SKILL.md",
-                        "---\nname: installed-skill\n---\n# body")
+            zf.writestr(
+                "skills/dev/other-name/SKILL.md", "---\nname: installed-skill\n---\n# body"
+            )
 
         # Build stub installer that returns an installed path
         installed_md = tmp_path / "installed-skill" / "SKILL.md"
         installed_md.parent.mkdir(parents=True)
-        installed_md.write_text(
-            "---\nname: installed-skill\n---\n# body", encoding="utf-8"
-        )
+        installed_md.write_text("---\nname: installed-skill\n---\n# body", encoding="utf-8")
 
         mock_installer = MagicMock()
         mock_installer.scan_all_targets.return_value = {"claude": [installed_md.parent]}
@@ -360,19 +356,26 @@ class TestDiffSkillGaps:
             sha256="a" * 64,
         )
         skill = IndexedSkill(
-            category="dev", name="my-skill", description="", latest="0.2.0",
+            category="dev",
+            name="my-skill",
+            description="",
+            latest="0.2.0",
             versions=(version,),
         )
         index = RegistryIndex(
-            registry_name="test", base_url="https://example.com",
-            updated_at="", skills=(skill,),
+            registry_name="test",
+            base_url="https://example.com",
+            updated_at="",
+            skills=(skill,),
         )
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_index.return_value = index
         mock_fetcher.fetch.side_effect = RuntimeError("connection refused")
 
         use_case = DiffSkill(
-            installer=mock_installer, parser=mock_parser, fetcher=mock_fetcher,
+            installer=mock_installer,
+            parser=mock_parser,
+            fetcher=mock_fetcher,
         )
         response = use_case.execute(
             DiffRequest(
@@ -383,17 +386,17 @@ class TestDiffSkillGaps:
         )
         # Partial response: registry_version is set but diff has error message
         assert response.skill_name == "my-skill"
-        assert any("fetch" in line.lower() or "error" in line.lower()
-                   or "Could not" in line
-                   for line in response.diff_lines)
+        assert any(
+            "fetch" in line.lower() or "error" in line.lower() or "Could not" in line
+            for line in response.diff_lines
+        )
 
 
 # ── PublishPack: _read_description error paths ───────────────────────────────
 
+
 class TestPublishPackGaps:
-    def test_read_description_returns_empty_when_parser_is_none(
-        self, tmp_path: Path
-    ) -> None:
+    def test_read_description_returns_empty_when_parser_is_none(self, tmp_path: Path) -> None:
         """_read_description returns '' when no parser is injected."""
         from skill_forge.application.use_cases.publish_skill import PublishPack
         from skill_forge.domain.model import SkillPackManifest, SkillRef
@@ -401,20 +404,19 @@ class TestPublishPackGaps:
         mock_publisher = MagicMock()
         mock_packer = MagicMock()
 
-        use_case = PublishPack(
-            publisher=mock_publisher, packer=mock_packer, parser=None
-        )
+        use_case = PublishPack(publisher=mock_publisher, packer=mock_packer, parser=None)
 
         manifest = SkillPackManifest(
-            name="x", version="0.1.0", author="", created_at="",
+            name="x",
+            version="0.1.0",
+            author="",
+            created_at="",
             skills=(SkillRef(category="dev", name="x", version="0.1.0"),),
         )
         result = use_case._read_description(tmp_path / "x.skillpack", manifest)  # type: ignore[attr-defined]
         assert result == ""
 
-    def test_read_description_returns_empty_when_skill_md_missing(
-        self, tmp_path: Path
-    ) -> None:
+    def test_read_description_returns_empty_when_skill_md_missing(self, tmp_path: Path) -> None:
         """_read_description returns '' when SKILL.md isn't in the pack."""
         from skill_forge.application.use_cases.publish_skill import PublishPack
         from skill_forge.domain.model import SkillPackManifest, SkillRef
@@ -438,7 +440,10 @@ class TestPublishPackGaps:
         )
 
         manifest = SkillPackManifest(
-            name="x", version="0.1.0", author="", created_at="",
+            name="x",
+            version="0.1.0",
+            author="",
+            created_at="",
             skills=(SkillRef(category="dev", name="x", version="0.1.0"),),
         )
         result = use_case._read_description(pack, manifest)  # type: ignore[attr-defined]
@@ -446,6 +451,7 @@ class TestPublishPackGaps:
 
 
 # ── UpdateSkill: error and edge-case paths ────────────────────────────────────
+
 
 class TestUpdateSkillGaps:
     def test_update_skill_no_installed_skills_returns_empty(self) -> None:
@@ -460,8 +466,10 @@ class TestUpdateSkillGaps:
         mock_installer.scan_all_targets.return_value = {}
         mock_fetcher = MagicMock()
         index = RegistryIndex(
-            registry_name="r", base_url="https://example.com",
-            updated_at="", skills=(),
+            registry_name="r",
+            base_url="https://example.com",
+            updated_at="",
+            skills=(),
         )
         mock_fetcher.fetch_index.return_value = index
         mock_parser = MagicMock()
@@ -514,12 +522,17 @@ class TestUpdateSkillGaps:
             version="0.1.0", path="packs/dev/my-skill-0.1.0.skillpack", sha256="a" * 64
         )
         skill = IndexedSkill(
-            category="dev", name="my-skill", description="", latest="0.1.0",
+            category="dev",
+            name="my-skill",
+            description="",
+            latest="0.1.0",
             versions=(version,),
         )
         index = RegistryIndex(
-            registry_name="r", base_url="https://example.com",
-            updated_at="", skills=(skill,),
+            registry_name="r",
+            base_url="https://example.com",
+            updated_at="",
+            skills=(skill,),
         )
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_index.return_value = index
@@ -542,6 +555,7 @@ class TestUpdateSkillGaps:
 
 
 # ── SymlinkInstaller: remaining error paths ───────────────────────────────────
+
 
 class TestSymlinkInstallerRemainingGaps:
     def test_list_installed_returns_paths_when_dir_exists(self, tmp_path: Path) -> None:

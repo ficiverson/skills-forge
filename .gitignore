@@ -19,3 +19,5 @@ venv/
 # mutmut
 mutants/
 .mutmut-cache
+.claude/
+.agents/

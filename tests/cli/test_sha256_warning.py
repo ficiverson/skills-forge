@@ -61,6 +61,7 @@ def _stub_fetcher_and_installer(monkeypatch, pack_bytes: bytes) -> None:
 
         def scan_all_targets(self, scope):  # type: ignore[no-untyped-def]
             from skill_forge.domain.model import InstallTarget
+
             return {InstallTarget.CLAUDE: []}
 
     monkeypatch.setattr(factory, "build_fetcher", lambda url="": _LocalFetcher())
@@ -71,9 +72,7 @@ def _stub_fetcher_and_installer(monkeypatch, pack_bytes: bytes) -> None:
 
 
 class TestSha256Warning:
-    def test_warning_when_no_sha256_provided(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_warning_when_no_sha256_provided(self, tmp_path: Path, monkeypatch) -> None:
         """Installing from URL without --sha256 prints a visible warning."""
         pack_file, _ = _make_pack(tmp_path)
         _stub_fetcher_and_installer(monkeypatch, pack_file.read_bytes())
@@ -91,9 +90,7 @@ class TestSha256Warning:
         # Warning is printed (to stderr, but CliRunner merges by default)
         assert "Installing without SHA256" in result.output
 
-    def test_no_warning_when_sha256_provided(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_no_warning_when_sha256_provided(self, tmp_path: Path, monkeypatch) -> None:
         """When --sha256 is supplied, no warning is printed."""
         pack_file, sha = _make_pack(tmp_path)
         _stub_fetcher_and_installer(monkeypatch, pack_file.read_bytes())
@@ -112,9 +109,7 @@ class TestSha256Warning:
         assert result.exit_code == 0, result.output
         assert "Installing without SHA256" not in result.output
 
-    def test_wrong_sha256_fails(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_wrong_sha256_fails(self, tmp_path: Path, monkeypatch) -> None:
         """Providing a wrong --sha256 exits non-zero with a clear error."""
         pack_file, _ = _make_pack(tmp_path)
         _stub_fetcher_and_installer(monkeypatch, pack_file.read_bytes())
@@ -135,9 +130,7 @@ class TestSha256Warning:
         # Should fail
         assert result.exit_code != 0
 
-    def test_correct_sha256_passes(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_correct_sha256_passes(self, tmp_path: Path, monkeypatch) -> None:
         """Providing the correct --sha256 succeeds."""
         pack_file, sha = _make_pack(tmp_path)
         _stub_fetcher_and_installer(monkeypatch, pack_file.read_bytes())

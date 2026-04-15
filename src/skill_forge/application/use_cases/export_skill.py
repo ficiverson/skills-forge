@@ -74,9 +74,7 @@ class ExportSkill:
                      implementation based on ``ExportSkillRequest.format``
     """
 
-    def __init__(
-        self, parser: SkillParser, exporter: SkillExporter, packer: SkillPacker
-    ) -> None:
+    def __init__(self, parser: SkillParser, exporter: SkillExporter, packer: SkillPacker) -> None:
         self._parser = parser
         self._exporter = exporter
         self._packer = packer
@@ -181,13 +179,7 @@ class ExportSkill:
             # Use the file extension for syntax highlighting in the block
             ext = file_path.suffix.lstrip(".") or "text"
 
-            return (
-                f"## Supplement: {rel_path}\n"
-                f"\n"
-                f"``` {ext}\n"
-                f"{content.strip()}\n"
-                f"```"
-            )
+            return f"## Supplement: {rel_path}\n\n``` {ext}\n{content.strip()}\n```"
         except (UnicodeDecodeError, OSError):
             # Skip binary files or unreadable files
             return None
@@ -202,9 +194,7 @@ class ExportSkill:
             # Find all SKILL.md files in the unpacked pack
             skill_mds = list(tmp_path.rglob("SKILL.md"))
             if not skill_mds:
-                raise FileNotFoundError(
-                    f"No skills found inside pack '{request.skill_path.name}'"
-                )
+                raise FileNotFoundError(f"No skills found inside pack '{request.skill_path.name}'")
 
             output_base = (request.output or Path(".")) / request.skill_path.stem
             output_base.mkdir(parents=True, exist_ok=True)
@@ -213,9 +203,7 @@ class ExportSkill:
             for skill_md in skill_mds:
                 # When exporting from a pack, we MUST have an output directory
                 # specified, otherwise they'd land in the temp dir and be deleted.
-                path = self._export_one(
-                    skill_md, output_base, bundle=request.bundle
-                )
+                path = self._export_one(skill_md, output_base, bundle=request.bundle)
                 output_paths.append(path)
 
             return ExportSkillResponse(output_paths=output_paths, format=request.format)

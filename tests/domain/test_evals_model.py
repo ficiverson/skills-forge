@@ -87,7 +87,9 @@ class TestEvalCase:
 
     def test_with_files(self) -> None:
         case = EvalCase(
-            id=2, prompt="Analyse file", expected_output="...",
+            id=2,
+            prompt="Analyse file",
+            expected_output="...",
             files=("fixtures/sample.py",),
         )
         assert case.files == ("fixtures/sample.py",)

@@ -42,6 +42,7 @@ class _StubInstaller(SkillInstaller):
 
     def scan_all_targets(self, scope):  # type: ignore[override]
         from skill_forge.domain.model import InstallTarget
+
         return {InstallTarget.CLAUDE: [Path(f"/fake/{n}") for n in self._installed]}
 
 
@@ -107,9 +108,7 @@ class TestInstallSkill:
         parser = _StubParser(depends_on=["b-skill"])
         use_case = InstallSkill(installer=installer, parser=parser)
 
-        response = use_case.execute(
-            InstallSkillRequest(skill_path=skill_dir, skip_deps=True)
-        )
+        response = use_case.execute(InstallSkillRequest(skill_path=skill_dir, skip_deps=True))
 
         assert response.missing_dependencies == []
 

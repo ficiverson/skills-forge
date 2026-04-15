@@ -73,21 +73,36 @@ def _make_minimal_registry(base: Path) -> Path:
     reg = base / "registry"
     reg.mkdir()
     env = {
-        "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "t@t.com",
-        "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "t@t.com",
+        "GIT_AUTHOR_NAME": "test",
+        "GIT_AUTHOR_EMAIL": "t@t.com",
+        "GIT_COMMITTER_NAME": "test",
+        "GIT_COMMITTER_EMAIL": "t@t.com",
         "PATH": __import__("os").environ.get("PATH", ""),
         "HOME": str(base),
     }
-    subprocess.run(["git", "-C", str(reg), "init", "-q", "-b", "main"],
-                   check=True, env=env, capture_output=True)
-    subprocess.run(["git", "-C", str(reg), "config", "user.email", "t@t.com"],
-                   check=True, env=env, capture_output=True)
-    subprocess.run(["git", "-C", str(reg), "config", "user.name", "test"],
-                   check=True, env=env, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(reg), "init", "-q", "-b", "main"],
+        check=True,
+        env=env,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(reg), "config", "user.email", "t@t.com"],
+        check=True,
+        env=env,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(reg), "config", "user.name", "test"],
+        check=True,
+        env=env,
+        capture_output=True,
+    )
     return reg
 
 
 # ── List command extended paths ─────────────────────────────────────────────────
+
 
 class TestListExtended:
     def test_list_no_skills_found(self, tmp_path: Path) -> None:
@@ -127,13 +142,21 @@ class TestListExtended:
 
 # ── Install command error paths ────────────────────────────────────────────────
 
+
 class TestInstallErrorPaths:
     def test_install_nonexistent_path_exits_1(self, tmp_path: Path) -> None:
-        result = runner.invoke(app, [
-            "install", str(tmp_path / "doesnotexist"),
-            "--scope", "project",
-            "--target", "claude",
-        ], catch_exceptions=False)
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(tmp_path / "doesnotexist"),
+                "--scope",
+                "project",
+                "--target",
+                "claude",
+            ],
+            catch_exceptions=False,
+        )
         # Typer raises an error for non-existent argument path
         assert result.exit_code != 0
 
@@ -143,11 +166,17 @@ class TestInstallErrorPaths:
             "skill_forge.application.use_cases.install_skill.InstallSkill.execute",
             side_effect=ValueError("requires-forge >=1.0.0 not satisfied"),
         ):
-            result = runner.invoke(app, [
-                "install", str(skill_dir),
-                "--scope", "project",
-                "--target", "claude",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "install",
+                    str(skill_dir),
+                    "--scope",
+                    "project",
+                    "--target",
+                    "claude",
+                ],
+            )
         assert result.exit_code == 1
         assert "requires-forge" in result.stdout
 
@@ -156,11 +185,17 @@ class TestInstallErrorPaths:
         d = tmp_path / "testing" / "dep-consumer"
         d.mkdir(parents=True)
         (d / "SKILL.md").write_text(_DEPS_SKILL_MD, encoding="utf-8")
-        result = runner.invoke(app, [
-            "install", str(d),
-            "--scope", "project",
-            "--target", "claude",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "install",
+                str(d),
+                "--scope",
+                "project",
+                "--target",
+                "claude",
+            ],
+        )
         # May succeed (0) or fail with missing deps (1) - either way no traceback
         assert "Traceback" not in (result.stdout or "")
 
@@ -169,6 +204,7 @@ class TestInstallErrorPaths:
         from skill_forge.application.use_cases.install_skill import (
             InstallSkillResponse,
         )
+
         mock_resp = MagicMock(spec=InstallSkillResponse)
         mock_resp.installed_paths = [tmp_path / "installed-skill"]
         mock_resp.missing_dependencies = ["dep-provider"]
@@ -184,14 +220,20 @@ class TestInstallErrorPaths:
             "skill_forge.application.use_cases.install_skill.InstallSkill.execute",
             return_value=mock_resp,
         ):
-            runner.invoke(app, [
-                "install", str(_make_skill_dir(tmp_path)),
-                "--scope", "project",
-            ])
+            runner.invoke(
+                app,
+                [
+                    "install",
+                    str(_make_skill_dir(tmp_path)),
+                    "--scope",
+                    "project",
+                ],
+            )
         # Should mention deps even though the path-based install doesn't show the URL block
 
 
 # ── Export command error paths and hints ─────────────────────────────────────
+
 
 class TestExportHintsAndErrors:
     @pytest.fixture()
@@ -200,9 +242,15 @@ class TestExportHintsAndErrors:
         return _make_pack(skill_dir, tmp_path)
 
     def test_export_file_not_found_exits_nonzero(self, tmp_path: Path) -> None:
-        result = runner.invoke(app, [
-            "export", str(tmp_path / "ghost.skillpack"), "-f", "system-prompt",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "export",
+                str(tmp_path / "ghost.skillpack"),
+                "-f",
+                "system-prompt",
+            ],
+        )
         assert result.exit_code != 0
 
     def test_export_system_prompt_hint(self, pack: Path) -> None:
@@ -248,19 +296,34 @@ class TestExportHintsAndErrors:
 
 # ── Info command: deprecated registry ─────────────────────────────────────────
 
+
 class TestInfoDeprecated:
     def test_info_not_installed_exits_1(self, tmp_path: Path) -> None:
-        result = runner.invoke(app, [
-            "info", "nonexistent-skill", "--scope", "project",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "info",
+                "nonexistent-skill",
+                "--scope",
+                "project",
+            ],
+        )
         assert result.exit_code == 1
         assert "not installed" in result.stdout
 
     def test_info_shows_deprecated_notice(self, tmp_path: Path) -> None:
         skill_dir = _make_skill_dir(tmp_path)
-        runner.invoke(app, [
-            "install", str(skill_dir), "--scope", "project", "--target", "claude",
-        ])
+        runner.invoke(
+            app,
+            [
+                "install",
+                str(skill_dir),
+                "--scope",
+                "project",
+                "--target",
+                "claude",
+            ],
+        )
 
         from skill_forge.application.use_cases.info_skill import InfoResponse
 
@@ -295,6 +358,7 @@ class TestInfoDeprecated:
 
 # ── Update command ────────────────────────────────────────────────────────────
 
+
 class TestUpdateCommand:
     def test_update_no_registry_exits_1(self, tmp_path: Path) -> None:
         """With empty config (no registries) and no --registry flag, should exit 1."""
@@ -307,10 +371,18 @@ class TestUpdateCommand:
         assert "registry" in result.stdout.lower()
 
     def test_update_invalid_target_exits_1(self, tmp_path: Path) -> None:
-        result = runner.invoke(app, [
-            "update", "--scope", "project", "--target", "invalid-target",
-            "--registry", "https://example.com",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "update",
+                "--scope",
+                "project",
+                "--target",
+                "invalid-target",
+                "--registry",
+                "https://example.com",
+            ],
+        )
         assert result.exit_code == 1
         assert "Unknown target" in result.stdout
 
@@ -319,9 +391,14 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             side_effect=RuntimeError("Connection refused"),
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://unreachable.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://unreachable.example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "Could not reach registry" in result.stdout
 
@@ -335,9 +412,16 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://example.com", "--scope", "project",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://example.com",
+                    "--scope",
+                    "project",
+                ],
+            )
         assert result.exit_code == 0
         assert "No matching" in result.stdout
 
@@ -355,9 +439,14 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 0
         assert "up to date" in result.stdout
 
@@ -379,10 +468,15 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://example.com",
-                "--dry-run",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://example.com",
+                    "--dry-run",
+                ],
+            )
         assert result.exit_code == 0
         assert "dry-run" in result.stdout
         assert "python-tdd" in result.stdout
@@ -392,9 +486,14 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             side_effect=ValueError("registry index malformed"),
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 1
 
     def test_update_yes_flag_skips_confirm(self) -> None:
@@ -415,15 +514,21 @@ class TestUpdateCommand:
             "skill_forge.application.use_cases.update_skill.UpdateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "update", "--registry", "https://example.com",
-                "--yes",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "update",
+                    "--registry",
+                    "https://example.com",
+                    "--yes",
+                ],
+            )
         assert result.exit_code == 0
         assert "Updated" in result.stdout
 
 
 # ── Registry subcommands ──────────────────────────────────────────────────────
+
 
 class TestRegistryCommandsExtended:
     def test_registry_list_empty(self, tmp_path: Path) -> None:
@@ -442,14 +547,21 @@ class TestRegistryCommandsExtended:
         from skill_forge.infrastructure.adapters.toml_config_repository import (
             TomlConfigRepository,
         )
+
         repo = TomlConfigRepository(path=cfg_path)
         with patch("skill_forge.cli.main.build_config_repo", return_value=repo):
-            result = runner.invoke(app, [
-                "registry", "add",
-                "myrepo", "https://myrepo.example.com",
-                "--token", "${MY_TOKEN}",
-                "--set-default",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "registry",
+                    "add",
+                    "myrepo",
+                    "https://myrepo.example.com",
+                    "--token",
+                    "${MY_TOKEN}",
+                    "--set-default",
+                ],
+            )
         assert result.exit_code == 0
         assert "Added registry" in result.stdout
         assert "Set as default" in result.stdout
@@ -459,6 +571,7 @@ class TestRegistryCommandsExtended:
         from skill_forge.infrastructure.adapters.toml_config_repository import (
             TomlConfigRepository,
         )
+
         repo = TomlConfigRepository(path=cfg_path)
         with patch("skill_forge.cli.main.build_config_repo", return_value=repo):
             runner.invoke(app, ["registry", "add", "dup", "https://a.com"])
@@ -470,6 +583,7 @@ class TestRegistryCommandsExtended:
         from skill_forge.infrastructure.adapters.toml_config_repository import (
             TomlConfigRepository,
         )
+
         repo = TomlConfigRepository(path=cfg_path)
         with patch("skill_forge.cli.main.build_config_repo", return_value=repo):
             result = runner.invoke(app, ["registry", "remove", "phantom"])
@@ -480,6 +594,7 @@ class TestRegistryCommandsExtended:
         from skill_forge.infrastructure.adapters.toml_config_repository import (
             TomlConfigRepository,
         )
+
         repo = TomlConfigRepository(path=cfg_path)
         with patch("skill_forge.cli.main.build_config_repo", return_value=repo):
             result = runner.invoke(app, ["registry", "set-default", "ghost"])
@@ -504,6 +619,7 @@ class TestRegistryCommandsExtended:
 
 # ── Diff command ──────────────────────────────────────────────────────────────
 
+
 class TestDiffCommand:
     def test_diff_no_registry_exits_1(self, tmp_path: Path) -> None:
         with patch(
@@ -519,9 +635,15 @@ class TestDiffCommand:
             "skill_forge.application.use_cases.diff_skill.DiffSkill.execute",
             side_effect=ValueError("skill not installed"),
         ):
-            result = runner.invoke(app, [
-                "diff", "my-skill", "--registry", "https://r.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "diff",
+                    "my-skill",
+                    "--registry",
+                    "https://r.example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "skill not installed" in result.stdout
 
@@ -530,9 +652,15 @@ class TestDiffCommand:
             "skill_forge.application.use_cases.diff_skill.DiffSkill.execute",
             side_effect=RuntimeError("connection refused"),
         ):
-            result = runner.invoke(app, [
-                "diff", "my-skill", "--registry", "https://r.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "diff",
+                    "my-skill",
+                    "--registry",
+                    "https://r.example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "Could not reach registry" in result.stdout
 
@@ -550,9 +678,15 @@ class TestDiffCommand:
             "skill_forge.application.use_cases.diff_skill.DiffSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "diff", "my-skill", "--registry", "https://r.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "diff",
+                    "my-skill",
+                    "--registry",
+                    "https://r.example.com",
+                ],
+            )
         assert result.exit_code == 0
         assert "not found" in result.stdout
 
@@ -570,9 +704,15 @@ class TestDiffCommand:
             "skill_forge.application.use_cases.diff_skill.DiffSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "diff", "my-skill", "--registry", "https://r.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "diff",
+                    "my-skill",
+                    "--registry",
+                    "https://r.example.com",
+                ],
+            )
         assert result.exit_code == 0
         assert "identical" in result.stdout
 
@@ -590,23 +730,36 @@ class TestDiffCommand:
             "skill_forge.application.use_cases.diff_skill.DiffSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "diff", "my-skill", "--registry", "https://r.example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "diff",
+                    "my-skill",
+                    "--registry",
+                    "https://r.example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "diff found" in result.stdout
 
 
 # ── Yank command ──────────────────────────────────────────────────────────────
 
+
 class TestYankCommand:
     def test_yank_missing_at_sign_exits_1(self, tmp_path: Path) -> None:
         reg = _make_minimal_registry(tmp_path)
-        result = runner.invoke(app, [
-            "yank", "noslash",
-            "--registry", str(reg),
-            "--url", "https://example.com",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "yank",
+                "noslash",
+                "--registry",
+                str(reg),
+                "--url",
+                "https://example.com",
+            ],
+        )
         assert result.exit_code == 1
         assert "format" in result.stdout
 
@@ -616,11 +769,17 @@ class TestYankCommand:
             "skill_forge.application.use_cases.yank_skill.YankSkill.execute",
             side_effect=ValueError("skill not found"),
         ):
-            result = runner.invoke(app, [
-                "yank", "my-skill@1.0.0",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "yank",
+                    "my-skill@1.0.0",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "skill not found" in result.stdout
 
@@ -639,11 +798,17 @@ class TestYankCommand:
             "skill_forge.application.use_cases.yank_skill.YankSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "yank", "my-skill@1.0.0",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "yank",
+                    "my-skill@1.0.0",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 0
         assert "already yanked" in result.stdout
 
@@ -662,12 +827,18 @@ class TestYankCommand:
             "skill_forge.application.use_cases.yank_skill.YankSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "yank", "my-skill@1.0.0",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-                "--push",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "yank",
+                    "my-skill@1.0.0",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                    "--push",
+                ],
+            )
         assert result.exit_code == 0
         assert "Yanked" in result.stdout
         assert "Committed" in result.stdout
@@ -676,6 +847,7 @@ class TestYankCommand:
 
 # ── Deprecate command ─────────────────────────────────────────────────────────
 
+
 class TestDeprecateCommand:
     def test_deprecate_valueerror_exits_1(self, tmp_path: Path) -> None:
         reg = _make_minimal_registry(tmp_path)
@@ -683,11 +855,17 @@ class TestDeprecateCommand:
             "skill_forge.application.use_cases.deprecate_skill.DeprecateSkill.execute",
             side_effect=ValueError("skill not found"),
         ):
-            result = runner.invoke(app, [
-                "deprecate", "ghost-skill",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "deprecate",
+                    "ghost-skill",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 1
         assert "skill not found" in result.stdout
 
@@ -707,11 +885,17 @@ class TestDeprecateCommand:
             "skill_forge.application.use_cases.deprecate_skill.DeprecateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "deprecate", "old-skill",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "deprecate",
+                    "old-skill",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                ],
+            )
         assert result.exit_code == 0
         assert "already" in result.stdout.lower() or "deprecated" in result.stdout.lower()
 
@@ -731,14 +915,22 @@ class TestDeprecateCommand:
             "skill_forge.application.use_cases.deprecate_skill.DeprecateSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "deprecate", "old-skill",
-                "--registry", str(reg),
-                "--url", "https://example.com",
-                "--replaced-by", "new-skill",
-                "--message", "Use new-skill",
-                "--push",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "deprecate",
+                    "old-skill",
+                    "--registry",
+                    str(reg),
+                    "--url",
+                    "https://example.com",
+                    "--replaced-by",
+                    "new-skill",
+                    "--message",
+                    "Use new-skill",
+                    "--push",
+                ],
+            )
         assert result.exit_code == 0
         assert "Deprecated" in result.stdout
         assert "new-skill" in result.stdout
@@ -748,6 +940,7 @@ class TestDeprecateCommand:
 
 
 # ── Doctor command ────────────────────────────────────────────────────────────
+
 
 class TestDoctorCommand:
     def test_doctor_no_skills_installed(self, tmp_path: Path) -> None:
@@ -774,28 +967,39 @@ class TestDoctorCommand:
             "skill_forge.application.use_cases.doctor_skill.DoctorSkill.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "doctor", "--scope", "project", "--no-registry",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "doctor",
+                    "--scope",
+                    "project",
+                    "--no-registry",
+                ],
+            )
         assert result.exit_code == 0
         assert "✔" in result.stdout or "healthy" in result.stdout.lower()
 
     def test_doctor_with_registry_url(self, tmp_path: Path) -> None:
         """Doctor with a registry URL that fails gracefully."""
-        result = runner.invoke(app, [
-            "doctor", "--scope", "project",
-            "--registry", "https://unreachable.example.com",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "doctor",
+                "--scope",
+                "project",
+                "--registry",
+                "https://unreachable.example.com",
+            ],
+        )
         # Should not crash; may exit 0 or 1 but no traceback
         assert "Traceback" not in (result.stdout or "")
 
 
 # ── Publish command: committed/pushed/neither branches ────────────────────────
 
+
 class TestPublishCommitBranches:
-    def test_publish_committed_not_pushed_shows_git_push_hint(
-        self, tmp_path: Path
-    ) -> None:
+    def test_publish_committed_not_pushed_shows_git_push_hint(self, tmp_path: Path) -> None:
         reg = _make_minimal_registry(tmp_path)
         skill_dir = _make_skill_dir(tmp_path)
         pack_out = tmp_path / "test-skill-0.1.0.skillpack"
@@ -827,17 +1031,24 @@ class TestPublishCommitBranches:
             "skill_forge.application.use_cases.publish_skill.PublishPack.execute",
             return_value=mock_resp,
         ):
-            result = runner.invoke(app, [
-                "publish", str(pack_out),
-                "--registry", str(reg),
-                "--base-url", "https://example.com",
-                "--no-push",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "publish",
+                    str(pack_out),
+                    "--registry",
+                    str(reg),
+                    "--base-url",
+                    "https://example.com",
+                    "--no-push",
+                ],
+            )
         assert result.exit_code == 0
         assert "git" in result.stdout.lower() or "push" in result.stdout.lower()
 
 
 # ── Test command: no evals ─────────────────────────────────────────────────────
+
 
 class TestTestCommandNoEvals:
     def test_test_skill_no_evals_shows_skip(self, tmp_path: Path) -> None:
@@ -861,6 +1072,7 @@ class TestTestCommandNoEvals:
 
 # ── Bedrock XML exporter: _xml_text helper ────────────────────────────────────
 
+
 class TestBedrockXmlTextHelper:
     def test_xml_text_returns_tagged_string(self) -> None:
         from skill_forge.infrastructure.adapters.exporters.bedrock_xml_exporter import (
@@ -875,6 +1087,7 @@ class TestBedrockXmlTextHelper:
 
 
 # ── Toml config: fallback parser ──────────────────────────────────────────────
+
 
 class TestTomlFallbackParser:
     def test_read_toml_fallback_parses_sections(self) -> None:
@@ -908,12 +1121,13 @@ class TestTomlFallbackParser:
             _read_toml,
         )
 
-        text = "# this is a comment\n[section]\n# another comment\nkey = \"value\"\n"
+        text = '# this is a comment\n[section]\n# another comment\nkey = "value"\n'
         result = _read_toml(text)
         assert result["section"]["key"] == "value"  # type: ignore[index]
 
 
 # ── HTTP fetcher: fetch error paths ──────────────────────────────────────────
+
 
 class TestHttpFetcherErrorPaths:
     def _make_fetcher(self, opener: object) -> object:
@@ -929,8 +1143,11 @@ class TestHttpFetcherErrorPaths:
         class _ErrOpener:
             def open(self, req: object) -> None:
                 raise urllib.error.HTTPError(
-                    url="https://x.com", code=404,
-                    msg="Not Found", hdrs=None, fp=None,  # type: ignore[arg-type]
+                    url="https://x.com",
+                    code=404,
+                    msg="Not Found",
+                    hdrs=None,
+                    fp=None,  # type: ignore[arg-type]
                 )
 
         fetcher = HttpPackFetcher(opener=_ErrOpener())  # type: ignore[arg-type]
@@ -958,8 +1175,11 @@ class TestHttpFetcherErrorPaths:
         class _ErrOpener:
             def open(self, req: object) -> None:
                 raise urllib.error.HTTPError(
-                    url="https://x.com/index.json", code=403,
-                    msg="Forbidden", hdrs=None, fp=None,  # type: ignore[arg-type]
+                    url="https://x.com/index.json",
+                    code=403,
+                    msg="Forbidden",
+                    hdrs=None,
+                    fp=None,  # type: ignore[arg-type]
                 )
 
         fetcher = HttpPackFetcher(opener=_ErrOpener())  # type: ignore[arg-type]
@@ -1020,18 +1240,19 @@ class TestHttpFetcherErrorPaths:
                 raise RuntimeError("stop")
 
         fetcher = HttpPackFetcher(
-            token="mytoken", opener=_CapturingOpener()  # type: ignore[arg-type]
+            token="mytoken",
+            opener=_CapturingOpener(),  # type: ignore[arg-type]
         )
         import contextlib
+
         with contextlib.suppress(RuntimeError):
             fetcher.fetch(
                 "https://raw.githubusercontent.com/org/repo/main/pack.skillpack",
                 __import__("pathlib").Path("/tmp/x"),
             )
-        assert (
-            "Authorization" in received_headers
-            or "authorization" in {k.lower() for k in received_headers}
-        )
+        assert "Authorization" in received_headers or "authorization" in {
+            k.lower() for k in received_headers
+        }
 
     def test_fetch_bearer_token_used_as_is(self) -> None:
         """Tokens starting with 'Bearer ' are used as-is."""
@@ -1045,9 +1266,11 @@ class TestHttpFetcherErrorPaths:
                 raise RuntimeError("stop")
 
         fetcher = HttpPackFetcher(
-            token="Bearer supertoken", opener=_Cap()  # type: ignore[arg-type]
+            token="Bearer supertoken",
+            opener=_Cap(),  # type: ignore[arg-type]
         )
         import contextlib
+
         with contextlib.suppress(RuntimeError):
             fetcher.fetch(
                 "https://example.com/pack.skillpack",
@@ -1068,9 +1291,11 @@ class TestHttpFetcherErrorPaths:
                 raise RuntimeError("stop")
 
         fetcher = HttpPackFetcher(
-            token="plaintoken", opener=_Cap()  # type: ignore[arg-type]
+            token="plaintoken",
+            opener=_Cap(),  # type: ignore[arg-type]
         )
         import contextlib
+
         with contextlib.suppress(RuntimeError):
             fetcher.fetch(
                 "https://myhost.example.com/pack.skillpack",
@@ -1081,6 +1306,7 @@ class TestHttpFetcherErrorPaths:
 
 
 # ── Filesystem repository: error paths ───────────────────────────────────────
+
 
 class TestFilesystemRepositoryExtended:
     """Test the filesystem repository's optional directory creation paths."""
@@ -1193,6 +1419,7 @@ class TestFilesystemRepositoryExtended:
 
 # ── Symlink installer: error paths ───────────────────────────────────────────
 
+
 class TestSymlinkInstallerExtended:
     def test_vscode_global_scope_raises(self, tmp_path: Path) -> None:
         from skill_forge.domain.model import InstallTarget, SkillScope
@@ -1236,8 +1463,7 @@ class TestSymlinkInstallerExtended:
 
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
-        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\nbody",
-                                             encoding="utf-8")
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\n---\nbody", encoding="utf-8")
 
         installer = SymlinkSkillInstaller(project_root=tmp_path)
         installer.install(skill_dir, SkillScope.PROJECT, InstallTarget.CLAUDE)
@@ -1248,6 +1474,7 @@ class TestSymlinkInstallerExtended:
 
 # ── Git registry publisher: update_index and error paths ─────────────────────
 
+
 class TestGitRegistryPublisherExtended:
     @pytest.fixture()
     def git_registry(self, tmp_path: Path) -> Path:
@@ -1256,22 +1483,34 @@ class TestGitRegistryPublisherExtended:
         reg = tmp_path / "registry"
         reg.mkdir()
         env = {
-            "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "t@t.com",
-            "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "t@t.com",
+            "GIT_AUTHOR_NAME": "test",
+            "GIT_AUTHOR_EMAIL": "t@t.com",
+            "GIT_COMMITTER_NAME": "test",
+            "GIT_COMMITTER_EMAIL": "t@t.com",
             "PATH": __import__("os").environ.get("PATH", ""),
             "HOME": str(tmp_path),
         }
-        subprocess.run(["git", "-C", str(reg), "init", "-q", "-b", "main"],
-                       check=True, env=env, capture_output=True)
-        subprocess.run(["git", "-C", str(reg), "config", "user.email", "t@t.com"],
-                       check=True, env=env, capture_output=True)
-        subprocess.run(["git", "-C", str(reg), "config", "user.name", "test"],
-                       check=True, env=env, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(reg), "init", "-q", "-b", "main"],
+            check=True,
+            env=env,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(reg), "config", "user.email", "t@t.com"],
+            check=True,
+            env=env,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(reg), "config", "user.name", "test"],
+            check=True,
+            env=env,
+            capture_output=True,
+        )
         return reg
 
-    def test_update_index_writes_and_commits(
-        self, git_registry: Path, tmp_path: Path
-    ) -> None:
+    def test_update_index_writes_and_commits(self, git_registry: Path, tmp_path: Path) -> None:
         from skill_forge.domain.model import IndexedSkill, IndexedVersion, RegistryIndex
         from skill_forge.infrastructure.adapters.git_registry_publisher import (
             GitRegistryPublisher,
@@ -1346,7 +1585,7 @@ class TestGitRegistryPublisherExtended:
 
         with patch(
             "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
-            return_value="2026-04-11T00:00:00+00:00"
+            return_value="2026-04-11T00:00:00+00:00",
         ):
             publisher.update_index(index=index, message="first commit", push=False)
             second = publisher.update_index(index=index, message="no changes", push=False)

@@ -176,11 +176,7 @@ class TestGeminiApiExporter:
         out = GeminiApiExporter().export(skill, body, tmp_path)
         data = json.loads(out.read_text(encoding="utf-8"))
         assert "tools" in data
-        function_names = [
-            fd["name"]
-            for t in data["tools"]
-            for fd in t["function_declarations"]
-        ]
+        function_names = [fd["name"] for t in data["tools"] for fd in t["function_declarations"]]
         assert "WebSearch" in function_names
         assert "Read" in function_names
 

@@ -125,9 +125,7 @@ class DoctorSkill:
                                 DoctorIssue(
                                     skill_name=name,
                                     kind="missing-dep",
-                                    message=(
-                                        f"Dependency '{dep.skill_name}' is not installed"
-                                    ),
+                                    message=(f"Dependency '{dep.skill_name}' is not installed"),
                                     severity=Severity.WARNING,
                                 )
                             )
@@ -157,8 +155,7 @@ class DoctorSkill:
                                 skill_name=indexed.name,
                                 kind="stale-version",
                                 message=(
-                                    f"Installed v{installed_v}, "
-                                    f"registry has v{indexed.latest}"
+                                    f"Installed v{installed_v}, registry has v{indexed.latest}"
                                 ),
                                 severity=Severity.WARNING,
                             )

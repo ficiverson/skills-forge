@@ -38,7 +38,7 @@ class UpdateRequest:
     skill_name: str | None = None  # None → update all installed skills
     dry_run: bool = False
     registry_url: str = ""  # base URL, e.g. https://raw.githubusercontent.com/…/main
-    pin_version: str = ""   # pin to a specific version instead of latest
+    pin_version: str = ""  # pin to a specific version instead of latest
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ class UpdateRecord:
     pack_url: str
     sha256: str
     would_update: bool  # True if an update is available (even in dry-run)
-    updated: bool       # True only if the pack was actually installed
+    updated: bool  # True only if the pack was actually installed
 
 
 @dataclass
@@ -119,16 +119,12 @@ class UpdateSkill:
         # 3. Compare and update
         records: list[UpdateRecord] = []
         for name, current_version in installed.items():
-            indexed = next(
-                (s for s in index.skills if s.name == name), None
-            )
+            indexed = next((s for s in index.skills if s.name == name), None)
             if indexed is None:
                 continue  # skill not in this registry — skip silently
 
             # Determine target version
-            target_version = (
-                request.pin_version if request.pin_version else indexed.latest
-            )
+            target_version = request.pin_version if request.pin_version else indexed.latest
 
             iv = indexed.find(target_version)
             if iv is None:
@@ -201,9 +197,7 @@ class UpdateSkill:
 
                 try:
                     content = skill_md.read_text(encoding="utf-8")
-                    skill: Skill = self._parser.parse(
-                        content, base_path=skill_md.parent
-                    )
+                    skill: Skill = self._parser.parse(content, base_path=skill_md.parent)
                     result[name] = skill.version
                 except Exception:
                     result[name] = "0.0.0"

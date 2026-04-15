@@ -15,6 +15,7 @@ from skill_forge.infrastructure.adapters.symlink_installer import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_skill(tmp_path: Path, name: str = "my-skill") -> Path:
     skill_dir = tmp_path / "source" / name
     skill_dir.mkdir(parents=True)
@@ -33,6 +34,7 @@ def _installer(tmp_path: Path) -> SymlinkSkillInstaller:
 # ---------------------------------------------------------------------------
 # Single-target installs
 # ---------------------------------------------------------------------------
+
 
 class TestSingleTargetInstall:
     def test_claude_global_default(self, tmp_path: Path) -> None:
@@ -87,6 +89,7 @@ class TestSingleTargetInstall:
 # ALL target
 # ---------------------------------------------------------------------------
 
+
 class TestAllTarget:
     def test_all_global_writes_four_directories(self, tmp_path: Path) -> None:
         # GLOBAL + ALL → claude, gemini, codex, agents (vscode excluded)
@@ -127,6 +130,7 @@ class TestAllTarget:
 # Error cases
 # ---------------------------------------------------------------------------
 
+
 class TestInstallErrors:
     def test_vscode_global_raises(self, tmp_path: Path) -> None:
         skill = _make_skill(tmp_path)
@@ -147,6 +151,7 @@ class TestInstallErrors:
 # Backward-compat: install() always returns list[Path]
 # ---------------------------------------------------------------------------
 
+
 class TestReturnType:
     def test_install_always_returns_list(self, tmp_path: Path) -> None:
         skill = _make_skill(tmp_path)
@@ -159,6 +164,7 @@ class TestReturnType:
 # ---------------------------------------------------------------------------
 # scan_all_targets (v0.5.0)
 # ---------------------------------------------------------------------------
+
 
 class TestScanAllTargets:
     def test_returns_dict_with_all_global_keys(self, tmp_path: Path) -> None:

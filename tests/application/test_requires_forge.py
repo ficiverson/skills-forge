@@ -100,8 +100,7 @@ class TestInstallSkillRequiresForge:
         )
         skill_md = tmp_path / "SKILL.md"
         skill_md.write_text(
-            "---\nname: test-skill\nrequires-forge: \">=99.0.0\"\n"
-            "description: |\n  desc\n---\n",
+            '---\nname: test-skill\nrequires-forge: ">=99.0.0"\ndescription: |\n  desc\n---\n',
             encoding="utf-8",
         )
 

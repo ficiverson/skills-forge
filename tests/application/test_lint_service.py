@@ -11,6 +11,7 @@ from skill_forge.domain.model import LintIssue, LintReport, Severity, Skill
 
 def _make_skill(name: str = "test-skill", category: str = "dev") -> Skill:
     from skill_forge.infrastructure.adapters.markdown_parser import MarkdownSkillParser
+
     md = (
         f"---\nname: {name}\n"
         f"description: |\n  Use when testing {name}. Triggers on: test.\n"
@@ -39,15 +40,11 @@ def _error_report(name: str = "bad-skill") -> LintReport:
 
 class TestBulkLintResponse:
     def test_total_errors_sums_across_reports(self) -> None:
-        resp = BulkLintResponse(
-            reports=[_clean_report(), _error_report(), _error_report("x")]
-        )
+        resp = BulkLintResponse(reports=[_clean_report(), _error_report(), _error_report("x")])
         assert resp.total_errors == 2
 
     def test_total_warnings_sums_across_reports(self) -> None:
-        resp = BulkLintResponse(
-            reports=[_warning_report(), _warning_report("y"), _clean_report()]
-        )
+        resp = BulkLintResponse(reports=[_warning_report(), _warning_report("y"), _clean_report()])
         assert resp.total_warnings == 2
 
     def test_all_clean_true_when_no_issues(self) -> None:

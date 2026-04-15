@@ -55,18 +55,9 @@ class MarkdownSkillParser(SkillParser):
             starter_character=starter,
             content=skill_content,
             references=references,
-            scripts=[
-                Script(path=PurePosixPath(p), description=d)
-                for p, d in scripts_raw
-            ],
-            examples=[
-                Example(path=PurePosixPath(p), description=d)
-                for p, d in examples
-            ],
-            assets=[
-                Asset(path=PurePosixPath(p), description=d)
-                for p, d in assets
-            ],
+            scripts=[Script(path=PurePosixPath(p), description=d) for p, d in scripts_raw],
+            examples=[Example(path=PurePosixPath(p), description=d) for p, d in examples],
+            assets=[Asset(path=PurePosixPath(p), description=d) for p, d in assets],
             depends_on=depends_on,
             evals=evals,
             requires_forge=requires_forge,
@@ -106,7 +97,7 @@ class MarkdownSkillParser(SkillParser):
     def _strip_frontmatter(self, content: str) -> str:
         match = re.match(r"^---\s*\n.*?\n---\s*\n?", content, re.DOTALL)
         if match:
-            return content[match.end():]
+            return content[match.end() :]
         return content
 
     def _infer_category(self, base_path: Path | None) -> str:
@@ -153,10 +144,12 @@ class MarkdownSkillParser(SkillParser):
             if in_references:
                 match = ref_pattern.search(line)
                 if match:
-                    references.append(Reference(
-                        path=PurePosixPath(match.group(2)),
-                        purpose=match.group(1),
-                    ))
+                    references.append(
+                        Reference(
+                            path=PurePosixPath(match.group(2)),
+                            purpose=match.group(1),
+                        )
+                    )
 
         return references
 
@@ -187,7 +180,9 @@ class MarkdownSkillParser(SkillParser):
         return "\n".join(lines).strip()
 
     def _parse_link_section(
-        self, body: str, heading: str,
+        self,
+        body: str,
+        heading: str,
     ) -> list[tuple[str, str]]:
         """Parse a section containing markdown links into (path, description) pairs."""
         items: list[tuple[str, str]] = []
@@ -239,13 +234,15 @@ class MarkdownSkillParser(SkillParser):
                     for a in (item.get("assertions") or [])
                 )
                 files = tuple(str(f) for f in (item.get("files") or []))
-                cases.append(EvalCase(
-                    id=int(item.get("id", 0)),
-                    prompt=str(item.get("prompt", "")),
-                    expected_output=str(item.get("expected_output", "")),
-                    assertions=assertions,
-                    files=files,
-                ))
+                cases.append(
+                    EvalCase(
+                        id=int(item.get("id", 0)),
+                        prompt=str(item.get("prompt", "")),
+                        expected_output=str(item.get("expected_output", "")),
+                        assertions=assertions,
+                        files=files,
+                    )
+                )
             except (ValueError, TypeError):
                 # Malformed entry — linter will catch it; skip here
                 continue
@@ -288,8 +285,10 @@ class MarkdownSkillParser(SkillParser):
             # Format: "skill-name (reason)" or just "skill-name"
             dep_match = re.match(r"^([\w-]+)\s*(?:\(([^)]+)\))?$", line)
             if dep_match:
-                deps.append(Dependency(
-                    skill_name=dep_match.group(1),
-                    reason=dep_match.group(2) or "",
-                ))
+                deps.append(
+                    Dependency(
+                        skill_name=dep_match.group(1),
+                        reason=dep_match.group(2) or "",
+                    )
+                )
         return deps

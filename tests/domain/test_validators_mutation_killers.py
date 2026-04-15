@@ -189,10 +189,17 @@ class TestEvalsSchemaMessages:
         assert issues[0].location == "evals/evals.json[0]"
 
     def test_assertion_missing_id_location(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"text": "t", "type": "contains", "expected": "x"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"text": "t", "type": "contains", "expected": "x"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         id_issues = [i for i in issues if i.rule == "evals-assertion-missing-id"]
         assert len(id_issues) == 1
@@ -201,10 +208,17 @@ class TestEvalsSchemaMessages:
         assert id_issues[0].severity == Severity.WARNING
 
     def test_assertion_missing_text_location(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"id": "a", "type": "contains", "expected": "x"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"id": "a", "type": "contains", "expected": "x"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         text_issues = [i for i in issues if i.rule == "evals-assertion-missing-text"]
         assert len(text_issues) == 1
@@ -212,10 +226,17 @@ class TestEvalsSchemaMessages:
         assert text_issues[0].severity == Severity.WARNING
 
     def test_unknown_assertion_type_message_lists_valid_types(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"id": "a", "text": "t", "type": "fuzzy-match"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"id": "a", "text": "t", "type": "fuzzy-match"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         type_issues = [i for i in issues if i.rule == "evals-unknown-assertion-type"]
         assert len(type_issues) == 1
@@ -280,6 +301,7 @@ class TestEvalFixtureFilesMessages:
         issues = validate_eval_fixture_files(skill, skill_dir=tmp_path)
         assert issues == []
 
+
 class TestDescriptionLengthBoundaries:
     def test_description_exactly_30_tokens_passes(self) -> None:
         # 15 words * 2 = 30 tokens
@@ -328,6 +350,7 @@ class TestDescriptionLengthBoundaries:
         assert issues[0].severity == Severity.ERROR
         assert "is ~152 tokens" in issues[0].message
 
+
 class TestDescriptionPrecisionMessages:
     def test_vague_word_exact_message(self) -> None:
         skill = Skill(
@@ -340,9 +363,11 @@ class TestDescriptionPrecisionMessages:
         assert 'Avoid vague word "stuff"' in vague[0].message
         assert vague[0].location == "frontmatter.description"
 
+
 class TestContextBudgetBoundaries:
     def test_budget_error_exact_message(self) -> None:
         from skill_forge.domain.model import SkillContent
+
         # Create a skill with very long content
         # estimated_tokens = (1001 principles * 1 word each) * 2 = 2002
         content = SkillContent(principles=["principle"] * 1001)
@@ -357,9 +382,11 @@ class TestContextBudgetBoundaries:
         assert issues[0].location == "SKILL.md"
         assert "Over 2000 tokens" in issues[0].message
 
+
 class TestSkillNameFormat:
     def test_skill_name_invalid_format_error(self) -> None:
         from skill_forge.domain.validators import validate_skill_name_format
+
         skill = Skill(
             identity=SkillIdentity(name="Invalid Name!", category="c"),
             description=Description(text="valid"),

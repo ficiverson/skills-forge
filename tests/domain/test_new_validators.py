@@ -141,7 +141,8 @@ class TestAssetFilesValidator:
 
 class TestHasExamplesValidator:
     def test_skill_with_scripts_but_no_examples_gets_info(
-        self, skill_with_examples: Skill,
+        self,
+        skill_with_examples: Skill,
     ):
         # Remove examples to test the warning
         skill = Skill(
@@ -155,7 +156,8 @@ class TestHasExamplesValidator:
         assert issues[0].rule == "missing-examples"
 
     def test_skill_with_scripts_and_examples_passes(
-        self, skill_with_examples: Skill,
+        self,
+        skill_with_examples: Skill,
     ):
         issues = validate_has_examples(skill_with_examples)
         assert len(issues) == 0

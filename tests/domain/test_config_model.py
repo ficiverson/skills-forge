@@ -54,9 +54,7 @@ class TestRegistryConfig:
         with pytest.raises(ValueError):
             RegistryConfig(name="x", url="")
 
-    def test_resolved_token_expands_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_resolved_token_expands_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MY_TOKEN", "resolved")
         r = RegistryConfig(name="r", url="u", token="${MY_TOKEN}")
         assert r.resolved_token == "resolved"

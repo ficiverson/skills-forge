@@ -88,8 +88,7 @@ class DiffSkill:
 
         if installed_path is None:
             raise ValueError(
-                f"Skill '{request.skill_name}' is not installed "
-                f"(scope={request.scope.value})"
+                f"Skill '{request.skill_name}' is not installed (scope={request.scope.value})"
             )
 
         # Resolve symlinks for reading
@@ -145,9 +144,9 @@ class DiffSkill:
                 with zipfile.ZipFile(pack_path) as zf:
                     # Find SKILL.md inside the pack (may be nested)
                     candidates = [
-                        n for n in zf.namelist()
-                        if n.endswith("SKILL.md")
-                        and request.skill_name in n
+                        n
+                        for n in zf.namelist()
+                        if n.endswith("SKILL.md") and request.skill_name in n
                     ]
                     # Fallback: any SKILL.md
                     if not candidates:

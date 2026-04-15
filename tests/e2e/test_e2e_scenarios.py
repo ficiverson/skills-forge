@@ -35,6 +35,7 @@ runner = CliRunner()
 # Shared helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _make_skill_dir(base: Path, name: str, version: str = "0.1.0") -> Path:
     """Create a minimal skill directory under *base* and return its path."""
     d = base / name
@@ -69,6 +70,7 @@ def _make_skillpack(tmp_path: Path, name: str, version: str = "0.1.0") -> Path:
 # Scenario 1: Full lifecycle — create → lint → pack → unpack → install → export
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestScenario1FullLifecycle:
     """create → lint (clean) → pack → unpack → install → export all formats."""
 
@@ -77,11 +79,16 @@ class TestScenario1FullLifecycle:
             app,
             [
                 "create",
-                "-n", "e2e-skill",
-                "-c", "dev",
-                "-d", "Use when running e2e tests. Triggers on: test, e2e.",
-                "-e", "🧪",
-                "-o", str(tmp_path),
+                "-n",
+                "e2e-skill",
+                "-c",
+                "dev",
+                "-d",
+                "Use when running e2e tests. Triggers on: test, e2e.",
+                "-e",
+                "🧪",
+                "-o",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 0, result.output
@@ -95,9 +102,17 @@ class TestScenario1FullLifecycle:
         runner.invoke(
             app,
             [
-                "create", "-n", "e2e-skill", "-c", "dev",
-                "-d", "Use when running e2e tests. Triggers on: test, e2e.",
-                "-e", "🧪", "-o", str(tmp_path),
+                "create",
+                "-n",
+                "e2e-skill",
+                "-c",
+                "dev",
+                "-d",
+                "Use when running e2e tests. Triggers on: test, e2e.",
+                "-e",
+                "🧪",
+                "-o",
+                str(tmp_path),
             ],
         )
         skill_dir = tmp_path / "dev" / "e2e-skill"
@@ -167,11 +182,13 @@ class TestScenario1FullLifecycle:
 # Scenario 2: SHA256 verification for install-from-url
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestScenario2Sha256Verification:
     """Install a local .skillpack via a stubbed fetcher — correct and wrong SHA256."""
 
     def _pack_and_hash(self, tmp_path: Path) -> tuple[Path, str]:
         import hashlib
+
         pack = _make_skillpack(tmp_path, "sha-skill")
         digest = hashlib.sha256(pack.read_bytes()).hexdigest()
         return pack, digest
@@ -186,6 +203,7 @@ class TestScenario2Sha256Verification:
 
         def _fake_fetch(url: str, dest: Path) -> Path:
             import shutil
+
             shutil.copy(str(pack), str(dest))
             return dest
 
@@ -198,8 +216,10 @@ class TestScenario2Sha256Verification:
                 [
                     "install",
                     "https://example.com/sha-skill-0.1.0.skillpack",
-                    "--sha256", digest,
-                    "--scope", "project",
+                    "--sha256",
+                    digest,
+                    "--scope",
+                    "project",
                 ],
             )
         assert result.exit_code == 0, result.output
@@ -215,6 +235,7 @@ class TestScenario2Sha256Verification:
 
         def _fake_fetch(url: str, dest: Path) -> Path:
             import shutil
+
             shutil.copy(str(pack), str(dest))
             return dest
 
@@ -227,8 +248,10 @@ class TestScenario2Sha256Verification:
                 [
                     "install",
                     "https://example.com/sha-skill-0.1.0.skillpack",
-                    "--sha256", wrong_digest,
-                    "--scope", "project",
+                    "--sha256",
+                    wrong_digest,
+                    "--scope",
+                    "project",
                 ],
             )
         assert (
@@ -247,6 +270,7 @@ class TestScenario2Sha256Verification:
 
         def _fake_fetch(url: str, dest: Path) -> Path:
             import shutil
+
             shutil.copy(str(pack), str(dest))
             return dest
 
@@ -259,7 +283,8 @@ class TestScenario2Sha256Verification:
                 [
                     "install",
                     "https://example.com/nosha-skill-0.1.0.skillpack",
-                    "--scope", "project",
+                    "--scope",
+                    "project",
                 ],
             )
         # Should either succeed with a warning or succeed silently
@@ -270,6 +295,7 @@ class TestScenario2Sha256Verification:
 # ─────────────────────────────────────────────────────────────────────────────
 # Scenario 3: Dependency graph — provider + consumer
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestScenario3DependencyGraph:
     """Consumer skill depends on provider skill; info shows resolved graph."""
@@ -365,6 +391,7 @@ class TestScenario3DependencyGraph:
 # Scenario 4: Update / diff — v0.1.0 installed, v0.2.0 in registry
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestScenario4UpdateAndDiff:
     """Update detects newer version; diff shows the change."""
 
@@ -383,6 +410,7 @@ class TestScenario4UpdateAndDiff:
         packs_dir.mkdir()
 
         import shutil
+
         shutil.copy(str(v1_pack), str(packs_dir / v1_pack.name))
         shutil.copy(str(v2_pack), str(packs_dir / v2_pack.name))
 
@@ -444,6 +472,7 @@ class TestScenario4UpdateAndDiff:
             IndexedVersion,
             RegistryIndex,
         )
+
         sha2 = hashlib.sha256(v2_pack.read_bytes()).hexdigest()
         sha1 = hashlib.sha256(v1_pack.read_bytes()).hexdigest()
         index = RegistryIndex(
@@ -470,6 +499,7 @@ class TestScenario4UpdateAndDiff:
         from skill_forge.infrastructure.adapters.symlink_installer import (
             SymlinkSkillInstaller,
         )
+
         real_installer = SymlinkSkillInstaller(project_root=install_root)
         mock_install_from_url = MagicMock()
 
@@ -529,6 +559,7 @@ class TestScenario4UpdateAndDiff:
         v2_pack = next(pack_out.glob("*.skillpack"))
 
         import hashlib
+
         sha2 = hashlib.sha256(v2_pack.read_bytes()).hexdigest()
 
         index = RegistryIndex(
@@ -592,6 +623,7 @@ class TestScenario4UpdateAndDiff:
 # Scenario 5: Yank — hide a version, update skips it
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestScenario5YankAndUpdate:
     """Yank a version from registry; update must skip the yanked version."""
 
@@ -626,18 +658,18 @@ class TestScenario5YankAndUpdate:
                     description="",
                     latest="0.2.0",
                     versions=(
-                        IndexedVersion(version="0.1.0", path="packs/v1.skillpack",
-                                       sha256=dummy_sha),
-                        IndexedVersion(version="0.2.0", path="packs/v2.skillpack",
-                                       sha256=dummy_sha),
+                        IndexedVersion(
+                            version="0.1.0", path="packs/v1.skillpack", sha256=dummy_sha
+                        ),
+                        IndexedVersion(
+                            version="0.2.0", path="packs/v2.skillpack", sha256=dummy_sha
+                        ),
                     ),
                 ),
             ),
         )
         codec = RegistryIndexCodec()
-        (registry_dir / "index.json").write_text(
-            codec.encode(index), encoding="utf-8"
-        )
+        (registry_dir / "index.json").write_text(codec.encode(index), encoding="utf-8")
 
         # Mock the publisher port
         mock_publisher = MagicMock()
@@ -693,10 +725,12 @@ class TestScenario5YankAndUpdate:
                     description="",
                     latest="0.1.5",
                     versions=(
-                        IndexedVersion(version="0.1.0", path="packs/v1.skillpack",
-                                       sha256=dummy_sha),
-                        IndexedVersion(version="0.1.5", path="packs/v15.skillpack",
-                                       sha256=dummy_sha),
+                        IndexedVersion(
+                            version="0.1.0", path="packs/v1.skillpack", sha256=dummy_sha
+                        ),
+                        IndexedVersion(
+                            version="0.1.5", path="packs/v15.skillpack", sha256=dummy_sha
+                        ),
                     ),
                 ),
             ),
@@ -708,6 +742,7 @@ class TestScenario5YankAndUpdate:
         from skill_forge.infrastructure.adapters.symlink_installer import (
             SymlinkSkillInstaller,
         )
+
         real_installer = SymlinkSkillInstaller(project_root=install_root)
 
         use_case = UpdateSkill(

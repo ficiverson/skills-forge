@@ -25,6 +25,7 @@ def registry_root(tmp_path: Path) -> Path:
     root.mkdir()
     return root
 
+
 @pytest.fixture
 def publisher(registry_root: Path) -> GitRegistryPublisher:
     return GitRegistryPublisher(
@@ -33,6 +34,7 @@ def publisher(registry_root: Path) -> GitRegistryPublisher:
         base_url="https://example.com",
     )
 
+
 @pytest.fixture
 def manifest() -> SkillPackManifest:
     return SkillPackManifest(
@@ -40,10 +42,9 @@ def manifest() -> SkillPackManifest:
         version="1.0.0",
         author="test-author",
         created_at="2026-04-15T00:00:00Z",
-        skills=(
-            SkillRef(name="my-skill", category="dev", version="1.0.0"),
-        )
+        skills=(SkillRef(name="my-skill", category="dev", version="1.0.0"),),
     )
+
 
 class TestGitRegistryPublisherInitMutationKillers:
     def test_init_missing_root_error(self, tmp_path: Path) -> None:
@@ -77,15 +78,19 @@ class TestGitRegistryPublisherInitMutationKillers:
         pack_path.write_bytes(b"")
         (registry_root / ".git").mkdir()
 
-        with patch("subprocess.run") as mock_run, patch("shutil.copyfile"), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
-                 return_value="a" * 64
-             ):
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("shutil.copyfile"),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
+                return_value="a" * 64,
+            ),
+        ):
             mock_run.return_value = MagicMock(stdout="")
             publisher._git_add("file")
             # First arg should be custom-git
             assert mock_run.call_args[0][0][0] == "custom-git"
+
 
 class TestGitRegistryPublisherMutationKillers:
     def test_publish_exact_git_commands(
@@ -93,7 +98,7 @@ class TestGitRegistryPublisherMutationKillers:
         publisher: GitRegistryPublisher,
         registry_root: Path,
         manifest: SkillPackManifest,
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         # Create a dummy pack
         pack_path = tmp_path / "test.skillpack"
@@ -102,17 +107,18 @@ class TestGitRegistryPublisherMutationKillers:
         # Mock .git directory to trigger git commands
         (registry_root / ".git").mkdir()
 
-        with patch("subprocess.run") as mock_run, \
-             patch("shutil.copyfile") as mock_copy, \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
-                 return_value="a" * 64
-             ), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
-                 return_value="2026-04-15T12:00:00Z"
-             ):
-
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("shutil.copyfile") as mock_copy,
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
+                return_value="a" * 64,
+            ),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
+                return_value="2026-04-15T12:00:00Z",
+            ),
+        ):
             # Create a real file at expected_dest so stat() doesn't fail
             expected_dest = registry_root / "packs" / "dev" / "my-skill-1.0.0.skillpack"
             expected_dest.parent.mkdir(parents=True, exist_ok=True)
@@ -122,10 +128,7 @@ class TestGitRegistryPublisherMutationKillers:
             mock_run.return_value = MagicMock(stdout="index.json\n")
 
             publisher.publish(
-                pack_path=pack_path,
-                manifest=manifest,
-                message="Custom commit message",
-                push=True
+                pack_path=pack_path, manifest=manifest, message="Custom commit message", push=True
             )
 
             # Verify shutil.copyfile arguments
@@ -138,8 +141,12 @@ class TestGitRegistryPublisherMutationKillers:
 
             # Check git add
             git_add_args = [
-                "git", "-C", str(registry_root), "add",
-                "packs/dev/my-skill-1.0.0.skillpack", "index.json"
+                "git",
+                "-C",
+                str(registry_root),
+                "add",
+                "packs/dev/my-skill-1.0.0.skillpack",
+                "index.json",
             ]
             assert git_add_args in calls
 
@@ -148,7 +155,12 @@ class TestGitRegistryPublisherMutationKillers:
 
             # Check git commit
             git_commit_args = [
-                "git", "-C", str(registry_root), "commit", "-m", "Custom commit message"
+                "git",
+                "-C",
+                str(registry_root),
+                "commit",
+                "-m",
+                "Custom commit message",
             ]
             assert git_commit_args in calls
 
@@ -160,23 +172,24 @@ class TestGitRegistryPublisherMutationKillers:
         publisher: GitRegistryPublisher,
         registry_root: Path,
         manifest: SkillPackManifest,
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         pack_path = tmp_path / "test.skillpack"
         pack_path.write_bytes(b"content")
         (registry_root / ".git").mkdir()
 
-        with patch("subprocess.run") as mock_run, \
-             patch("shutil.copyfile"), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
-                 return_value="a" * 64
-             ), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
-                 return_value="2026-04-15T12:00:00Z"
-             ):
-
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("shutil.copyfile"),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
+                return_value="a" * 64,
+            ),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
+                return_value="2026-04-15T12:00:00Z",
+            ),
+        ):
             # Create a real file at expected_dest so stat() doesn't fail
             expected_dest = registry_root / "packs" / "dev" / "my-skill-1.0.0.skillpack"
             expected_dest.parent.mkdir(parents=True, exist_ok=True)
@@ -187,14 +200,19 @@ class TestGitRegistryPublisherMutationKillers:
             publisher.publish(
                 pack_path=pack_path,
                 manifest=manifest,
-                message="", # Trigger default
-                push=False
+                message="",  # Trigger default
+                push=False,
             )
 
             calls = [c.args[0] for c in mock_run.call_args_list]
             # Verify default message: "Publish my-skill 1.0.0"
             git_commit_default = [
-                "git", "-C", str(registry_root), "commit", "-m", "Publish my-skill 1.0.0"
+                "git",
+                "-C",
+                str(registry_root),
+                "commit",
+                "-m",
+                "Publish my-skill 1.0.0",
             ]
             assert git_commit_default in calls
 
@@ -203,7 +221,7 @@ class TestGitRegistryPublisherMutationKillers:
         publisher: GitRegistryPublisher,
         registry_root: Path,
         manifest: SkillPackManifest,
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         # Create a pack with known content (empty)
         pack_path = tmp_path / "test.skillpack"
@@ -214,7 +232,7 @@ class TestGitRegistryPublisherMutationKillers:
         # because the real _sha256(dest) is called.
         expected_dest = registry_root / "packs" / "dev" / "my-skill-1.0.0.skillpack"
         expected_dest.parent.mkdir(parents=True, exist_ok=True)
-        expected_dest.write_bytes(b"") # Matches pack_path
+        expected_dest.write_bytes(b"")  # Matches pack_path
 
         with patch("subprocess.run"), patch("shutil.copyfile"):
             result = publisher.publish(pack_path, manifest, "msg", False)
@@ -226,7 +244,7 @@ class TestGitRegistryPublisherMutationKillers:
         publisher: GitRegistryPublisher,
         registry_root: Path,
         manifest: SkillPackManifest,
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         pack_path = tmp_path / "test.skillpack"
         pack_path.write_bytes(b"")
@@ -236,20 +254,21 @@ class TestGitRegistryPublisherMutationKillers:
             tags=("new-tag",),
             platforms=("claude",),
             owner=Owner(name="me", email="me@example.com"),
-            deprecated=True
+            deprecated=True,
         )
 
-        with patch("subprocess.run"), \
-             patch("shutil.copyfile"), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
-                 return_value="a" * 64
-             ), \
-             patch(
-                 "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
-                 return_value="2026-04-15T12:00:00Z"
-             ):
-
+        with (
+            patch("subprocess.run"),
+            patch("shutil.copyfile"),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._sha256",
+                return_value="a" * 64,
+            ),
+            patch(
+                "skill_forge.infrastructure.adapters.git_registry_publisher._now_iso",
+                return_value="2026-04-15T12:00:00Z",
+            ),
+        ):
             # Create a real file at expected_dest so stat() doesn't fail
             expected_dest = registry_root / "packs" / "dev" / "my-skill-1.0.0.skillpack"
             expected_dest.parent.mkdir(parents=True, exist_ok=True)
@@ -284,7 +303,7 @@ class TestGitRegistryPublisherMutationKillers:
             skills=(
                 SkillRef(name="s1", category="c", version="1.0.0"),
                 SkillRef(name="s2", category="c", version="1.0.0"),
-            )
+            ),
         )
 
         with pytest.raises(ValueError) as exc:

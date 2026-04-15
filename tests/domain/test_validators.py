@@ -22,6 +22,7 @@ class TestDescriptionLengthValidator:
 
     def test_too_short_description_warns(self, minimal_skill: Skill):
         from skill_forge.domain.model import Description
+
         skill = Skill(
             identity=minimal_skill.identity,
             description=Description(text="short"),
@@ -60,6 +61,7 @@ class TestDescriptionTriggerWordsValidator:
 
     def test_description_without_triggers_warns(self):
         from skill_forge.domain.model import Description, SkillContent, SkillIdentity
+
         skill = Skill(
             identity=SkillIdentity(name="vague", category="misc"),
             description=Description(text="A skill for doing some things nicely"),

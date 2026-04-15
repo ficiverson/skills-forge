@@ -109,6 +109,7 @@ class FilesystemSkillRepository(SkillRepository):
                 skills.append(skill)
             except Exception as exc:
                 import sys
+
                 print(
                     f"Warning: failed to load {skill_md}: {exc}",
                     file=sys.stderr,

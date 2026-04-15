@@ -29,20 +29,20 @@ from skill_forge.domain.ports import SkillInstaller
 
 # Targets that have a meaningful global (home-dir) path.
 _GLOBAL_TARGETS: dict[InstallTarget, str] = {
-    InstallTarget.CLAUDE:  ".claude/skills",
-    InstallTarget.GEMINI:  ".gemini/skills",
-    InstallTarget.CODEX:   ".codex/skills",
-    InstallTarget.AGENTS:  ".agents/skills",
+    InstallTarget.CLAUDE: ".claude/skills",
+    InstallTarget.GEMINI: ".gemini/skills",
+    InstallTarget.CODEX: ".codex/skills",
+    InstallTarget.AGENTS: ".agents/skills",
     # VSCODE intentionally omitted — no global skills dir
 }
 
 # Targets that have a project-relative path.
 _PROJECT_TARGETS: dict[InstallTarget, str] = {
-    InstallTarget.CLAUDE:  ".claude/skills",
-    InstallTarget.GEMINI:  ".gemini/skills",
-    InstallTarget.CODEX:   ".codex/skills",
-    InstallTarget.VSCODE:  ".github/skills",
-    InstallTarget.AGENTS:  ".agents/skills",
+    InstallTarget.CLAUDE: ".claude/skills",
+    InstallTarget.GEMINI: ".gemini/skills",
+    InstallTarget.CODEX: ".codex/skills",
+    InstallTarget.VSCODE: ".github/skills",
+    InstallTarget.AGENTS: ".agents/skills",
 }
 
 
@@ -123,9 +123,7 @@ class SymlinkSkillInstaller(SkillInstaller):
         for target, rel in mapping.items():
             target_dir = self._make_path(scope, rel)
             if target_dir.exists():
-                result[target] = [
-                    p for p in target_dir.iterdir() if p.is_dir() or p.is_symlink()
-                ]
+                result[target] = [p for p in target_dir.iterdir() if p.is_dir() or p.is_symlink()]
             else:
                 result[target] = []
         return result
@@ -137,9 +135,7 @@ class SymlinkSkillInstaller(SkillInstaller):
     def _resolve_dirs(self, scope: SkillScope, target: InstallTarget) -> list[Path]:
         """Return the concrete filesystem directories for (scope, target)."""
         if target == InstallTarget.ALL:
-            mapping = (
-                _GLOBAL_TARGETS if scope == SkillScope.GLOBAL else _PROJECT_TARGETS
-            )
+            mapping = _GLOBAL_TARGETS if scope == SkillScope.GLOBAL else _PROJECT_TARGETS
             return [self._make_path(scope, rel) for rel in mapping.values()]
 
         if target == InstallTarget.VSCODE and scope == SkillScope.GLOBAL:

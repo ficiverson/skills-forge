@@ -80,6 +80,7 @@ class TestParseVersion:
 
     def test_version_defaults_to_default_when_absent(self) -> None:
         from skill_forge.domain.model import DEFAULT_SKILL_VERSION
+
         md = "---\nname: x\ndescription: test\n---\n"
         skill = PARSER.parse(md)
         assert skill.version == DEFAULT_SKILL_VERSION
@@ -256,17 +257,26 @@ class TestParseEvalsFromFile:
         (skill_dir / "SKILL.md").write_text(FULL_SKILL_MD, encoding="utf-8")
         evals_dir = skill_dir / "evals"
         evals_dir.mkdir()
-        (evals_dir / "evals.json").write_text(json.dumps([
-            {
-                "id": 1, "prompt": "Write a test", "expected_output": "def test_",
-                "assertions": [
+        (evals_dir / "evals.json").write_text(
+            json.dumps(
+                [
                     {
-                        "id": "a1", "text": "Has test", "type": "contains",
-                        "expected": "def test_"
-                    }
+                        "id": 1,
+                        "prompt": "Write a test",
+                        "expected_output": "def test_",
+                        "assertions": [
+                            {
+                                "id": "a1",
+                                "text": "Has test",
+                                "type": "contains",
+                                "expected": "def test_",
+                            }
+                        ],
+                    },
                 ]
-            },
-        ]), encoding="utf-8")
+            ),
+            encoding="utf-8",
+        )
 
         skill = PARSER.parse(FULL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals) == 1
@@ -279,14 +289,21 @@ class TestParseEvalsFromFile:
         skill_dir.mkdir()
         evals_dir = skill_dir / "evals"
         evals_dir.mkdir()
-        (evals_dir / "evals.json").write_text(json.dumps([
-            {
-                "id": 2, "prompt": "p", "expected_output": "o",
-                "assertions": [
-                    {"id": "x1", "text": "Has output", "type": "llm-judge", "expected": ""}
+        (evals_dir / "evals.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "id": 2,
+                        "prompt": "p",
+                        "expected_output": "o",
+                        "assertions": [
+                            {"id": "x1", "text": "Has output", "type": "llm-judge", "expected": ""}
+                        ],
+                    },
                 ]
-            },
-        ]), encoding="utf-8")
+            ),
+            encoding="utf-8",
+        )
         skill = PARSER.parse(FULL_SKILL_MD, base_path=skill_dir)
         assert len(skill.evals[0].assertions) == 1
         assert skill.evals[0].assertions[0].id == "x1"
@@ -326,6 +343,7 @@ class TestInferCategory:
         skill = PARSER.parse(FULL_SKILL_MD)
         assert skill.identity.category == "uncategorized"
 
+
 class TestStripFrontmatter:
     def test_strip_handles_no_match_gracefully(self) -> None:
         """Verify that _strip_frontmatter returns full content if no match."""
@@ -335,6 +353,7 @@ class TestStripFrontmatter:
 
     def test_strip_handles_empty_content(self) -> None:
         assert PARSER._strip_frontmatter("") == ""
+
 
 class TestParseFrontmatterLogic:
     def test_parse_empty_content_returns_empty_dict(self) -> None:

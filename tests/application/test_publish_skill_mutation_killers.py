@@ -23,13 +23,16 @@ from skill_forge.domain.model import (
 def mock_publisher() -> MagicMock:
     return MagicMock()
 
+
 @pytest.fixture
 def mock_packer() -> MagicMock:
     return MagicMock()
 
+
 @pytest.fixture
 def use_case(mock_publisher: MagicMock, mock_packer: MagicMock) -> PublishPack:
     return PublishPack(publisher=mock_publisher, packer=mock_packer)
+
 
 def test_publish_metadata_mapping_and_overrides(
     use_case: PublishPack, mock_publisher: MagicMock, mock_packer: MagicMock, tmp_path: Path
@@ -39,14 +42,16 @@ def test_publish_metadata_mapping_and_overrides(
     pack_path.write_bytes(b"content")
 
     manifest = SkillPackManifest(
-        name="p", version="1",
-        author="a", created_at="now",
+        name="p",
+        version="1",
+        author="a",
+        created_at="now",
         description="manifest desc",
         tags=("m-tag",),
         platforms=("m-platform",),
         export_formats=("m-fmt",),
         owner=Owner(name="m-name", email="m@e.com"),
-        skills=(SkillRef(name="s", category="c", version="1"),)
+        skills=(SkillRef(name="s", category="c", version="1"),),
     )
     mock_packer.read_manifest.return_value = manifest
 
@@ -56,7 +61,7 @@ def test_publish_metadata_mapping_and_overrides(
         tags=("r-tag",),
         owner_name="r-name",
         owner_email="r@e.com",
-        deprecated=True
+        deprecated=True,
     )
 
     use_case.execute(request)
@@ -73,16 +78,13 @@ def test_publish_metadata_mapping_and_overrides(
         platforms=("m-platform",),
         export_formats=("m-fmt",),
         owner=Owner(name="r-name", email="r@e.com"),
-        deprecated=True
+        deprecated=True,
     )
 
     mock_publisher.publish.assert_called_once_with(
-        pack_path=pack_path,
-        manifest=manifest,
-        message="",
-        push=False,
-        metadata=expected_metadata
+        pack_path=pack_path, manifest=manifest, message="", push=False, metadata=expected_metadata
     )
+
 
 def test_missing_metadata_error_messages(
     use_case: PublishPack, mock_packer: MagicMock, tmp_path: Path
@@ -92,12 +94,14 @@ def test_missing_metadata_error_messages(
 
     # Manifest with empty/missing fields
     manifest = SkillPackManifest(
-        name="p", version="1",
-        author="a", created_at="now",
+        name="p",
+        version="1",
+        author="a",
+        created_at="now",
         description="",
         tags=(),
         owner=None,
-        skills=(SkillRef(name="s", category="c", version="1"),)
+        skills=(SkillRef(name="s", category="c", version="1"),),
     )
     mock_packer.read_manifest.return_value = manifest
 
@@ -111,6 +115,7 @@ def test_missing_metadata_error_messages(
     assert "at least one tag is required" in err_msg
     assert "owner name and email are required" in err_msg
 
+
 def test_publish_metadata_fallbacks(
     use_case: PublishPack, mock_publisher: MagicMock, mock_packer: MagicMock, tmp_path: Path
 ) -> None:
@@ -119,14 +124,16 @@ def test_publish_metadata_fallbacks(
     pack_path.write_bytes(b"content")
 
     manifest = SkillPackManifest(
-        name="p", version="1",
-        author="a", created_at="now",
+        name="p",
+        version="1",
+        author="a",
+        created_at="now",
         description="manifest desc",
         tags=("m-tag",),
         platforms=("m-platform",),
         export_formats=("m-fmt",),
         owner=Owner(name="m-name", email="m@e.com"),
-        skills=(SkillRef(name="s", category="c", version="1"),)
+        skills=(SkillRef(name="s", category="c", version="1"),),
     )
     mock_packer.read_manifest.return_value = manifest
 
@@ -142,16 +149,13 @@ def test_publish_metadata_fallbacks(
         platforms=("m-platform",),
         export_formats=("m-fmt",),
         owner=Owner(name="m-name", email="m@e.com"),
-        deprecated=False
+        deprecated=False,
     )
 
     mock_publisher.publish.assert_called_with(
-        pack_path=pack_path,
-        manifest=manifest,
-        message="",
-        push=False,
-        metadata=expected_metadata
+        pack_path=pack_path, manifest=manifest, message="", push=False, metadata=expected_metadata
     )
+
 
 def test_publish_pack_missing_error_message(use_case: PublishPack, tmp_path: Path) -> None:
     missing = tmp_path / "ghost.skillpack"
@@ -160,6 +164,7 @@ def test_publish_pack_missing_error_message(use_case: PublishPack, tmp_path: Pat
     assert f"Pack does not exist: '{missing}'" in str(exc.value)
     assert "Run 'skills-forge pack <skill-dir>' first" in str(exc.value)
 
+
 def test_read_description_fallback_logic(
     mock_publisher: MagicMock, mock_packer: MagicMock, tmp_path: Path
 ) -> None:
@@ -167,12 +172,14 @@ def test_read_description_fallback_logic(
     pack_path.write_bytes(b"")
 
     manifest = SkillPackManifest(
-        name="p", version="1",
-        author="a", created_at="now",
-        description="", # Empty in manifest
+        name="p",
+        version="1",
+        author="a",
+        created_at="now",
+        description="",  # Empty in manifest
         tags=("t",),
         owner=Owner("o", "o@e.com"),
-        skills=(SkillRef(name="s", category="dev", version="1"),)
+        skills=(SkillRef(name="s", category="dev", version="1"),),
     )
     mock_packer.read_manifest.return_value = manifest
 
@@ -193,6 +200,7 @@ def test_read_description_fallback_logic(
         _, kwargs = mock_publisher.publish.call_args
         assert kwargs["metadata"].description == "description from SKILL.md"
 
+
 def test_install_from_url_sha256_mismatch_error(tmp_path: Path) -> None:
     from skill_forge.application.use_cases.publish_skill import (
         InstallFromUrl,
@@ -206,6 +214,7 @@ def test_install_from_url_sha256_mismatch_error(tmp_path: Path) -> None:
     # Mock fetcher to write an empty file (SHA256: e3b0c4...)
     def _fetch(url, path):
         Path(path).write_bytes(b"")
+
     mock_fetcher.fetch.side_effect = _fetch
 
     use_case = InstallFromUrl(
@@ -213,8 +222,7 @@ def test_install_from_url_sha256_mismatch_error(tmp_path: Path) -> None:
     )
 
     request = InstallFromUrlRequest(
-        url="https://example.com/pack.skillpack",
-        expected_sha256="wrong-sha"
+        url="https://example.com/pack.skillpack", expected_sha256="wrong-sha"
     )
 
     with pytest.raises(ValueError) as exc:

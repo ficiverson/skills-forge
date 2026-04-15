@@ -78,7 +78,9 @@ def _request(**kwargs) -> AssessSkillRequest:
 class TestContainsAssertion:
     def test_passes_when_substring_present(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a", text="has hello", type="contains", expected="Hello"),
             ),
@@ -90,10 +92,10 @@ class TestContainsAssertion:
 
     def test_fails_when_substring_absent(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
-            assertions=(
-                EvalAssertion(id="a", text="has foo", type="contains", expected="foo"),
-            ),
+            id=1,
+            prompt="p",
+            expected_output="o",
+            assertions=(EvalAssertion(id="a", text="has foo", type="contains", expected="foo"),),
         )
         use_case = AssessSkill(parser=StubParser(), runner=StubRunner("Hello World"))
         resp = use_case.execute(_request(), _skill([case]))
@@ -105,7 +107,9 @@ class TestContainsAssertion:
 class TestNotContainsAssertion:
     def test_passes_when_substring_absent(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a", text="no error", type="not-contains", expected="ERROR"),
             ),
@@ -116,7 +120,9 @@ class TestNotContainsAssertion:
 
     def test_fails_when_substring_present(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a", text="no error", type="not-contains", expected="ERROR"),
             ),
@@ -129,10 +135,10 @@ class TestNotContainsAssertion:
 class TestRegexAssertion:
     def test_passes_on_match(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
-            assertions=(
-                EvalAssertion(id="a", text="has digits", type="regex", expected=r"\d+"),
-            ),
+            id=1,
+            prompt="p",
+            expected_output="o",
+            assertions=(EvalAssertion(id="a", text="has digits", type="regex", expected=r"\d+"),),
         )
         use_case = AssessSkill(parser=StubParser(), runner=StubRunner("The answer is 42"))
         resp = use_case.execute(_request(), _skill([case]))
@@ -140,10 +146,10 @@ class TestRegexAssertion:
 
     def test_fails_on_no_match(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
-            assertions=(
-                EvalAssertion(id="a", text="has digits", type="regex", expected=r"\d+"),
-            ),
+            id=1,
+            prompt="p",
+            expected_output="o",
+            assertions=(EvalAssertion(id="a", text="has digits", type="regex", expected=r"\d+"),),
         )
         use_case = AssessSkill(parser=StubParser(), runner=StubRunner("No numbers here"))
         resp = use_case.execute(_request(), _skill([case]))
@@ -151,7 +157,9 @@ class TestRegexAssertion:
 
     def test_invalid_regex_fails_gracefully(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a", text="bad regex", type="regex", expected="[invalid"),
             ),
@@ -165,10 +173,10 @@ class TestRegexAssertion:
 class TestLlmJudgeAssertion:
     def test_pass_verdict(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
-            assertions=(
-                EvalAssertion(id="a", text="quality check", type="llm-judge"),
-            ),
+            id=1,
+            prompt="p",
+            expected_output="o",
+            assertions=(EvalAssertion(id="a", text="quality check", type="llm-judge"),),
         )
         use_case = AssessSkill(
             parser=StubParser(),
@@ -179,10 +187,10 @@ class TestLlmJudgeAssertion:
 
     def test_fail_verdict(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
-            assertions=(
-                EvalAssertion(id="a", text="quality check", type="llm-judge"),
-            ),
+            id=1,
+            prompt="p",
+            expected_output="o",
+            assertions=(EvalAssertion(id="a", text="quality check", type="llm-judge"),),
         )
         use_case = AssessSkill(
             parser=StubParser(),
@@ -211,7 +219,9 @@ class TestAggregates:
     def _two_assertion_case(self, pass_first: bool) -> EvalCase:
         expected = "Hello" if pass_first else "NEVER_THERE"
         return EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a1", text="t1", type="contains", expected=expected),
                 EvalAssertion(id="a2", text="t2", type="contains", expected="World"),
@@ -220,7 +230,9 @@ class TestAggregates:
 
     def test_pass_rate_both_pass(self) -> None:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             assertions=(
                 EvalAssertion(id="a1", text="t1", type="contains", expected="Hello"),
                 EvalAssertion(id="a2", text="t2", type="contains", expected="World"),

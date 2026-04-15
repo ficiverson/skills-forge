@@ -22,10 +22,12 @@ from skill_forge.domain.config_model import (
 
 if sys.version_info >= (3, 11):
     import tomllib
+
     _TOMLLIB_AVAILABLE = True
 else:
     try:
         import tomli as tomllib  # third-party fallback for Python 3.10
+
         _TOMLLIB_AVAILABLE = True
     except ImportError:
         _TOMLLIB_AVAILABLE = False

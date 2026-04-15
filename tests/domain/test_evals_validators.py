@@ -92,39 +92,65 @@ class TestValidateEvalsSchema:
         assert any(i.rule == "evals-invalid-case" for i in issues)
 
     def test_invalid_assertion_type_error(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"id": "a", "text": "t", "type": "fuzzy-match"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"id": "a", "text": "t", "type": "fuzzy-match"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         assert any(i.rule == "evals-unknown-assertion-type" for i in issues)
 
     def test_assertion_missing_id_warning(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"text": "t", "type": "contains", "expected": "x"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"text": "t", "type": "contains", "expected": "x"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         assert any(i.rule == "evals-assertion-missing-id" for i in issues)
 
     def test_assertion_missing_text_warning(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1, "prompt": "p", "expected_output": "o",
-            "assertions": [{"id": "a", "type": "contains", "expected": "x"}],
-        }])
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "p",
+                    "expected_output": "o",
+                    "assertions": [{"id": "a", "type": "contains", "expected": "x"}],
+                }
+            ],
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         assert any(i.rule == "evals-assertion-missing-text" for i in issues)
 
     def test_valid_schema_clean(self, tmp_path: Path) -> None:
-        _write_evals(tmp_path, [{
-            "id": 1,
-            "prompt": "What is 2+2?",
-            "expected_output": "4",
-            "assertions": [
-                {"id": "a1", "text": "Has answer", "type": "contains", "expected": "4"},
-                {"id": "a2", "text": "Is complete", "type": "llm-judge"},
+        _write_evals(
+            tmp_path,
+            [
+                {
+                    "id": 1,
+                    "prompt": "What is 2+2?",
+                    "expected_output": "4",
+                    "assertions": [
+                        {"id": "a1", "text": "Has answer", "type": "contains", "expected": "4"},
+                        {"id": "a2", "text": "Is complete", "type": "llm-judge"},
+                    ],
+                }
             ],
-        }])
+        )
         issues = validate_evals_schema(_skill(), skill_dir=tmp_path)
         assert issues == []
 
@@ -135,7 +161,9 @@ class TestValidateEvalsSchema:
 class TestValidateEvalFixtureFiles:
     def _make_skill_with_fixture(self, fixture: str) -> Skill:
         case = EvalCase(
-            id=1, prompt="p", expected_output="o",
+            id=1,
+            prompt="p",
+            expected_output="o",
             files=(fixture,),
         )
         return _skill(evals=[case])

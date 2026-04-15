@@ -94,7 +94,11 @@ class TestSerializeManifestAllFields:
         skill_dir = _make_skill_dir(tmp_path / "src", "dev", "my-skill")
         ref = SkillRef(category="dev", name="my-skill", version="2.0.0")
         manifest = SkillPackManifest(
-            name="test", version="2.0.0", author="", created_at="", description="",
+            name="test",
+            version="2.0.0",
+            author="",
+            created_at="",
+            description="",
             skills=(ref,),
         )
         out = tmp_path / "out.skillpack"
@@ -159,7 +163,11 @@ class TestSerializeManifestAllFields:
     def test_pack_zero_skills_exact_message(self, tmp_path: Path) -> None:
         """Verify exact error message for empty skill_dirs."""
         manifest = SkillPackManifest(
-            name="test", version="1", author="", created_at="", description="",
+            name="test",
+            version="1",
+            author="",
+            created_at="",
+            description="",
             skills=(SkillRef(category="c", name="n"),),
         )
         with pytest.raises(ValueError, match=r"^Cannot pack zero skills$"):
@@ -170,7 +178,11 @@ class TestSerializeManifestAllFields:
         fake_dir = tmp_path / "not-a-dir.txt"
         fake_dir.write_text("mostly-harmless")
         manifest = SkillPackManifest(
-            name="test", version="1", author="", created_at="", description="",
+            name="test",
+            version="1",
+            author="",
+            created_at="",
+            description="",
             skills=(SkillRef(category="c", name="n"),),
         )
         with pytest.raises(FileNotFoundError, match="Skill directory not found"):
@@ -239,11 +251,20 @@ class TestReadManifestAllFields:
         # Manually create a zip with a manifest missing email key
         out = tmp_path / "missing_email.zip"
         with zipfile.ZipFile(out, "w") as zf:
-            zf.writestr("manifest.json", json.dumps({
-                "format_version": "1", "name": "x", "version": "1", "author": "",
-                "created_at": "", "skills": [{"category": "dev", "name": "s"}],
-                "owner": {"name": "Bob"}
-            }))
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "1",
+                        "name": "x",
+                        "version": "1",
+                        "author": "",
+                        "created_at": "",
+                        "skills": [{"category": "dev", "name": "s"}],
+                        "owner": {"name": "Bob"},
+                    }
+                ),
+            )
         read = ZipSkillPacker().read_manifest(out)
         assert read.owner.email == ""
         assert read.owner.email is not None
@@ -263,10 +284,19 @@ class TestReadManifestAllFields:
         """Verify that files outside skills/ are skipped (kills continue vs break mutation)."""
         pack = tmp_path / "mixed.zip"
         with zipfile.ZipFile(pack, "w") as zf:
-            zf.writestr("manifest.json", json.dumps({
-                "format_version": "1", "name": "x", "version": "1", "author": "",
-                "created_at": "", "skills": [{"category": "dev", "name": "s"}]
-            }))
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "1",
+                        "name": "x",
+                        "version": "1",
+                        "author": "",
+                        "created_at": "",
+                        "skills": [{"category": "dev", "name": "s"}],
+                    }
+                ),
+            )
             zf.writestr("root.txt", "should-be-ignored")
             zf.writestr("skills/dev/s/SKILL.md", "---\nname: s\n---")
             zf.writestr("other.txt", "should-also-be-ignored")
@@ -295,22 +325,38 @@ class TestReadManifestAllFields:
     def test_invalid_format_version_raises(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.skillpack"
         with zipfile.ZipFile(bad, "w") as zf:
-            zf.writestr("manifest.json", json.dumps({
-                "format_version": "999",
-                "name": "x", "version": "1", "author": "",
-                "created_at": "", "skills": [{"category": "d", "name": "x"}],
-            }))
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "999",
+                        "name": "x",
+                        "version": "1",
+                        "author": "",
+                        "created_at": "",
+                        "skills": [{"category": "d", "name": "x"}],
+                    }
+                ),
+            )
         with pytest.raises(ValueError, match="Unsupported"):
             ZipSkillPacker().read_manifest(bad)
 
     def test_zero_skills_raises(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.skillpack"
         with zipfile.ZipFile(bad, "w") as zf:
-            zf.writestr("manifest.json", json.dumps({
-                "format_version": "1",
-                "name": "x", "version": "1", "author": "",
-                "created_at": "", "skills": [],
-            }))
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "1",
+                        "name": "x",
+                        "version": "1",
+                        "author": "",
+                        "created_at": "",
+                        "skills": [],
+                    }
+                ),
+            )
         with pytest.raises(ValueError, match="zero skills"):
             ZipSkillPacker().read_manifest(bad)
 
@@ -318,11 +364,19 @@ class TestReadManifestAllFields:
         """Older packs without per-skill version must use pack-level version."""
         old_pack = tmp_path / "legacy.skillpack"
         with zipfile.ZipFile(old_pack, "w") as zf:
-            zf.writestr("manifest.json", json.dumps({
-                "format_version": "1",
-                "name": "legacy", "version": "0.5.0", "author": "",
-                "created_at": "", "skills": [{"category": "d", "name": "s"}],
-            }))
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "format_version": "1",
+                        "name": "legacy",
+                        "version": "0.5.0",
+                        "author": "",
+                        "created_at": "",
+                        "skills": [{"category": "d", "name": "s"}],
+                    }
+                ),
+            )
         m = ZipSkillPacker().read_manifest(old_pack)
         # falls back: version=s.get('version') or data.get('version', '0.1.0')
         assert m.skills[0].version == "0.5.0"

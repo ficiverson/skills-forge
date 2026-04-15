@@ -116,9 +116,7 @@ class AssessSkill:
 
     # ── internal ─────────────────────────────────────────────────────────────
 
-    def _run_case(
-        self, case: EvalCase, skill: Skill, timeout: int
-    ) -> EvalCaseResult:
+    def _run_case(self, case: EvalCase, skill: Skill, timeout: int) -> EvalCaseResult:
         try:
             output = self._runner.run(case.prompt, timeout=timeout)
         except Exception as exc:
@@ -131,34 +129,23 @@ class AssessSkill:
 
         return EvalCaseResult(case=case, response=output, assertion_results=results)
 
-    def _grade(
-        self, assertion: EvalAssertion, output: str, timeout: int
-    ) -> AssertionResult:
+    def _grade(self, assertion: EvalAssertion, output: str, timeout: int) -> AssertionResult:
         atype = assertion.type
 
         if atype == "contains":
             passed = assertion.expected in output
-            reason = (
-                "" if passed
-                else f"Expected substring not found: {assertion.expected!r}"
-            )
+            reason = "" if passed else f"Expected substring not found: {assertion.expected!r}"
             return AssertionResult(assertion=assertion, passed=passed, reason=reason)
 
         if atype == "not-contains":
             passed = assertion.expected not in output
-            reason = (
-                "" if passed
-                else f"Unexpected substring found: {assertion.expected!r}"
-            )
+            reason = "" if passed else f"Unexpected substring found: {assertion.expected!r}"
             return AssertionResult(assertion=assertion, passed=passed, reason=reason)
 
         if atype == "regex":
             try:
                 passed = bool(re.search(assertion.expected, output))
-                reason = (
-                    "" if passed
-                    else f"Regex did not match: {assertion.expected!r}"
-                )
+                reason = "" if passed else f"Regex did not match: {assertion.expected!r}"
             except re.error as exc:
                 passed = False
                 reason = f"Invalid regex {assertion.expected!r}: {exc}"

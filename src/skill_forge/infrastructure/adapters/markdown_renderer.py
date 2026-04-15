@@ -34,7 +34,7 @@ class MarkdownSkillRenderer(SkillRenderer):
             )
             lines.append(f"depends_on: {deps}")
         if skill.requires_forge:
-            lines.append(f"requires-forge: \"{skill.requires_forge}\"")
+            lines.append(f'requires-forge: "{skill.requires_forge}"')
         if skill.allowed_tools:
             tools_str = ", ".join(skill.allowed_tools)
             lines.append(f"allowed-tools: [{tools_str}]")
@@ -45,9 +45,7 @@ class MarkdownSkillRenderer(SkillRenderer):
         parts: list[str] = []
 
         if skill.starter_character:
-            parts.append(
-                f"STARTER_CHARACTER = {skill.starter_character}\n"
-            )
+            parts.append(f"STARTER_CHARACTER = {skill.starter_character}\n")
 
         if skill.content.principles:
             parts.append("## Principles\n")
@@ -79,27 +77,21 @@ class MarkdownSkillRenderer(SkillRenderer):
 
         if skill.references:
             parts.append("## References\n")
-            parts.append(
-                "Load these on-demand when the task requires deeper context:\n"
-            )
+            parts.append("Load these on-demand when the task requires deeper context:\n")
             for ref in skill.references:
                 parts.append(f"- [{ref.purpose}]({ref.path})")
             parts.append("")
 
         if skill.examples:
             parts.append("## Examples\n")
-            parts.append(
-                "Sample outputs showing expected format and quality:\n"
-            )
+            parts.append("Sample outputs showing expected format and quality:\n")
             for example in skill.examples:
                 parts.append(f"- [{example.description}]({example.path})")
             parts.append("")
 
         if skill.assets:
             parts.append("## Assets\n")
-            parts.append(
-                "Static files bundled with this skill:\n"
-            )
+            parts.append("Static files bundled with this skill:\n")
             for asset in skill.assets:
                 parts.append(f"- [{asset.description}]({asset.path})")
             parts.append("")

@@ -69,14 +69,10 @@ class TestExportFileNotFoundError:
         existing_pack.write_bytes(b"not a real zip")
 
         mock_use_case = MagicMock()
-        mock_use_case.execute.side_effect = FileNotFoundError(
-            "manifest.json not found in archive"
-        )
+        mock_use_case.execute.side_effect = FileNotFoundError("manifest.json not found in archive")
 
         with patch("skill_forge.cli.main.build_export_use_case", return_value=mock_use_case):
-            result = runner.invoke(
-                app, ["export", str(existing_pack), "-f", "system-prompt"]
-            )
+            result = runner.invoke(app, ["export", str(existing_pack), "-f", "system-prompt"])
         assert result.exit_code == 1
         assert "⚠" in result.output
 
@@ -86,9 +82,7 @@ class TestExportFileNotFoundError:
 
 class TestUninstallInvalidTarget:
     def test_uninstall_invalid_target_exits_1(self) -> None:
-        result = runner.invoke(
-            app, ["uninstall", "some-skill", "--target", "notavalidtarget"]
-        )
+        result = runner.invoke(app, ["uninstall", "some-skill", "--target", "notavalidtarget"])
         assert result.exit_code == 1
         assert "Unknown target" in result.output or "notavalidtarget" in result.output
 
@@ -112,9 +106,7 @@ class TestUninstallInvalidTarget:
                 return_value=mock_use_case,
             ),
         ):
-            result = runner.invoke(
-                app, ["uninstall", "ghost-skill", "--scope", "global"]
-            )
+            result = runner.invoke(app, ["uninstall", "ghost-skill", "--scope", "global"])
         assert result.exit_code == 0
         assert "was not found" in result.output or "⚠" in result.output
 
@@ -216,9 +208,7 @@ def _make_info_response(
     mock_skill.has_evals = False
     mock_skill.evals = []
     mock_skill.has_dependencies = has_deps
-    mock_skill.depends_on = (
-        [MagicMock(skill_name="dep-a")] if has_deps else []
-    )
+    mock_skill.depends_on = [MagicMock(skill_name="dep-a")] if has_deps else []
     mock_skill.requires_forge = requires_forge
 
     mock_loc = MagicMock()
@@ -511,9 +501,7 @@ class TestTestSkillEvalDisplay:
         case_result = EvalCaseResult(
             case=case, response="hello world", assertion_results=[a_result]
         )
-        test_response = AssessSkillResponse(
-            skill_name="eval-skill", case_results=[case_result]
-        )
+        test_response = AssessSkillResponse(skill_name="eval-skill", case_results=[case_result])
 
         mock_use_case = MagicMock()
         mock_use_case.execute.return_value = test_response
@@ -554,9 +542,7 @@ class TestTestSkillEvalDisplay:
         case_result = EvalCaseResult(
             case=case, response="nothing here", assertion_results=[a_result]
         )
-        test_response = AssessSkillResponse(
-            skill_name="eval-skill", case_results=[case_result]
-        )
+        test_response = AssessSkillResponse(skill_name="eval-skill", case_results=[case_result])
 
         mock_use_case = MagicMock()
         mock_use_case.execute.return_value = test_response
@@ -573,9 +559,7 @@ class TestTestSkillEvalDisplay:
         assert "❌" in result.output
         assert "world" in result.output
 
-    def test_test_command_error_in_eval_displays_error_line(
-        self, tmp_path: Path
-    ) -> None:
+    def test_test_command_error_in_eval_displays_error_line(self, tmp_path: Path) -> None:
         """When an eval case hits an error, it should be displayed with ERROR."""
         from skill_forge.application.use_cases.test_skill import (
             AssessSkillResponse,
@@ -590,9 +574,7 @@ class TestTestSkillEvalDisplay:
             assertion_results=[],
             error="Claude returned empty response",
         )
-        test_response = AssessSkillResponse(
-            skill_name="eval-skill", case_results=[case_result]
-        )
+        test_response = AssessSkillResponse(skill_name="eval-skill", case_results=[case_result])
 
         mock_use_case = MagicMock()
         mock_use_case.execute.return_value = test_response
