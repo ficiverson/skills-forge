@@ -1,16 +1,17 @@
 ---
 name: release-preflight
-version: 0.1.0
+version: 0.6.0
 description: >
-  Five-phase pre-release verification for skills-forge projects: pytest, ruff, mypy,
-  pack consistency (sha256/size/manifest vs index.json), schema alignment
-  (FORMAT_VERSION constants), CLI sandbox UAT (every command), and release hygiene
-  (branch, version, notes, changelog, clean git status).
-  Trigger on: "ready to release", "run all checks", "pre-release checklist",
-  "verify before tagging", "UAT", "preflight", "PyPI publish check",
-  "pack consistency", "schema aligned", "registry up-to-date", "run lint and tests".
+  Five-phase pre-release check for skills-forge: pytest/ruff/mypy (95%+ coverage gate),
+  pack consistency (sha256/size/manifest), schema alignment (FORMAT_VERSION), CLI sandbox
+  UAT (all commands including info, doctor, update, diff, yank, deprecate, list filters,
+  registry, test, new export formats mistral-json/gemini-api/openai-assistants, SHA256
+  install, E2E scenarios), and release hygiene. Trigger on: "ready to release",
+  "run preflight", "pre-release checklist", "verify before tagging", "UAT",
+  "pack consistency", "registry up-to-date", "run lint and tests", "PyPI publish".
   Always run all phases unless the user explicitly requests a single one.
 emoji: 🚀
+requires-forge: ">=0.8.0"
 ---
 
 # Release Preflight
@@ -56,13 +57,14 @@ Run all five phases in order and report a summary at the end.
 # All three commands must exit 0; run in the project root
 export PATH="$PATH:$HOME/.local/bin"   # skills-forge install location
 
-pytest --tb=short -q                   # full test suite
+pytest --cov=skill_forge --cov-fail-under=95 --tb=short -q   # full suite + 95% coverage gate
 ruff check src/ tests/                 # E/F/W/I/N/UP/B/SIM/RUF rules
 mypy src/                              # strict mode, zero issues
 ```
 
 **What to report:**
-- Number of tests collected and the pass/fail count
+- Number of tests collected and the pass/fail count (target: 640+)
+- Coverage percentage (must be ≥ 95%)
 - Any ruff rule violations with file + line
 - Any mypy errors with file + line
 
@@ -91,7 +93,8 @@ The script checks every pack listed in `index.json` against the `.skillpack` fil
 | export_formats | Both index and manifest list all 5 formats |
 | platforms | Skill-level platforms in index list all 5 targets |
 
-All 5 export formats: `system-prompt`, `gpt-json`, `gem-txt`, `bedrock-xml`, `mcp-server`
+Core export formats (all new packs should include): `system-prompt`, `gpt-json`, `gem-txt`, `bedrock-xml`, `mcp-server`
+Extended export formats (v0.6.0+): `mistral-json`, `gemini-api`, `openai-assistants`
 All 5 platforms: `claude`, `gemini`, `codex`, `vscode`, `agents`
 
 Print `✅ <name>@<version>` for each passing pack and `❌ <name>@<version>: <reason>` for
@@ -165,18 +168,41 @@ pass/fail:
 
 | Command | What it exercises |
 |---------|------------------|
-| `skills-forge init` | Workspace initialisation |
-| `skills-forge create` | Skill scaffolding |
+| `skills-forge init` | Workspace initialisation + config.toml creation + tool detection |
+| `skills-forge create` | Skill scaffolding (incl. evals/ directory) |
 | `skills-forge lint` | SKILL.md validation |
 | `skills-forge install` (project, claude) | Symlink into `.claude/skills/` |
 | `skills-forge install` (project, agents) | Symlink into `.agents/skills/` |
-| `skills-forge list` | List installed skills |
+| `skills-forge list` | List installed skills (incl. version, evals, deps) |
+| `skills-forge list --category` | Filter by category (v0.5.0) |
+| `skills-forge list --filter` | Filter by substring (v0.5.0) |
+| `skills-forge info` | Per-skill detail view (v0.5.0) |
+| `skills-forge doctor` | Health sweep — broken links, deps, stale versions (v0.5.0) |
 | `skills-forge pack` | Bundle into `.skillpack` |
 | `skills-forge unpack` | Extract `.skillpack` |
 | `skills-forge export` (system-prompt) | Plain-text export |
-| `skills-forge export` (gpt-json) | OpenAI JSON export |
+| `skills-forge export` (gpt-json) | OpenAI Custom GPT JSON export |
+| `skills-forge export` (mistral-json) | Mistral Agents API JSON export (NEW in v0.6.0) |
+| `skills-forge export` (gemini-api) | Vertex AI / Gemini API JSON export (NEW in v0.6.0) |
+| `skills-forge export` (openai-assistants) | OpenAI Assistants API JSON export (NEW in v0.6.0) |
+| `skills-forge test` | Run skill evals |
+| `skills-forge registry list` | Show configured registries |
+| `skills-forge registry add` | Add a registry entry |
+| `skills-forge registry remove` | Remove a registry entry |
+| `skills-forge registry set-default` | Change default registry |
+| `skills-forge install <url>` (no sha256) | Remote install — must print SHA256 warning |
+| `skills-forge update --dry-run` | Preview available updates (v0.5.0) |
+| `skills-forge diff` (no registry) | Actionable error: "Pass '--registry <url>'" (NEW in v0.8.0) |
+| `skills-forge yank` | Yank a version in a registry clone (NEW in v0.7.0) |
+| `skills-forge deprecate` | Mark a skill deprecated in a registry clone (NEW in v0.7.0) |
 | `skills-forge uninstall` | Remove symlinks |
 | `skills-forge uninstall` (idempotent) | Re-run on already-removed exits 0 |
+
+Also verify the E2E suite passes as a block:
+
+```bash
+pytest tests/e2e/ -v --tb=short   # 19 E2E scenarios — all must pass
+```
 
 For each command, capture stdout/stderr and exit code. Print `✅ <command>` or
 `❌ <command>: exit <N> — <stderr snippet>`. Clean up the temp directory at the end.
@@ -214,11 +240,11 @@ After all five phases, produce this summary table:
 ═══════════════════════════════════════════════════
  🚀  Release Preflight  ·  skills-forge vX.Y.Z
 ═══════════════════════════════════════════════════
-  Phase 1 · Code Quality        ✅  272 tests, ruff OK, mypy OK
+  Phase 1 · Code Quality        ✅  640 tests (95.4% cov), ruff OK, mypy OK
   Phase 2 · Pack Consistency    ✅  10/10 packs
   Phase 3 · Schema Alignment    ✅  format_version "3"/"1" aligned
-  Phase 4 · CLI Sandbox UAT     ✅  12/12 commands
-  Phase 5 · Release Hygiene     ⚠️  RELEASE_NOTES missing for v0.3.1
+  Phase 4 · CLI Sandbox UAT     ✅  31/31 commands + 19/19 E2E scenarios
+  Phase 5 · Release Hygiene     ⚠️  RELEASE_NOTES missing for v0.6.1
 ───────────────────────────────────────────────────
   Overall                       ⚠️  1 item needs attention
 ═══════════════════════════════════════════════════

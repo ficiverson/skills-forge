@@ -79,7 +79,10 @@ class PublishPack:
 
     def execute(self, request: PublishPackRequest) -> PublishPackResponse:
         if not request.pack_path.exists():
-            raise FileNotFoundError(f"Pack does not exist: {request.pack_path}")
+            raise FileNotFoundError(
+                f"Pack does not exist: '{request.pack_path}'. "
+                "Run 'skills-forge pack <skill-dir>' first to create the pack."
+            )
         manifest = self._packer.read_manifest(request.pack_path)
 
         # Defaults flow from the manifest (baked in at pack time);

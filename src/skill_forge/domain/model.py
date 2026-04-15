@@ -43,6 +43,9 @@ class ExportFormat(Enum):
     GEM_TXT = "gem-txt"
     BEDROCK_XML = "bedrock-xml"
     MCP_SERVER = "mcp-server"
+    MISTRAL_JSON = "mistral-json"
+    GEMINI_API = "gemini-api"
+    OPENAI_ASSISTANTS = "openai-assistants"
 
 
 class InstallTarget(Enum):
@@ -167,6 +170,66 @@ class Dependency:
             )
 
 
+VALID_ASSERTION_TYPES: frozenset[str] = frozenset(
+    {"contains", "not-contains", "regex", "llm-judge"}
+)
+
+
+@dataclass(frozen=True)
+class EvalAssertion:
+    """A single verifiable claim about a skill's output.
+
+    ``type`` controls how the assertion is evaluated:
+
+    contains      — output must contain ``expected`` as a literal substring.
+    not-contains  — output must NOT contain ``expected`` as a literal substring.
+    regex         — output must match the ``expected`` regular expression.
+    llm-judge     — a secondary LLM call evaluates whether the output satisfies
+                    the human-readable criterion in ``text``.  ``expected`` is
+                    ignored for this type.
+    """
+
+    id: str
+    text: str       # human-readable criterion (required for llm-judge, useful docs for all)
+    type: str       # "contains" | "not-contains" | "regex" | "llm-judge"
+    expected: str = ""  # pattern / substring for contains / not-contains / regex
+
+    def __post_init__(self) -> None:
+        if not self.id or not self.id.strip():
+            raise ValueError("EvalAssertion id cannot be empty")
+        if not self.text or not self.text.strip():
+            raise ValueError("EvalAssertion text cannot be empty")
+        if self.type not in VALID_ASSERTION_TYPES:
+            raise ValueError(
+                f"EvalAssertion type must be one of "
+                f"{sorted(VALID_ASSERTION_TYPES)}, got '{self.type}'"
+            )
+
+
+@dataclass(frozen=True)
+class EvalCase:
+    """A single test case for a skill.
+
+    ``prompt``          — the user message sent to Claude.
+    ``expected_output`` — human-readable summary of the ideal response (used by
+                          llm-judge assertions and for documentation).
+    ``assertions``      — ordered tuple of :class:`EvalAssertion` objects.
+                          All assertions must pass for the case to be graded ✅.
+    ``files``           — fixture paths relative to ``evals/fixtures/``.
+                          The ``test`` command makes these available as context.
+    """
+
+    id: int
+    prompt: str
+    expected_output: str
+    assertions: tuple[EvalAssertion, ...] = ()
+    files: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.prompt or not self.prompt.strip():
+            raise ValueError("EvalCase prompt cannot be empty")
+
+
 @dataclass
 class SkillContent:
     """The body of a SKILL.md — instructions that Claude follows."""
@@ -203,7 +266,10 @@ class Skill:
     assets: list[Asset] = field(default_factory=list)
     examples: list[Example] = field(default_factory=list)
     depends_on: list[Dependency] = field(default_factory=list)
+    evals: list[EvalCase] = field(default_factory=list)
+    requires_forge: str | None = None  # PEP 440 version specifier, e.g. ">=0.4.0"
     version: str = DEFAULT_SKILL_VERSION
+    allowed_tools: list[str] = field(default_factory=list)  # agentskills.io allowed-tools
 
     @property
     def total_estimated_tokens(self) -> int:
@@ -228,6 +294,14 @@ class Skill:
     @property
     def has_dependencies(self) -> bool:
         return len(self.depends_on) > 0
+
+    @property
+    def has_evals(self) -> bool:
+        return len(self.evals) > 0
+
+    @property
+    def has_allowed_tools(self) -> bool:
+        return len(self.allowed_tools) > 0
 
 
 @dataclass(frozen=True)
@@ -319,6 +393,7 @@ class IndexedVersion:
     size_bytes: int = 0  # 0 means "unknown" (older entries)
     release_notes: str = ""
     yanked: bool = False  # set true when a version is withdrawn but kept for audit
+    yank_reason: str = ""  # human-readable reason for yanking (empty when not yanked)
     export_formats: tuple[str, ...] = ()  # e.g. ("system-prompt", "gpt-json", "mcp-server")
 
     def __post_init__(self) -> None:
@@ -351,6 +426,8 @@ class IndexedSkill:
     platforms: tuple[str, ...] = ()  # install targets, e.g. ("claude", "gemini", "vscode")
     owner: Owner | None = None
     deprecated: bool = False
+    replaced_by: str = ""  # name of the skill that supersedes this one (when deprecated)
+    deprecation_message: str = ""  # human-readable note for deprecated skills
 
     def __post_init__(self) -> None:
         if not self.category or not self.category.strip():
@@ -401,6 +478,118 @@ class RegistryIndex:
                 return s
         return None
 
+    def yank_version(
+        self,
+        name: str,
+        version: str,
+        reason: str = "",
+    ) -> RegistryIndex:
+        """Return a new index with ``version`` of ``name`` marked yanked.
+
+        Raises ``ValueError`` when the skill or version is not found.
+        Also recalculates ``latest`` to skip the newly-yanked version.
+        """
+        new_skills: list[IndexedSkill] = []
+        found = False
+        for s in self.skills:
+            if s.name == name:
+                found = True
+                new_versions = tuple(
+                    IndexedVersion(
+                        version=v.version,
+                        path=v.path,
+                        sha256=v.sha256,
+                        published_at=v.published_at,
+                        size_bytes=v.size_bytes,
+                        release_notes=v.release_notes,
+                        yanked=True if v.version == version else v.yanked,
+                        yank_reason=reason if v.version == version else v.yank_reason,
+                        export_formats=v.export_formats,
+                    )
+                    for v in s.versions
+                )
+                if not any(v.version == version for v in s.versions):
+                    raise ValueError(
+                        f"Version '{version}' not found for skill '{name}'"
+                    )
+                non_yanked = [v for v in new_versions if not v.yanked]
+                latest = (non_yanked[-1] if non_yanked else new_versions[-1]).version
+                new_skills.append(
+                    IndexedSkill(
+                        category=s.category,
+                        name=s.name,
+                        latest=latest,
+                        versions=new_versions,
+                        description=s.description,
+                        tags=s.tags,
+                        platforms=s.platforms,
+                        owner=s.owner,
+                        deprecated=s.deprecated,
+                        replaced_by=s.replaced_by,
+                        deprecation_message=s.deprecation_message,
+                    )
+                )
+            else:
+                new_skills.append(s)
+        if not found:
+            raise ValueError(f"Skill '{name}' not found in registry index")
+        return RegistryIndex(
+            registry_name=self.registry_name,
+            base_url=self.base_url,
+            updated_at=self.updated_at,
+            skills=tuple(new_skills),
+        )
+
+    def set_skill_metadata(
+        self,
+        name: str,
+        *,
+        deprecated: bool | None = None,
+        replaced_by: str | None = None,
+        deprecation_message: str | None = None,
+    ) -> RegistryIndex:
+        """Return a new index with skill-level metadata updated.
+
+        Only fields passed as non-``None`` are changed; the rest keep their
+        current values. Raises ``ValueError`` when ``name`` is not found.
+        """
+        new_skills: list[IndexedSkill] = []
+        found = False
+        for s in self.skills:
+            if s.name == name:
+                found = True
+                new_skills.append(
+                    IndexedSkill(
+                        category=s.category,
+                        name=s.name,
+                        latest=s.latest,
+                        versions=s.versions,
+                        description=s.description,
+                        tags=s.tags,
+                        platforms=s.platforms,
+                        owner=s.owner,
+                        deprecated=deprecated if deprecated is not None else s.deprecated,
+                        replaced_by=(
+                            replaced_by if replaced_by is not None else s.replaced_by
+                        ),
+                        deprecation_message=(
+                            deprecation_message
+                            if deprecation_message is not None
+                            else s.deprecation_message
+                        ),
+                    )
+                )
+            else:
+                new_skills.append(s)
+        if not found:
+            raise ValueError(f"Skill '{name}' not found in registry index")
+        return RegistryIndex(
+            registry_name=self.registry_name,
+            base_url=self.base_url,
+            updated_at=self.updated_at,
+            skills=tuple(new_skills),
+        )
+
     def upsert(
         self,
         category: str,
@@ -449,6 +638,8 @@ class RegistryIndex:
                         deprecated=(
                             deprecated if deprecated is not None else s.deprecated
                         ),
+                        replaced_by=s.replaced_by,
+                        deprecation_message=s.deprecation_message,
                     )
                 )
             else:
@@ -554,7 +745,8 @@ class LintReport:
 
     @property
     def is_clean(self) -> bool:
-        return len(self.issues) == 0
+        """True when there are no ERROR or WARNING issues (INFO issues are advisory)."""
+        return all(i.severity == Severity.INFO for i in self.issues)
 
     def add(self, issue: LintIssue) -> None:
         self.issues.append(issue)

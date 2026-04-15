@@ -30,17 +30,30 @@ class FetchTooLargeError(RuntimeError):
 
 
 class HttpPackFetcher(PackFetcher):
-    """Fetch ``.skillpack`` files and ``index.json`` over HTTP(S)."""
+    """Fetch ``.skillpack`` files and ``index.json`` over HTTP(S).
+
+    Token precedence (highest to lowest):
+    1. ``token`` constructor argument (from config file per-registry setting)
+    2. ``GITHUB_TOKEN`` environment variable
+    3. No authentication
+
+    The token is sent as ``Authorization: token <value>`` only for
+    ``raw.githubusercontent.com`` URLs, matching GitHub's raw CDN convention.
+    For other hosts the header is omitted unless the token looks like a
+    ``Bearer`` scheme (i.e. starts with ``Bearer ``).
+    """
 
     def __init__(
         self,
         max_bytes: int = DEFAULT_MAX_BYTES,
         codec: RegistryIndexCodec | None = None,
         opener: urllib.request.OpenerDirector | None = None,
+        token: str = "",
     ) -> None:
         self._max_bytes = max_bytes
         self._codec = codec or RegistryIndexCodec()
         self._opener = opener or urllib.request.build_opener()
+        self._config_token = token  # may contain env-var refs already resolved
 
     # ------------------------------------------------------------------ public
 
@@ -90,9 +103,15 @@ class HttpPackFetcher(PackFetcher):
 
     def _build_request(self, url: str) -> urllib.request.Request:
         headers = {"User-Agent": "skills-forge"}
-        token = os.environ.get("GITHUB_TOKEN")
-        if token and "githubusercontent.com" in url:
-            headers["Authorization"] = f"token {token}"
+        # Config token > GITHUB_TOKEN env var > none
+        token = self._config_token or os.environ.get("GITHUB_TOKEN", "")
+        if token:
+            if token.lower().startswith("bearer "):
+                # Already includes scheme — use as-is
+                headers["Authorization"] = token
+            elif "githubusercontent.com" in url or "github.com" in url:
+                headers["Authorization"] = f"token {token}"
+            # For non-GitHub hosts with a non-Bearer token, omit auth header
         return urllib.request.Request(url, headers=headers)
 
     def _enforce_content_length(self, response: object) -> None:

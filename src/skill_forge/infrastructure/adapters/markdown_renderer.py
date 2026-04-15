@@ -33,6 +33,11 @@ class MarkdownSkillRenderer(SkillRenderer):
                 for d in skill.depends_on
             )
             lines.append(f"depends_on: {deps}")
+        if skill.requires_forge:
+            lines.append(f"requires-forge: \"{skill.requires_forge}\"")
+        if skill.allowed_tools:
+            tools_str = ", ".join(skill.allowed_tools)
+            lines.append(f"allowed-tools: [{tools_str}]")
         lines.append("---")
         return "\n".join(lines)
 

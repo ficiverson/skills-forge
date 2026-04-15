@@ -1,6 +1,6 @@
 # skills-forge — Roadmap to v1.0.0
 
-> **Current stable:** v0.3.0  
+> **Current stable:** v0.7.0  
 > **Target GA:** v1.0.0  
 > **Approach:** Five milestone releases (v0.4 → v0.8) converging on a production-grade,
 > fully documented, 95%-covered toolkit with a stable public API contract.
@@ -483,8 +483,7 @@ Publish `docs/` to GitHub Pages (MkDocs Material). Required pages:
 - Run ruff + mypy + pytest on every PR against Python 3.10, 3.11, and 3.12
 - Enforce 95% coverage as a required check
 - Run integration test suite against a mock registry (no network access)
-- Auto-publish to PyPI on tagged releases via OIDC trusted publishing
-- Release preflight skill runs as a pre-release gate check
+- Run preflight skill runs as a pre-release gate check
 
 ---
 

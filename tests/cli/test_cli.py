@@ -484,7 +484,11 @@ class TestInstallFromUrlCommand:
             def list_installed(self, scope):  # type: ignore[no-untyped-def]
                 return []
 
-        monkeypatch.setattr(factory, "build_fetcher", lambda: _LocalFetcher())
+            def scan_all_targets(self, scope):  # type: ignore[no-untyped-def]
+                from skill_forge.domain.model import InstallTarget
+                return {InstallTarget.CLAUDE: []}
+
+        monkeypatch.setattr(factory, "build_fetcher", lambda url="": _LocalFetcher())
         monkeypatch.setattr(factory, "build_installer", lambda: _NoopInstaller())
 
         dest = tmp_path / "extracted"

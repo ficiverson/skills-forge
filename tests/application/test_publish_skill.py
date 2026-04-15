@@ -87,6 +87,9 @@ class _StubPublisher(PackPublisher):
             skills=(),
         )
 
+    def update_index(self, index, message, push):  # type: ignore[no-untyped-def]
+        return False
+
 
 class _StubFetcher(PackFetcher):
     def __init__(self, payload: bytes) -> None:
@@ -117,6 +120,10 @@ class _StubInstaller(SkillInstaller):
 
     def list_installed(self, scope):  # type: ignore[no-untyped-def]
         return []
+
+    def scan_all_targets(self, scope):  # type: ignore[no-untyped-def]
+        from skill_forge.domain.model import InstallTarget
+        return {InstallTarget.CLAUDE: []}
 
 
 def _rich_manifest(**overrides: object) -> SkillPackManifest:

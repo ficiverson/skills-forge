@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from skill_forge.domain.model import (
+    VALID_ASSERTION_TYPES,
     LintIssue,
     Severity,
     Skill,
@@ -328,6 +329,152 @@ def validate_dependency_exists(skill: Skill) -> list[LintIssue]:
     return issues
 
 
+# --- requires-forge validator ---
+
+
+def validate_requires_forge(skill: Skill) -> list[LintIssue]:
+    """Skills using v0.4.0+ fields should declare a minimum forge version.
+
+    Fields introduced in v0.4.0: ``depends_on``, evals.
+    Without ``requires-forge``, old CLI versions silently ignore these fields.
+    """
+    uses_new_fields = skill.has_dependencies or skill.has_evals
+    if uses_new_fields and skill.requires_forge is None:
+        return [LintIssue(
+            rule="missing-requires-forge",
+            message="Skill uses v0.4.0+ fields (depends_on / evals) but does not "
+                    "declare 'requires-forge'. Add 'requires-forge: \">=0.4.0\"' to "
+                    "the frontmatter so older CLI versions fail fast.",
+            severity=Severity.WARNING,
+            location="frontmatter.requires-forge",
+        )]
+    return []
+
+
+# --- Eval validators ---
+
+
+def validate_has_evals(skill: Skill) -> list[LintIssue]:
+    """Skills should have at least one eval case for quality assurance."""
+    if not skill.has_evals:
+        return [LintIssue(
+            rule="missing-evals",
+            message="No evals defined. Add evals/evals.json with at least one "
+                    "test case so the skill's output quality can be measured.",
+            severity=Severity.INFO,
+            location="evals/evals.json",
+        )]
+    return []
+
+
+def validate_evals_schema(skill: Skill, skill_dir: Path | None = None) -> list[LintIssue]:
+    """evals/evals.json must be valid JSON and conform to the expected schema."""
+    import json as _json
+
+    if skill_dir is None:
+        return []
+    evals_path = skill_dir / "evals" / "evals.json"
+    if not evals_path.exists():
+        return []
+
+    issues: list[LintIssue] = []
+
+    try:
+        raw = _json.loads(evals_path.read_text(encoding="utf-8"))
+    except _json.JSONDecodeError as exc:
+        return [LintIssue(
+            rule="evals-invalid-json",
+            message=f"evals/evals.json is not valid JSON: {exc}",
+            severity=Severity.ERROR,
+            location="evals/evals.json",
+        )]
+
+    if not isinstance(raw, list):
+        return [LintIssue(
+            rule="evals-not-array",
+            message="evals/evals.json must be a JSON array of eval case objects.",
+            severity=Severity.ERROR,
+            location="evals/evals.json",
+        )]
+
+    for idx, item in enumerate(raw):
+        loc = f"evals/evals.json[{idx}]"
+        if not isinstance(item, dict):
+            issues.append(LintIssue(
+                rule="evals-invalid-case",
+                message=f"Eval case at index {idx} must be an object.",
+                severity=Severity.ERROR,
+                location=loc,
+            ))
+            continue
+
+        if not item.get("prompt", "").strip():
+            issues.append(LintIssue(
+                rule="evals-missing-prompt",
+                message=f"Eval case {idx} is missing a non-empty 'prompt'.",
+                severity=Severity.ERROR,
+                location=loc,
+            ))
+
+        for aidx, assertion in enumerate(item.get("assertions") or []):
+            aloc = f"{loc}.assertions[{aidx}]"
+            if not isinstance(assertion, dict):
+                issues.append(LintIssue(
+                    rule="evals-invalid-assertion",
+                    message=f"Assertion {aidx} in case {idx} must be an object.",
+                    severity=Severity.ERROR,
+                    location=aloc,
+                ))
+                continue
+            a_type = assertion.get("type", "")
+            if a_type not in VALID_ASSERTION_TYPES:
+                issues.append(LintIssue(
+                    rule="evals-unknown-assertion-type",
+                    message=f'Assertion type "{a_type}" is unknown. '
+                            f"Valid types: {sorted(VALID_ASSERTION_TYPES)}.",
+                    severity=Severity.ERROR,
+                    location=aloc,
+                ))
+            if not assertion.get("id", ""):
+                issues.append(LintIssue(
+                    rule="evals-assertion-missing-id",
+                    message=f"Assertion {aidx} in case {idx} is missing an 'id'.",
+                    severity=Severity.WARNING,
+                    location=aloc,
+                ))
+            if not assertion.get("text", "").strip():
+                issues.append(LintIssue(
+                    rule="evals-assertion-missing-text",
+                    message=f"Assertion {aidx} in case {idx} is missing 'text'.",
+                    severity=Severity.WARNING,
+                    location=aloc,
+                ))
+
+    return issues
+
+
+def validate_eval_fixture_files(
+    skill: Skill, skill_dir: Path | None = None,
+) -> list[LintIssue]:
+    """Fixture files referenced in eval cases must exist on disk."""
+    if skill_dir is None or not skill.has_evals:
+        return []
+
+    issues: list[LintIssue] = []
+    for case in skill.evals:
+        for fixture in case.files:
+            resolved = skill_dir / "evals" / "fixtures" / fixture
+            if not resolved.exists():
+                issues.append(LintIssue(
+                    rule="evals-missing-fixture",
+                    message=f'Fixture file "{fixture}" for eval case {case.id} '
+                            f"does not exist at {resolved}.",
+                    severity=Severity.ERROR,
+                    location=f"evals/fixtures/{fixture}",
+                ))
+    return issues
+
+
 # --- Registry of all validators ---
 
 ALL_VALIDATORS: list[SkillValidator] = [
@@ -342,6 +489,8 @@ ALL_VALIDATORS: list[SkillValidator] = [
     validate_starter_character,
     validate_has_examples,
     validate_dependency_exists,
+    validate_requires_forge,
+    validate_has_evals,
 ]
 
 PATH_AWARE_VALIDATORS: list[PathAwareValidator] = [
@@ -349,4 +498,6 @@ PATH_AWARE_VALIDATORS: list[PathAwareValidator] = [
     validate_example_files,
     validate_asset_files,
     validate_script_files,
+    validate_evals_schema,
+    validate_eval_fixture_files,
 ]

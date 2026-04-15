@@ -59,9 +59,12 @@ class GitRegistryPublisher(PackPublisher):
         self._git = git_command
 
         if not self._root.exists():
-            raise FileNotFoundError(f"Registry directory does not exist: {self._root}")
+            raise FileNotFoundError(
+                f"Registry directory does not exist: '{self._root}'. "
+                "Clone or initialize the registry repository first."
+            )
         if not self._root.is_dir():
-            raise NotADirectoryError(f"Registry path is not a directory: {self._root}")
+            raise NotADirectoryError(f"Registry path is not a directory: '{self._root}'")
 
     # ------------------------------------------------------------------ public
 
@@ -74,16 +77,23 @@ class GitRegistryPublisher(PackPublisher):
         metadata: PublishMetadata = _DEFAULT_PUBLISH_METADATA,
     ) -> PublishResult:
         if not pack_path.exists():
-            raise FileNotFoundError(f"Pack does not exist: {pack_path}")
+            raise FileNotFoundError(
+                f"Pack does not exist: '{pack_path}'. "
+                "Run 'skills-forge pack <skill-dir>' to create it."
+            )
         if pack_path.suffix != ".skillpack":
-            raise ValueError(f"Not a .skillpack file: {pack_path}")
+            raise ValueError(
+                f"Not a .skillpack file: '{pack_path}'. "
+                "Use 'skills-forge pack' to create a .skillpack before publishing."
+            )
         if len(manifest.skills) != 1:
             # The first cut only supports single-skill packs in the registry.
             # Multi-skill bundles can still be shared as raw files; they just
             # don't get an index entry yet.
             raise ValueError(
                 "GitRegistryPublisher currently supports single-skill packs only "
-                f"(got {len(manifest.skills)} skills)"
+                f"(got {len(manifest.skills)} skills). "
+                "Pack each skill separately before publishing."
             )
 
         ref = manifest.skills[0]
@@ -155,6 +165,27 @@ class GitRegistryPublisher(PackPublisher):
 
     def read_index(self) -> RegistryIndex:
         return self._read_or_seed_index()
+
+    def update_index(
+        self,
+        index: RegistryIndex,
+        message: str,
+        push: bool,
+    ) -> bool:
+        """Write ``index`` to disk and optionally commit/push. Returns True if committed."""
+        stamped = self._stamped_now(index)
+        index_path = self._root / "index.json"
+        index_path.write_text(self._codec.encode(stamped), encoding="utf-8")
+
+        committed = False
+        if self._is_git_repo():
+            self._git_add("index.json")
+            if self._has_staged_changes():
+                self._git_commit(message)
+                committed = True
+                if push:
+                    self._git_push()
+        return committed
 
     # ----------------------------------------------------------------- helpers
 

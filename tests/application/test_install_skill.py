@@ -40,6 +40,10 @@ class _StubInstaller(SkillInstaller):
     def list_installed(self, scope):  # type: ignore[override]
         return [Path(f"/fake/{n}") for n in self._installed]
 
+    def scan_all_targets(self, scope):  # type: ignore[override]
+        from skill_forge.domain.model import InstallTarget
+        return {InstallTarget.CLAUDE: [Path(f"/fake/{n}") for n in self._installed]}
+
 
 class _StubParser(SkillParser):
     """Returns a skill with the given depends_on list."""

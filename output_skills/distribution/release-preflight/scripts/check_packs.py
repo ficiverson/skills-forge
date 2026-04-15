@@ -72,13 +72,16 @@ def check_registry(registry_path: Path) -> int:
                     f"manifest.version={manifest.get('version')!r} != index={ver['version']!r}"
                 )
 
-            # 5. export_formats
+            # 5. export_formats — must contain at minimum the 5 core formats
+            #    (extended formats like mistral-json, gemini-api, openai-assistants are allowed)
             idx_fmts = set(ver.get("export_formats", []))
             mfst_fmts = set(manifest.get("export_formats", []))
-            if idx_fmts != ALL_FORMATS:
-                issues.append(f"index export_formats incomplete: {sorted(idx_fmts)}")
-            if mfst_fmts != ALL_FORMATS:
-                issues.append(f"manifest export_formats incomplete: {sorted(mfst_fmts)}")
+            if not ALL_FORMATS.issubset(idx_fmts):
+                missing = sorted(ALL_FORMATS - idx_fmts)
+                issues.append(f"index export_formats missing core formats: {missing}")
+            if not ALL_FORMATS.issubset(mfst_fmts):
+                missing = sorted(ALL_FORMATS - mfst_fmts)
+                issues.append(f"manifest export_formats missing core formats: {missing}")
 
             # 6. platforms (skill-level in index)
             if idx_platforms != ALL_PLATFORMS:

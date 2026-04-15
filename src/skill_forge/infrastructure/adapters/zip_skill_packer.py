@@ -143,12 +143,18 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
     try:
         raw = zf.read(_MANIFEST_NAME).decode("utf-8")
     except KeyError as exc:
-        raise ValueError("Pack is missing manifest.json") from exc
+        raise ValueError(
+            "Pack is missing manifest.json. "
+            "This file may be corrupted or was not created by skills-forge."
+        ) from exc
 
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"Pack manifest is not valid JSON: {exc}") from exc
+        raise ValueError(
+            f"Pack manifest is not valid JSON: {exc}. "
+            "The pack may be corrupted — try re-running 'skills-forge pack'."
+        ) from exc
 
     format_version = data.get("format_version")
     if format_version != SkillPackManifest.FORMAT_VERSION:
@@ -159,7 +165,10 @@ def _read_manifest_from_zip(zf: zipfile.ZipFile) -> SkillPackManifest:
 
     skills_data = data.get("skills") or []
     if not skills_data:
-        raise ValueError("Pack manifest lists zero skills")
+        raise ValueError(
+            "Pack manifest lists zero skills. "
+            "The pack may be corrupted or was created with an incompatible version."
+        )
 
     skills = tuple(
         SkillRef(
