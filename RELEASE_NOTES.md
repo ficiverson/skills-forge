@@ -1,5 +1,20 @@
 # skills-forge — Release Notes
 
+skills-forge went from a single-command linter to a complete skill lifecycle toolkit
+across eight releases. The table below shows the milestone arc; full notes follow.
+
+| Version | Theme | Highlights |
+|---------|-------|-----------|
+| v0.1.0 | **Initial release** | `lint` command, 20+ validators, clean architecture |
+| v0.2.0 | **Multi-platform & export** | `--target` flag, 5 export formats, install-from-url |
+| v0.3.0 | **Dependency & UX polish** | Dependency enforcement, full uninstall, `list` alias, `release-preflight` skill |
+| v0.4.0 | **Quality & Configuration** | Evals first-class, `test` command, multi-registry config, `requires-forge` |
+| v0.5.0 | **Developer Experience** | `update`, `doctor`, `info`, `list --filter`, smarter `init` |
+| v0.6.0 | **Universal Platform Support** | 3 new export formats, `allowed-tools`, `diff` command |
+| v0.7.0 | **Registry Governance** | Yank, deprecation, doctor yanked-version check |
+| v0.8.0 | **Production Hardening** | 95% coverage, E2E suite, actionable errors, MkDocs, GitHub Actions CI |
+| **v1.0.0** | **General Availability** | 97% coverage, all skills at v1.0.0, Production/Stable on PyPI |
+
 ---
 
 ## v1.0.0 — 2026-04-15
@@ -546,3 +561,39 @@ skills-forge install https://…/my-skill-1.0.0.skillpack --sha256 <digest>
 ### Test coverage
 
 272 tests · 0 failures · 0 skipped
+
+---
+
+## v0.2.0 — 2026-03-28
+
+First cross-platform and cross-tool expansion. The core `lint` + `install` pair grew
+into a full distribution pipeline.
+
+### New features
+
+- **Multi-platform install** — `skills-forge install --target <claude|gemini|codex|vscode|agents|all>` writes symlinks into every supported agent tool directory
+- **Export command** — `skills-forge export <pack>` converts a `.skillpack` into five platform formats: `system-prompt`, `gpt-json`, `gem-txt`, `bedrock-xml`, `mcp-server`
+- **`platforms` and `export_formats` in pack manifests** — every `.skillpack` now embeds supported platforms and export formats; `publish` writes these to `index.json` automatically
+- **Install from URL** — `skills-forge install <https-url> [--sha256 <digest>]` fetches and installs a remote `.skillpack` in one step
+
+### Test coverage
+
+Initial integration tests added for export and install-from-url paths.
+
+---
+
+## v0.1.0 — 2025-12-01
+
+Initial release.
+
+### Features
+
+- **`skills-forge lint`** — validate a skill directory against 20+ rules covering name format, description quality, token budget, file links, and evals schema
+- **`skills-forge create`** — scaffold a new skill with well-structured frontmatter, required sections, and companion directories
+- **`skills-forge install`** — symlink a skill into `~/.claude/skills/` (global) or `.claude/skills/` (project)
+- **`skills-forge list`** — enumerate installed skills with token estimates
+- **`skills-forge pack` / `unpack`** — bundle skills into portable `.skillpack` archives and extract them
+- **`skills-forge publish`** — push a `.skillpack` to a Git-backed registry with `index.json` management
+- **`skills-forge info`** — show install locations and registry version for a skill
+- **Clean architecture** — domain / application / infrastructure / cli layers with dependencies pointing strictly inward; `factory.py` as the sole composition root
+- **20+ validators** — pure functions operating on the `Skill` domain model; path-aware validators for filesystem checks
