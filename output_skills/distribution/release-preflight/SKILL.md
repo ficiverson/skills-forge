@@ -1,15 +1,13 @@
 ---
 name: release-preflight
-version: 1.0.0
+version: 1.1.0
 description: >
-  Five-phase pre-release check for skills-forge: pytest/ruff/mypy (95%+ coverage gate),
-  pack consistency (sha256/size/manifest), schema alignment (FORMAT_VERSION), CLI sandbox
-  UAT (all commands including info, doctor, update, diff, yank, deprecate, list filters,
-  registry, test, new export formats mistral-json/gemini-api/openai-assistants, SHA256
-  install, E2E scenarios), and release hygiene. Trigger on: "ready to release",
-  "run preflight", "pre-release checklist", "verify before tagging", "UAT",
-  "pack consistency", "registry up-to-date", "run lint and tests", "PyPI publish".
-  Always run all phases unless the user explicitly requests a single one.
+  Five-phase pre-release check for skills-forge: (1) pytest + ruff + mypy via
+  check_pipeline.py, (2) pack consistency sha256/size/manifest, (3) schema alignment
+  FORMAT_VERSION, (4) CLI sandbox UAT all commands + E2E scenarios, (5) release hygiene
+  branch/version/notes/registry. Triggers on: "ready to release", "run preflight",
+  "pre-release checklist", "verify before tagging", "UAT", "pack consistency",
+  "run lint and tests", "pipeline check", "PyPI publish".
 emoji: 🚀
 requires-forge: ">=0.8.0"
 ---
@@ -53,23 +51,48 @@ Run all five phases in order and report a summary at the end.
 
 ## Phase 1 — Code Quality
 
-```bash
-# All three commands must exit 0; run in the project root
-export PATH="$PATH:$HOME/.local/bin"   # skills-forge install location
+Run the two checks in order. Both must exit 0 before the release can proceed.
 
-pytest --cov=skill_forge --cov-fail-under=95 --tb=short -q   # full suite + 95% coverage gate
-ruff check src/ tests/                 # E/F/W/I/N/UP/B/SIM/RUF rules
-mypy src/                              # strict mode, zero issues
+### 1a — Test suite + coverage gate
+
+```bash
+# Run from the project root
+export PATH="$PATH:$HOME/.local/bin"
+
+pytest --cov=skill_forge --cov-fail-under=95 --tb=short -q
 ```
 
 **What to report:**
-- Number of tests collected and the pass/fail count (target: 640+)
+- Number of tests collected and the pass/fail count (target: 665+)
 - Coverage percentage (must be ≥ 95%)
-- Any ruff rule violations with file + line
-- Any mypy errors with file + line
+- Any failing tests with file + line
 
-Stop the preflight and report failure if any of these exit non-zero — the remaining
-phases still require clean code to be meaningful.
+### 1b — CI pipeline check (lint & type check)
+
+Run the dedicated script that mirrors the GitHub Actions **Lint & Type Check** job
+exactly — same three commands, same order:
+
+```bash
+python output_skills/distribution/release-preflight/scripts/check_pipeline.py
+```
+
+The script runs:
+
+| CI step | Command |
+|---------|---------|
+| Ruff lint | `ruff check src/ tests/` |
+| Ruff format check | `ruff format --check src/ tests/` |
+| Mypy type check | `mypy src/` |
+
+It exits 0 when all three pass and prints a structured summary. On failure it
+prints the full tool output so you can fix the issue without re-running manually.
+
+**What to report:**
+- `✅ CLEAR` if all three commands passed
+- `❌ BLOCKED` with the specific failing command(s) and the tool output if any failed
+
+Stop the preflight and report Phase 1 failure if either 1a or 1b exits non-zero —
+the remaining phases still require clean code to be meaningful.
 
 ---
 
@@ -215,8 +238,7 @@ Work through this checklist (automate what you can with git):
 
 - [ ] **Correct branch** — are we on the intended release branch (e.g. `1.0.0`, `release/x.y.z`)?
 - [ ] **Version bump** — does `pyproject.toml` `[project].version` match the intended release?
-- [ ] **RELEASE_NOTES** — does `RELEASE_NOTES_<version>.md` exist and cover all changes since last tag?
-- [ ] **ROADMAP** — is `ROADMAP_1.0.0.md` updated with completed items reflected?
+- [ ] **RELEASE_NOTES** — does `RELEASE_NOTES.md` have an entry for the new version covering all changes since the last tag?
 - [ ] **Changelog / commit log** — do git log messages since the last tag tell a coherent story?
 - [ ] **Registry `updated_at`** — has `index.json` `updated_at` been refreshed?
 - [ ] **README + index.html regenerated** — run `python regenerate-readme.py` in the registry repo.
@@ -240,7 +262,7 @@ After all five phases, produce this summary table:
 ═══════════════════════════════════════════════════
  🚀  Release Preflight  ·  skills-forge vX.Y.Z
 ═══════════════════════════════════════════════════
-  Phase 1 · Code Quality        ✅  640 tests (95.4% cov), ruff OK, mypy OK
+  Phase 1 · Code Quality        ✅  665 tests (97% cov) · ruff ✅ · fmt ✅ · mypy ✅
   Phase 2 · Pack Consistency    ✅  10/10 packs
   Phase 3 · Schema Alignment    ✅  format_version "3"/"1" aligned
   Phase 4 · CLI Sandbox UAT     ✅  31/31 commands + 19/19 E2E scenarios
